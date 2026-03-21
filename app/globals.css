@@ -80,7 +80,7 @@ img {
 .site-footer {
   border-top: 1px solid #8a5d31;
   background: #140d09;
-  padding: 26px 20px 30px;
+  padding: 30px 20px 34px;
   text-align: center;
   margin-top: 60px;
 }
@@ -89,20 +89,21 @@ img {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 18px;
+  gap: 14px;
   flex-wrap: wrap;
+  margin-bottom: 18px;
 }
 
 .footer-line {
-  width: 170px;
+  width: 120px;
   height: 1px;
   background: #8a5d31;
+  opacity: 0.6;
 }
 
 .footer-text {
-  font-size: 18px;
-  color: #e6c27a;
-  white-space: nowrap;
+  font-size: 16px;
+  color: #d7b06c;
 }
 
 .footer-link {
@@ -112,6 +113,41 @@ img {
 
 .footer-link:hover {
   color: #f0d38b;
+}
+
+.footer-links-legal {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.footer-legal-link {
+  border: 1px solid rgba(166, 120, 61, 0.6);
+  padding: 6px 12px;
+  font-size: 14px;
+  color: #cfa968;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.footer-legal-link:hover {
+  background: #a6783d;
+  color: #140d09;
+  border-color: #c4914d;
+  transform: translateY(-1px);
+  box-shadow: 0 0 10px rgba(230, 194, 122, 0.2);
 }
 
 /* HOME */
@@ -256,17 +292,8 @@ img {
   border-radius: 999px;
 }
 
-.home-action-button.destaque {
-  border-radius: 999px;
-  box-shadow:
-    0 0 18px rgba(230, 194, 122, 0.08),
-    inset 0 0 0 1px rgba(230, 194, 122, 0.04);
-}
-
-.home-action-button.destaque:hover {
-  box-shadow:
-    0 0 18px rgba(230, 194, 122, 0.18),
-    0 0 28px rgba(230, 194, 122, 0.12);
+.vision-button {
+  min-width: 220px;
 }
 
 /* SECTIONS / CARDS */
@@ -317,6 +344,13 @@ img {
 .home-card-content {
   max-width: 940px;
   margin: 0 auto;
+  text-align: center;
+}
+
+.home-card-actions {
+  margin-top: 30px;
+  display: flex;
+  justify-content: center;
 }
 
 .center-title {
@@ -348,10 +382,65 @@ img {
   line-height: 1.7;
   color: #d7b06c;
   margin: 0 0 16px;
+  text-align: center;
 }
 
 .home-text:last-child {
   margin-bottom: 0;
+}
+
+/* MINI CARDS DO REGNUM */
+.home-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 20px;
+}
+
+.home-mini-card {
+  border: 1px solid #8a5d31;
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(20, 13, 9, 0.98) 0%, rgba(26, 16, 12, 0.98) 100%);
+  padding: 28px 24px;
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.18),
+    inset 0 0 0 1px rgba(166, 120, 61, 0.06);
+  transition:
+    transform 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.home-mini-card:hover {
+  transform: translateY(-4px);
+  border-color: #b7894d;
+  box-shadow:
+    0 14px 30px rgba(0, 0, 0, 0.22),
+    0 0 20px rgba(166, 120, 61, 0.08);
+}
+
+.home-mini-kicker {
+  margin: 0 0 12px;
+  font-family: "Cinzel", serif;
+  font-size: 22px;
+  color: #a6783d;
+  line-height: 1.15;
+}
+
+.home-mini-title {
+  margin: 0 0 12px;
+  font-family: "Cinzel", serif;
+  font-size: 28px;
+  line-height: 1.15;
+  color: #e6c27a;
+}
+
+.home-mini-text {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.65;
+  color: #d7b06c;
 }
 
 /* SACRALUNA / PUBLICIDADE */
@@ -360,11 +449,9 @@ img {
   grid-template-columns: 84px minmax(0, 1fr);
   gap: 24px;
   align-items: center;
-
   max-width: 980px;
   margin: 20px auto 0;
   padding: 26px 28px;
-
   border: 1px solid #a6783d;
   border-radius: 14px;
   background:
@@ -397,6 +484,8 @@ img {
 .sacraluna-ad-logo img {
   width: 56px;
   height: 56px;
+  min-width: 56px;
+  min-height: 56px;
   max-width: 56px;
   max-height: 56px;
   object-fit: contain;
@@ -419,6 +508,10 @@ img {
   line-height: 1.15;
   color: #a6783d;
   letter-spacing: 0.02em;
+}
+
+.sacraluna-ad-kicker a {
+  color: inherit;
 }
 
 .sacraluna-ad-title {
@@ -538,6 +631,10 @@ img {
     padding: 30px 24px;
   }
 
+  .home-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
   .sacraluna-ad-card {
     grid-template-columns: 1fr;
     gap: 18px;
@@ -566,12 +663,22 @@ img {
 
 @media (max-width: 768px) {
   .home-actions,
-  .contact-actions {
+  .contact-actions,
+  .footer-links-legal {
     flex-direction: column;
   }
 
-  .home-action-button {
+  .home-action-button,
+  .footer-legal-link {
     width: 100%;
+  }
+
+  .footer-line {
+    width: 50px;
+  }
+
+  .footer-text {
+    white-space: normal;
   }
 }
 
@@ -623,12 +730,7 @@ img {
     flex-direction: column;
   }
 
-  .footer-line {
-    width: 70px;
-  }
-
   .footer-text {
-    white-space: normal;
     font-size: 16px;
   }
 }
@@ -645,6 +747,8 @@ img {
   .sacraluna-ad-logo img {
     width: 52px;
     height: 52px;
+    min-width: 52px;
+    min-height: 52px;
     max-width: 52px;
     max-height: 52px;
   }

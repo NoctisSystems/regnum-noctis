@@ -59,6 +59,42 @@ export default function RootLayout({
             </div>
             <div className="footer-line" />
           </div>
+
+          <div className="footer-links-legal">
+            <a
+              href="https://www.livroreclamacoes.pt/inicio/reclamacao"
+              target="_blank"
+              rel="noreferrer"
+              className="footer-legal-link"
+            >
+              Livro de Reclamações
+            </a>
+
+            <a
+              href="https://www.consumidor.gov.pt/ral-mapa-e-lista-de-entidades"
+              target="_blank"
+              rel="noreferrer"
+              className="footer-legal-link"
+            >
+              Resolução de Litígios
+            </a>
+
+            <a href="/privacidade" className="footer-legal-link">
+              Política de Privacidade
+            </a>
+
+            <a href="/cookies" className="footer-legal-link">
+              Política de Cookies
+            </a>
+
+            <a href="/termos" className="footer-legal-link">
+              Termos e Condições
+            </a>
+
+            <a href="/publicidade" className="footer-legal-link">
+              Publicidade e Parceiros
+            </a>
+          </div>
         </footer>
       </body>
     </html>

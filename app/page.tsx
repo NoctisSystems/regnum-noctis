@@ -94,6 +94,12 @@ export default function Home() {
                 Este não é um espaço para acumular informação. É um espaço para
                 transformar conhecimento em prática.
               </p>
+
+              <div className="home-card-actions fade-in-up fade-delay-1">
+                <a href="/sobre-nos" className="home-action-button vision-button">
+                  A nossa visão
+                </a>
+              </div>
             </div>
           </article>
         </div>
@@ -101,7 +107,40 @@ export default function Home() {
 
       <section className="home-section">
         <div className="home-container">
-          <article className="sacraluna-ad-card fade-in-up fade-delay-1">
+          <div className="home-cards-grid fade-in-up fade-delay-1">
+            <article className="home-mini-card">
+              <p className="home-mini-kicker">Estrutura</p>
+              <h3 className="home-mini-title">Percursos sérios</h3>
+              <p className="home-mini-text">
+                Formação pensada com base, coerência e progressão real para quem
+                quer aprender com profundidade.
+              </p>
+            </article>
+
+            <article className="home-mini-card">
+              <p className="home-mini-kicker">Critério</p>
+              <h3 className="home-mini-title">Mais do que conteúdo</h3>
+              <p className="home-mini-text">
+                O objetivo não é acumular noções soltas, mas desenvolver
+                compreensão, integração e aplicação consciente.
+              </p>
+            </article>
+
+            <article className="home-mini-card">
+              <p className="home-mini-kicker">Identidade</p>
+              <h3 className="home-mini-title">Uma plataforma própria</h3>
+              <p className="home-mini-text">
+                Um espaço construído para preservar exigência, seriedade e valor
+                real no ensino espiritual.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section className="home-section">
+        <div className="home-container">
+          <article className="sacraluna-ad-card fade-in-up fade-delay-2">
             <div className="sacraluna-ad-logo">
               <img src="/logo-sacraluna.png" alt="SacraLuna" />
             </div>
@@ -141,7 +180,7 @@ export default function Home() {
 
       <section className="home-section">
         <div className="home-container">
-          <article className="home-card home-card-premium fade-in-up fade-delay-2">
+          <article className="home-card home-card-premium fade-in-up fade-delay-3">
             <p className="home-card-kicker center-title">
               Contactos da plataforma
             </p>
@@ -154,7 +193,7 @@ export default function Home() {
               Informações, suporte e candidaturas relacionadas com a plataforma.
             </p>
 
-            <div className="contact-actions fade-in-up fade-delay-3">
+            <div className="contact-actions fade-in-up fade-delay-4">
               <a
                 href="mailto:geral.regnumnoctis@gmail.com"
                 className="home-action-button"
