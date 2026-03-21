@@ -2,18 +2,37 @@ export default function AlunoPage() {
   return (
     <main className="aluno-page">
       <section className="aluno-hero">
-        <div className="home-container">
-          <p className="home-kicker">Área do Aluno</p>
+        <div
+          className="home-container"
+          style={{
+            textAlign: "center",
+            maxWidth: "900px",
+            margin: "0 auto",
+          }}
+        >
+          <p className="home-kicker"></p>
 
-          <h1 className="home-title aluno-title">Entrar no teu percurso</h1>
+          <h1 className="home-title aluno-title">
+            Entrar no teu percurso
+          </h1>
 
-          <div className="home-ornament" aria-hidden="true">
+          <div
+            className="home-ornament"
+            aria-hidden="true"
+            style={{ justifyContent: "center" }}
+          >
             <div className="home-ornament-line" />
             <div className="home-ornament-star">✦</div>
             <div className="home-ornament-line" />
           </div>
 
-          <p className="home-lead">
+          <p
+            className="home-lead"
+            style={{
+              margin: "0 auto",
+              textAlign: "center",
+            }}
+          >
             Acede aos teus cursos, acompanha o teu progresso e organiza o teu
             percurso dentro do Regnum Noctis.
           </p>

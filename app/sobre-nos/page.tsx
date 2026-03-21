@@ -82,6 +82,7 @@ export default function SobreNosPage() {
           color: #ddb56f;
           font-size: clamp(19px, 2vw, 28px);
           font-weight: 600;
+          text-align: center;
         }
 
         .hero-title {
@@ -92,6 +93,7 @@ export default function SobreNosPage() {
           margin: 0 0 20px 0;
           color: #f3deb0;
           text-shadow: 0 0 18px rgba(214, 168, 93, 0.08);
+          text-align: center;
         }
 
         .hero-divider {
@@ -123,15 +125,15 @@ export default function SobreNosPage() {
         .hero-symbol {
           color: #ddb56f;
           font-size: 26px;
-          line-height: 1;
         }
 
         .hero-text {
           font-size: clamp(24px, 2.7vw, 33px);
-          line-height: 1.68;
+          line-height: 1.7;
           color: #f0d9ab;
           max-width: 980px;
           margin: 0 auto;
+          text-align: center;
         }
 
         .main-card {
@@ -148,42 +150,21 @@ export default function SobreNosPage() {
             0 18px 50px rgba(0, 0, 0, 0.34),
             inset 0 1px 0 rgba(255, 225, 170, 0.05);
           position: relative;
-        }
-
-        .main-card::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: 50%;
-          transform: translateX(-50%);
-          width: calc(100% - 80px);
-          height: 1px;
-          background: linear-gradient(
-            90deg,
-            rgba(166, 120, 61, 0) 0%,
-            rgba(166, 120, 61, 0.8) 50%,
-            rgba(166, 120, 61, 0) 100%
-          );
+          text-align: center;
         }
 
         .main-title {
           margin: 0 0 28px 0;
-          text-align: center;
-          fontFamily: "Cinzel, serif";
+          font-family: "Cinzel, serif";
           font-size: clamp(32px, 4vw, 48px);
-          line-height: 1.14;
           color: #f2dbab;
-        }
-
-        .main-content {
-          max-width: 930px;
-          margin: 0 auto;
+          text-align: center;
         }
 
         .main-paragraph {
           margin: 0 0 24px 0;
           font-size: clamp(23px, 2.25vw, 29px);
-          line-height: 1.8;
+          line-height: 1.75;
           color: #e4be7f;
           text-align: center;
         }
@@ -198,22 +179,19 @@ export default function SobreNosPage() {
             rgba(65, 34, 20, 0.12) 100%
           );
           padding: 28px 24px;
-          box-shadow: inset 0 1px 0 rgba(255, 225, 170, 0.04);
+          text-align: center;
         }
 
         .highlight-title {
           margin: 0 0 16px 0;
-          text-align: center;
           font-family: "Cinzel, serif";
           font-size: clamp(27px, 3vw, 36px);
           color: #f0d79a;
         }
 
         .highlight-text {
-          margin: 0;
           font-size: clamp(22px, 2.15vw, 27px);
-          line-height: 1.8;
-          text-align: center;
+          line-height: 1.7;
           color: #e7c684;
         }
 
@@ -221,60 +199,19 @@ export default function SobreNosPage() {
           max-width: 980px;
           margin: 0 auto;
           text-align: center;
-          padding: 0 14px;
         }
 
         .closing-title {
           margin: 0 0 16px 0;
           font-family: "Cinzel, serif";
           font-size: clamp(36px, 4.8vw, 56px);
-          line-height: 1.12;
           color: #f4dfb3;
         }
 
         .closing-text {
-          margin: 0 auto;
-          max-width: 900px;
           font-size: clamp(24px, 2.4vw, 31px);
-          line-height: 1.76;
+          line-height: 1.7;
           color: #deb976;
-        }
-
-        @media (max-width: 768px) {
-          .hero {
-            margin-bottom: 34px;
-            padding: 8px 8px 4px 8px;
-          }
-
-          .hero-divider {
-            gap: 10px;
-            margin-bottom: 22px;
-          }
-
-          .hero-line {
-            width: 82px;
-          }
-
-          .main-card {
-            padding: 30px 20px;
-            margin-bottom: 34px;
-          }
-
-          .main-card::before {
-            width: calc(100% - 36px);
-          }
-
-          .highlight-panel {
-            padding: 22px 18px;
-            margin: 28px auto;
-          }
-
-          .main-paragraph,
-          .highlight-text,
-          .closing-text,
-          .hero-text {
-            line-height: 1.72;
-          }
         }
       `}</style>
 
@@ -293,78 +230,71 @@ export default function SobreNosPage() {
 
           <p className="hero-text fade-up delay-1">
             O Regnum Noctis é uma plataforma independente de educação espiritual,
-            criada para reunir ensino sério, estruturado e coerente nas áreas
-            dos oráculos, métodos divinatórios, práticas mágicas, sacerdócios e
-            desenvolvimento energético.
+            criada para reunir ensino sério, estruturado e exigente nas áreas
+            dos oráculos, métodos divinatórios, práticas mágicas, caminhos
+            devocionais, sacerdócios e desenvolvimento energético.
           </p>
         </div>
 
         {/* BLOCO PRINCIPAL */}
         <section className="fade-up delay-2">
           <div className="main-card">
-            <h2
-              className="main-title"
-              style={{
-                fontFamily: "Cinzel, serif",
-              }}
-            >
-              Uma plataforma criada para profundidade, estrutura e prática real
+            <h2 className="main-title">
+              Uma plataforma criada para estrutura, profundidade e prática real
             </h2>
 
-            <div className="main-content">
-              <p className="main-paragraph">
-                O Regnum Noctis nasce como resposta à falta de espaços realmente
-                dedicados ao ensino espiritual sério. Não foi criado para seguir
-                tendências, alimentar consumo rápido de informação ou transformar
-                a espiritualidade em conteúdo vazio.
-              </p>
+            <p className="main-paragraph">
+              O Regnum Noctis nasce como resposta à falta de espaços
+              verdadeiramente dedicados ao ensino espiritual com seriedade. Não
+              foi criado para seguir tendências, alimentar consumo rápido de
+              informação ou transformar conhecimento em conteúdo vazio.
+            </p>
 
-              <p className="main-paragraph">
-                Foi pensado para acolher percursos com base, direção e aplicação
-                concreta — para quem quer compreender, integrar e praticar, em
-                vez de apenas acumular noções soltas sem sustentação.
-              </p>
+            <p className="main-paragraph">
+              Foi pensado para acolher percursos com base, direção e aplicação
+              concreta — para quem quer compreender, integrar e praticar, em vez
+              de acumular noções soltas sem profundidade nem sustentação.
+            </p>
 
-              <p className="main-paragraph">
-                O que distingue esta plataforma é a intenção de manter qualidade
-                no ensino, escolha criteriosa de formadores e uma aprendizagem
-                orientada para fortalecer autonomia, clareza e maturidade
-                espiritual.
-              </p>
+            <p className="main-paragraph">
+              O que distingue esta plataforma é o compromisso com a qualidade do
+              ensino, a escolha criteriosa de formadores e uma aprendizagem
+              orientada para desenvolver clareza, maturidade e autonomia real no
+              percurso espiritual de cada aluno.
+            </p>
 
-              <div className="highlight-panel">
-                <h3 className="highlight-title">O que sustenta o Regnum Noctis</h3>
+            <div className="highlight-panel">
+              <h3 className="highlight-title">
+                O que sustenta o Regnum Noctis
+              </h3>
 
-                <p className="highlight-text">
-                  Estrutura real no conteúdo. Seleção séria de formadores.
-                  Aprendizagem orientada para autonomia. Ensino com base, com
-                  prática e com respeito pelo conhecimento.
-                </p>
-              </div>
-
-              <p
-                className="main-paragraph"
-                style={{
-                  marginBottom: "0",
-                }}
-              >
-                Os percursos presentes na plataforma podem abranger áreas como
-                Tarot, Lenormand, cartomancia, runas, práticas mágicas, sistemas
-                devocionais, trabalho energético, sacerdócios e outros caminhos
-                ligados ao desenvolvimento espiritual. O ponto comum entre eles
-                não é uma estética vazia nem um discurso genérico: é a intenção
-                de ensinar com fundamento, prática e coerência.
+              <p className="highlight-text">
+                Estrutura real no conteúdo. Seleção séria de formadores. Ensino
+                orientado para compreensão, autonomia e prática. Uma plataforma
+                construída com respeito pelo conhecimento e pelo valor da
+                transmissão.
               </p>
             </div>
+
+            <p className="main-paragraph">
+              Os percursos presentes na plataforma podem abranger áreas como
+              Tarot, Lenormand, cartomancia, runas, práticas mágicas, sistemas
+              devocionais, trabalho energético, sacerdócios e outros caminhos
+              ligados ao desenvolvimento espiritual. O que os une não é uma
+              estética vazia nem um discurso genérico, mas a intenção de ensinar
+              com fundamento, coerência e aplicação real.
+            </p>
           </div>
         </section>
 
         {/* FECHO */}
         <section className="closing fade-up delay-3">
-          <h2 className="closing-title">Conhecimento. Estrutura. Autonomia.</h2>
+          <h2 className="closing-title">
+            Conhecimento. Estrutura. Autonomia.
+          </h2>
 
           <p className="closing-text">
-            O Regnum Noctis existe para criar uma base séria para o ensino
+            O Regnum Noctis existe para oferecer uma base séria ao ensino
             espiritual — um espaço onde tradição, prática e transmissão possam
             coexistir com profundidade, organização e identidade própria.
           </p>

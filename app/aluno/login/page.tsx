@@ -36,9 +36,7 @@ export default function AlunoLoginPage() {
         password,
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       setSucesso("Login efetuado com sucesso.");
 
@@ -55,47 +53,68 @@ export default function AlunoLoginPage() {
   return (
     <main className="auth-page">
       <section className="auth-card home-card-premium">
-        <p className="home-card-kicker">Área do Aluno</p>
-        <h1 className="home-section-title auth-title">Entrar</h1>
+        <div className="auth-hero">
+          <p className="auth-eyebrow">Área do Aluno</p>
 
-        <p className="home-text auth-text">
-          Acede à tua conta para veres os teus cursos, progresso e conteúdos.
-        </p>
+          <h1 className="auth-hero-title">Entrar no teu percurso</h1>
+
+          <div className="auth-hero-divider" aria-hidden="true">
+            <span className="line"></span>
+            <span className="star">✦</span>
+            <span className="line"></span>
+          </div>
+
+          <p className="auth-hero-text">
+            Acede aos teus cursos, acompanha o teu progresso e organiza o teu
+            percurso dentro do Regnum Noctis.
+          </p>
+        </div>
 
         {erro && <div className="auth-message auth-error">{erro}</div>}
         {sucesso && <div className="auth-message auth-success">{sucesso}</div>}
 
         <form onSubmit={handleLogin} className="auth-form">
           <div className="auth-field">
-            <label className="auth-label">Email</label>
+            <label className="auth-label" htmlFor="email">
+              Email
+            </label>
             <input
+              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="auth-input"
               placeholder="teuemail@exemplo.com"
+              autoComplete="email"
             />
           </div>
 
           <div className="auth-field">
-            <label className="auth-label">Palavra-passe</label>
+            <label className="auth-label" htmlFor="password">
+              Palavra-passe
+            </label>
             <input
+              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="auth-input"
               placeholder="A tua palavra-passe"
+              autoComplete="current-password"
             />
           </div>
 
-          <button type="submit" disabled={loading} className="home-action-button auth-submit">
+          <button
+            type="submit"
+            disabled={loading}
+            className="home-action-button auth-submit"
+          >
             {loading ? "A entrar..." : "Entrar"}
           </button>
         </form>
 
-        <div className="auth-footer-link">
-          Ainda não tens conta?{" "}
-          <a href="/aluno/registo">Criar conta</a>
+        <div className="auth-footer-link center-title">
+          Ainda não tens conta? <a href="/aluno/registo">Criar conta</a>
         </div>
       </section>
     </main>
