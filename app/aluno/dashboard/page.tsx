@@ -1,272 +1,387 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
-export default function AlunoLoginPage() {
+type DashboardUser = {
+  id: string;
+  email: string;
+};
+
+type DashboardTab =
+  | "resumo"
+  | "meus-cursos"
+  | "certificados"
+  | "aulas-salvas";
+
+export default function AlunoDashboardPage() {
   const router = useRouter();
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
-  const [sucesso, setSucesso] = useState("");
+  const [user, setUser] = useState<DashboardUser | null>(null);
+  const [activeTab, setActiveTab] = useState<DashboardTab>("meus-cursos");
+  const [menuAberto, setMenuAberto] = useState(false);
 
-  async function handleLogin(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setErro("");
-    setSucesso("");
+  useEffect(() => {
+    async function verificarSessao() {
+      try {
+        setLoading(true);
+        setErro("");
 
-    if (!email.trim()) {
-      setErro("Indica o teu email.");
-      return;
-    }
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
 
-    if (!password.trim()) {
-      setErro("Indica a tua palavra-passe.");
-      return;
-    }
+        if (error) {
+          throw error;
+        }
 
-    try {
-      setLoading(true);
+        if (!user) {
+          router.push("/aluno/login");
+          return;
+        }
 
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-
-      if (error) {
-        throw error;
+        setUser({
+          id: user.id,
+          email: user.email ?? "",
+        });
+      } catch (error: any) {
+        setErro(
+          error?.message || "Não foi possível carregar a dashboard do aluno."
+        );
+      } finally {
+        setLoading(false);
       }
-
-      setSucesso("Login efetuado com sucesso.");
-
-      setTimeout(() => {
-        router.push("/aluno/dashboard");
-      }, 1000);
-    } catch (error: any) {
-      setErro(error?.message || "Não foi possível iniciar sessão.");
-    } finally {
-      setLoading(false);
     }
+
+    verificarSessao();
+  }, [router]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setMenuAberto(false);
+      }
+    }
+
+    if (menuAberto) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuAberto]);
+
+  async function terminarSessao() {
+    await supabase.auth.signOut();
+    router.push("/aluno/login");
+  }
+
+  const nomeApresentacao = useMemo(() => {
+    if (!user?.email) return "Aluno";
+    return user.email;
+  }, [user]);
+
+  const inicial = useMemo(() => {
+    if (!user?.email) return "A";
+    return user.email.charAt(0).toUpperCase();
+  }, [user]);
+
+  const totalCursos = 0;
+  const cursosConcluidos = 0;
+  const cursosEmProgresso = 0;
+  const progressoMedio = 0;
+
+  if (loading) {
+    return (
+      <main className="aluno-dashboard-page">
+        <section className="aluno-dashboard-shell">
+          <article className="home-card home-card-premium aluno-dashboard-loading-card">
+            <p className="home-card-kicker center-title">Área do Aluno</p>
+            <h1 className="home-section-title center-title">
+              A carregar a tua dashboard...
+            </h1>
+            <p className="home-text center-title">
+              Estamos a preparar o teu espaço dentro do Regnum Noctis.
+            </p>
+          </article>
+        </section>
+      </main>
+    );
   }
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: "#2b160f",
-        color: "#e6c27a",
-        fontFamily: "Cormorant Garamond, serif",
-        paddingTop: "60px",
-        paddingRight: "20px",
-        paddingBottom: "80px",
-        paddingLeft: "20px",
-      }}
-    >
-      <section
-        style={{
-          maxWidth: "620px",
-          marginTop: "0",
-          marginRight: "auto",
-          marginBottom: "0",
-          marginLeft: "auto",
-          border: "1px solid #8a5d31",
-          background: "#140d09",
-          paddingTop: "40px",
-          paddingRight: "32px",
-          paddingBottom: "40px",
-          paddingLeft: "32px",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
-        }}
-      >
-        <p
-          style={{
-            letterSpacing: "3px",
-            textTransform: "uppercase",
-            color: "#caa15a",
-            fontSize: "15px",
-            marginTop: 0,
-            marginRight: 0,
-            marginBottom: "14px",
-            marginLeft: 0,
-            textAlign: "center",
-          }}
-        >
-          Área do Aluno
-        </p>
+    <main className="aluno-dashboard-page">
+      <section className="aluno-dashboard-shell">
+        <div className="aluno-dashboard-topbar">
+          <div className="aluno-dashboard-tabs">
+            <button
+              className={`aluno-dashboard-tab ${
+                activeTab === "resumo" ? "active" : ""
+              }`}
+              onClick={() => setActiveTab("resumo")}
+              type="button"
+            >
+              Resumo
+            </button>
 
-        <h1
-          style={{
-            fontFamily: "Cinzel, serif",
-            fontSize: "42px",
-            marginTop: 0,
-            marginRight: 0,
-            marginBottom: "16px",
-            marginLeft: 0,
-            textAlign: "center",
-            color: "#e6c27a",
-          }}
-        >
-          Entrar
-        </h1>
+            <button
+              className={`aluno-dashboard-tab ${
+                activeTab === "meus-cursos" ? "active" : ""
+              }`}
+              onClick={() => setActiveTab("meus-cursos")}
+              type="button"
+            >
+              Meus Cursos
+            </button>
 
-        <p
-          style={{
-            fontSize: "21px",
-            lineHeight: "1.75",
-            color: "#d7b06c",
-            textAlign: "center",
-            marginTop: 0,
-            marginRight: 0,
-            marginBottom: "30px",
-            marginLeft: 0,
-          }}
-        >
-          Acede à tua conta para veres os teus cursos e conteúdos.
-        </p>
+            <button
+              className={`aluno-dashboard-tab ${
+                activeTab === "certificados" ? "active" : ""
+              }`}
+              onClick={() => setActiveTab("certificados")}
+              type="button"
+            >
+              Certificados
+            </button>
 
-        {erro && (
-          <div
-            style={{
-              border: "1px solid rgba(239,68,68,0.35)",
-              background: "rgba(239,68,68,0.08)",
-              color: "#fecaca",
-              paddingTop: "14px",
-              paddingRight: "16px",
-              paddingBottom: "14px",
-              paddingLeft: "16px",
-              marginTop: 0,
-              marginRight: 0,
-              marginBottom: "18px",
-              marginLeft: 0,
-            }}
-          >
-            {erro}
-          </div>
-        )}
-
-        {sucesso && (
-          <div
-            style={{
-              border: "1px solid rgba(16,185,129,0.35)",
-              background: "rgba(16,185,129,0.08)",
-              color: "#bbf7d0",
-              paddingTop: "14px",
-              paddingRight: "16px",
-              paddingBottom: "14px",
-              paddingLeft: "16px",
-              marginTop: 0,
-              marginRight: 0,
-              marginBottom: "18px",
-              marginLeft: 0,
-            }}
-          >
-            {sucesso}
-          </div>
-        )}
-
-        <form onSubmit={handleLogin}>
-          <div style={campoWrap}>
-            <label style={label}>Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={input}
-              placeholder="teuemail@exemplo.com"
-            />
+            <button
+              className={`aluno-dashboard-tab ${
+                activeTab === "aulas-salvas" ? "active" : ""
+              }`}
+              onClick={() => setActiveTab("aulas-salvas")}
+              type="button"
+            >
+              Aulas Salvas
+            </button>
           </div>
 
-          <div
-            style={{
-              marginTop: 0,
-              marginRight: 0,
-              marginBottom: "24px",
-              marginLeft: 0,
-            }}
-          >
-            <label style={label}>Palavra-passe</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={input}
-              placeholder="A tua palavra-passe"
-            />
+          <div className="aluno-dashboard-profile" ref={dropdownRef}>
+            <button
+              type="button"
+              className="aluno-dashboard-hamburger"
+              onClick={() => setMenuAberto((prev) => !prev)}
+              aria-label="Abrir menu do aluno"
+            >
+              <span />
+              <span />
+              <span />
+            </button>
+
+            <button
+              type="button"
+              className="aluno-dashboard-avatar-button"
+              onClick={() => setMenuAberto((prev) => !prev)}
+              aria-label="Abrir perfil do aluno"
+            >
+              <span className="aluno-dashboard-avatar">{inicial}</span>
+            </button>
+
+            {menuAberto && (
+              <div className="aluno-dashboard-dropdown">
+                <div className="aluno-dashboard-dropdown-email">
+                  {nomeApresentacao}
+                </div>
+
+                <button
+                  type="button"
+                  className={`aluno-dashboard-dropdown-link ${
+                    activeTab === "meus-cursos" ? "active" : ""
+                  }`}
+                  onClick={() => {
+                    setActiveTab("meus-cursos");
+                    setMenuAberto(false);
+                  }}
+                >
+                  <span className="aluno-dashboard-dropdown-icon">▣</span>
+                  <span>Meus cursos</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`aluno-dashboard-dropdown-link ${
+                    activeTab === "certificados" ? "active" : ""
+                  }`}
+                  onClick={() => {
+                    setActiveTab("certificados");
+                    setMenuAberto(false);
+                  }}
+                >
+                  <span className="aluno-dashboard-dropdown-icon">◉</span>
+                  <span>Certificados</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`aluno-dashboard-dropdown-link ${
+                    activeTab === "aulas-salvas" ? "active" : ""
+                  }`}
+                  onClick={() => {
+                    setActiveTab("aulas-salvas");
+                    setMenuAberto(false);
+                  }}
+                >
+                  <span className="aluno-dashboard-dropdown-icon">◆</span>
+                  <span>Aulas salvas</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="aluno-dashboard-dropdown-link danger"
+                  onClick={terminarSessao}
+                >
+                  <span className="aluno-dashboard-dropdown-icon">↪</span>
+                  <span>Sair</span>
+                </button>
+              </div>
+            )}
           </div>
-
-          <button type="submit" disabled={loading} style={botaoPrincipal}>
-            {loading ? "A entrar..." : "Entrar"}
-          </button>
-        </form>
-
-        <div
-          style={{
-            textAlign: "center",
-            marginTop: "24px",
-            marginRight: 0,
-            marginBottom: 0,
-            marginLeft: 0,
-            fontSize: "19px",
-            color: "#d7b06c",
-          }}
-        >
-          Ainda não tens conta?{" "}
-          <a href="/aluno/registo" style={linkInline}>
-            Criar conta
-          </a>
         </div>
+
+        {erro ? (
+          <article className="home-card home-card-premium aluno-dashboard-panel">
+            <p className="home-card-kicker center-title">Erro</p>
+            <h2 className="home-section-title center-title">
+              Não foi possível carregar a tua área
+            </h2>
+            <p className="home-text center-title">{erro}</p>
+          </article>
+        ) : null}
+
+        {activeTab === "resumo" && (
+          <div className="aluno-dashboard-stack">
+            <article className="home-card home-card-premium aluno-dashboard-panel">
+              <p className="home-card-kicker">Resumo</p>
+              <h1 className="home-section-title aluno-dashboard-main-title">
+                O teu percurso no Regnum Noctis
+              </h1>
+
+              <p className="home-text aluno-dashboard-main-text">
+                Bem-vinda, {nomeApresentacao}. Esta dashboard foi organizada para
+                te dar uma visão clara do teu percurso, dos teus acessos e da tua
+                evolução dentro da plataforma.
+              </p>
+
+              <div className="aluno-dashboard-stats-grid">
+                <div className="aluno-dashboard-stat-box">
+                  <span className="aluno-dashboard-stat-number">
+                    {totalCursos}
+                  </span>
+                  <span className="aluno-dashboard-stat-label">
+                    Cursos ativos
+                  </span>
+                </div>
+
+                <div className="aluno-dashboard-stat-box">
+                  <span className="aluno-dashboard-stat-number">
+                    {progressoMedio}%
+                  </span>
+                  <span className="aluno-dashboard-stat-label">
+                    Progresso médio
+                  </span>
+                </div>
+
+                <div className="aluno-dashboard-stat-box">
+                  <span className="aluno-dashboard-stat-number">
+                    {cursosConcluidos}
+                  </span>
+                  <span className="aluno-dashboard-stat-label">
+                    Cursos concluídos
+                  </span>
+                </div>
+              </div>
+            </article>
+
+            <article className="home-card home-card-premium aluno-dashboard-panel">
+              <p className="home-card-kicker">Estado atual</p>
+              <h2 className="home-section-title">
+                A tua área está pronta para receber os teus cursos
+              </h2>
+
+              <p className="home-text">
+                À medida que os teus cursos forem comprados e associados à tua
+                conta, os respetivos acessos passarão a surgir automaticamente na
+                tab “Meus Cursos”.
+              </p>
+
+              <div className="aluno-dashboard-quick-actions">
+                <a href="/cursos" className="home-action-button">
+                  Explorar Cursos
+                </a>
+              </div>
+            </article>
+          </div>
+        )}
+
+        {activeTab === "meus-cursos" && (
+          <div className="aluno-dashboard-stack">
+            <article className="home-card home-card-premium aluno-dashboard-panel">
+              <p className="home-card-kicker">Meus Cursos</p>
+              <h2 className="home-section-title">
+                Ainda não tens cursos na tua área
+              </h2>
+
+              <div className="aluno-dashboard-empty-block">
+                <p className="home-text center-title">
+                  Os teus cursos só irão aparecer aqui quando houver compras
+                  registadas e associadas à tua conta.
+                </p>
+
+                <p className="home-text center-title">
+                  Quando isso acontecer, os cards serão gerados automaticamente
+                  com base nos cursos reais do aluno, mostrando o progresso, os acessos e as informações relevantes de cada curso.
+                </p>
+
+                <div className="aluno-dashboard-quick-actions">
+                  <a href="/cursos" className="home-action-button">
+                    Explorar Cursos
+                  </a>
+                </div>
+              </div>
+            </article>
+          </div>
+        )}
+
+        {activeTab === "certificados" && (
+          <div className="aluno-dashboard-stack">
+            <article className="home-card home-card-premium aluno-dashboard-panel">
+              <p className="home-card-kicker">Certificados</p>
+              <h2 className="home-section-title">
+                Os teus certificados aparecerão aqui
+              </h2>
+
+              <p className="home-text">
+                Quando os cursos tiverem certificados disponíveis, esta área
+                permitirá a consulta e o acesso aos documentos correspondentes.
+              </p>
+            </article>
+          </div>
+        )}
+
+        {activeTab === "aulas-salvas" && (
+          <div className="aluno-dashboard-stack">
+            <article className="home-card home-card-premium aluno-dashboard-panel">
+              <p className="home-card-kicker">Aulas Salvas</p>
+              <h2 className="home-section-title">
+                Conteúdos guardados para continuar depois
+              </h2>
+
+              <p className="home-text">
+                Aqui poderás reunir aulas marcadas, pontos de continuação e
+                conteúdos guardados para retomares o estudo quando quiseres.
+              </p>
+            </article>
+          </div>
+        )}
       </section>
     </main>
   );
 }
-
-const campoWrap = {
-  marginTop: 0,
-  marginRight: 0,
-  marginBottom: "18px",
-  marginLeft: 0,
-};
-
-const label = {
-  display: "block",
-  fontSize: "18px",
-  color: "#e6c27a",
-  marginTop: 0,
-  marginRight: 0,
-  marginBottom: "8px",
-  marginLeft: 0,
-};
-
-const input = {
-  width: "100%",
-  paddingTop: "14px",
-  paddingRight: "14px",
-  paddingBottom: "14px",
-  paddingLeft: "14px",
-  background: "#1a100c",
-  border: "1px solid #8a5d31",
-  color: "#e6c27a",
-  fontSize: "18px",
-  outline: "none",
-};
-
-const botaoPrincipal = {
-  width: "100%",
-  border: "1px solid #a6783d",
-  color: "#e6c27a",
-  background: "transparent",
-  paddingTop: "14px",
-  paddingRight: "18px",
-  paddingBottom: "14px",
-  paddingLeft: "18px",
-  fontSize: "20px",
-  cursor: "pointer",
-};
-
-const linkInline = {
-  color: "#e6c27a",
-  textDecoration: "underline",
-};
