@@ -12,10 +12,9 @@ type Curso = {
 type Formador = {
   id: string;
   nome: string | null;
-  bio: string | null;
+  bio_curta: string | null;
   area_ensino: string | null;
-  portfolio: string | null;
-  redes_sociais: string | null;
+  foto_url: string | null;
   status: string | null;
 };
 
@@ -24,6 +23,8 @@ export default async function CursosPage() {
   let formadores: Formador[] = [];
   let cursosError = "";
   let formadoresError = "";
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 
   try {
     const { data, error } = await supabase
@@ -44,7 +45,7 @@ export default async function CursosPage() {
   try {
     const { data, error } = await supabase
       .from("formadores")
-      .select("id, nome, bio, area_ensino, portfolio, redes_sociais, status")
+      .select("id, nome, bio_curta, area_ensino, foto_url, status")
       .eq("status", "aprovado")
       .order("nome", { ascending: true });
 
@@ -495,7 +496,7 @@ export default async function CursosPage() {
               </p>
             </div>
 
-            <a href="/formadores" style={botaoSecundario}>
+            <a href="/vitrine-formadores" style={botaoSecundario}>
               Ver vitrine completa
             </a>
           </div>
@@ -548,90 +549,114 @@ export default async function CursosPage() {
                 gap: "22px",
               }}
             >
-              {formadores.slice(0, 3).map((formador) => (
-                <article
-                  key={formador.id}
-                  style={{
-                    border: "1px solid rgba(138,93,49,0.7)",
-                    background: "#120b08",
-                    paddingTop: "22px",
-                    paddingRight: "20px",
-                    paddingBottom: "22px",
-                    paddingLeft: "20px",
-                    minHeight: "300px",
-                    display: "flex",
-                    flexDirection: "column",
-                  }}
-                >
-                  <div
+              {formadores.slice(0, 3).map((formador) => {
+                const fotoSrc =
+                  formador.foto_url && supabaseUrl
+                    ? `${supabaseUrl}/storage/v1/object/public/formadores-fotos/${formador.foto_url}`
+                    : null;
+
+                return (
+                  <article
+                    key={formador.id}
                     style={{
-                      width: "100%",
-                      height: "150px",
-                      border: "1px solid #8a5d31",
-                      background:
-                        "radial-gradient(circle at top, rgba(212,175,55,0.08), transparent 45%), #1a100c",
+                      border: "1px solid rgba(138,93,49,0.7)",
+                      background: "#120b08",
+                      paddingTop: "22px",
+                      paddingRight: "20px",
+                      paddingBottom: "22px",
+                      paddingLeft: "20px",
+                      minHeight: "360px",
                       display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#b9a773",
-                      marginTop: 0,
-                      marginRight: 0,
-                      marginBottom: "16px",
-                      marginLeft: 0,
+                      flexDirection: "column",
                     }}
                   >
-                    Foto do Formador
-                  </div>
+                    <div
+                      style={{
+                        width: "100%",
+                        height: "180px",
+                        border: "1px solid #8a5d31",
+                        background:
+                          "radial-gradient(circle at top, rgba(212,175,55,0.08), transparent 45%), #1a100c",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#b9a773",
+                        marginTop: 0,
+                        marginRight: 0,
+                        marginBottom: "16px",
+                        marginLeft: 0,
+                        overflow: "hidden",
+                      }}
+                    >
+                      {fotoSrc ? (
+                        <img
+                          src={fotoSrc}
+                          alt={formador.nome || "Formador"}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            display: "block",
+                          }}
+                        />
+                      ) : (
+                        "Sem fotografia"
+                      )}
+                    </div>
 
-                  <h3
-                    style={{
-                      fontFamily: "Cinzel, serif",
-                      fontSize: "26px",
-                      marginTop: 0,
-                      marginRight: 0,
-                      marginBottom: "10px",
-                      marginLeft: 0,
-                      color: "#e6c27a",
-                    }}
-                  >
-                    {formador.nome || "Formador"}
-                  </h3>
+                    <h3
+                      style={{
+                        fontFamily: "Cinzel, serif",
+                        fontSize: "26px",
+                        marginTop: 0,
+                        marginRight: 0,
+                        marginBottom: "10px",
+                        marginLeft: 0,
+                        color: "#e6c27a",
+                      }}
+                    >
+                      {formador.nome || "Formador"}
+                    </h3>
 
-                  <p
-                    style={{
-                      letterSpacing: "1px",
-                      textTransform: "uppercase",
-                      color: "#caa15a",
-                      fontSize: "14px",
-                      marginTop: 0,
-                      marginRight: 0,
-                      marginBottom: "12px",
-                      marginLeft: 0,
-                    }}
-                  >
-                    {formador.area_ensino || "Área em atualização"}
-                  </p>
+                    <p
+                      style={{
+                        letterSpacing: "1px",
+                        textTransform: "uppercase",
+                        color: "#caa15a",
+                        fontSize: "14px",
+                        marginTop: 0,
+                        marginRight: 0,
+                        marginBottom: "12px",
+                        marginLeft: 0,
+                      }}
+                    >
+                      {formador.area_ensino || "Área em atualização"}
+                    </p>
 
-                  <p
-                    style={{
-                      fontSize: "20px",
-                      lineHeight: "1.7",
-                      color: "#d7b06c",
-                      marginTop: 0,
-                      marginRight: 0,
-                      marginBottom: "16px",
-                      marginLeft: 0,
-                      flex: 1,
-                    }}
-                  >
-                    {formador.bio || "Perfil em atualização."}
-                  </p>
+                    <p
+                      style={{
+                        fontSize: "20px",
+                        lineHeight: "1.7",
+                        color: "#d7b06c",
+                        marginTop: 0,
+                        marginRight: 0,
+                        marginBottom: "16px",
+                        marginLeft: 0,
+                        flex: 1,
+                      }}
+                    >
+                      {formador.bio_curta || "Perfil em atualização."}
+                    </p>
 
-                  <a href="/formadores" style={botaoCard}>
-                    Ver perfil
-                  </a>
-                </article>
-              ))}
+                    <a
+                      href={`/vitrine-formadores/${formador.id}`}
+                      style={botaoCard}
+                    >
+                      Ver perfil
+                    </a>
+                  </article>
+                );
+              })}
             </div>
           )}
         </div>

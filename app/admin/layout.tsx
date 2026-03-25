@@ -1,75 +1,145 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+
+  const menuItems = [
+    { href: "/admin", label: "Dashboard" },
+    { href: "/admin/cursos", label: "Cursos" },
+    { href: "/admin/candidaturas-formador", label: "Candidaturas" },
+    { href: "/admin/formadores", label: "Formadores" },
+    { href: "/admin/alunos", label: "Alunos" },
+    { href: "/admin/vendas", label: "Vendas" },
+    { href: "/admin/levantamentos", label: "Levantamentos" },
+  ];
+
   return (
     <main
       style={{
         minHeight: "100vh",
         display: "flex",
-        background: "#2b160f",
+        background:
+          "radial-gradient(circle at top, rgba(128,72,38,0.14) 0%, rgba(43,22,15,1) 30%, rgba(18,10,8,1) 100%)",
         color: "#e6c27a",
         fontFamily: "Cormorant Garamond, serif",
       }}
     >
-      {/* SIDEBAR */}
       <aside
         style={{
-          width: "260px",
-          borderRight: "1px solid #a6783d",
-          padding: "30px 20px",
-          background: "#140d09",
+          width: "280px",
+          minWidth: "280px",
+          borderRight: "1px solid rgba(166, 120, 61, 0.55)",
+          padding: "28px 20px",
+          background:
+            "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(14,9,7,0.98) 100%)",
+          boxShadow: "inset -1px 0 0 rgba(255,225,170,0.04)",
+          position: "sticky",
+          top: 0,
+          height: "100vh",
         }}
       >
-        <h2
+        <div
           style={{
-            fontFamily: "Cinzel, serif",
-            fontSize: "26px",
             marginBottom: "30px",
+            paddingBottom: "22px",
+            borderBottom: "1px solid rgba(166, 120, 61, 0.35)",
           }}
         >
-          Administração
-        </h2>
+          <p
+            style={{
+              margin: "0 0 8px 0",
+              textTransform: "uppercase",
+              letterSpacing: "0.14em",
+              fontSize: "15px",
+              color: "#caa15a",
+            }}
+          >
+            Regnum Noctis
+          </p>
+
+          <h2
+            style={{
+              fontFamily: "Cinzel, serif",
+              fontSize: "28px",
+              lineHeight: 1.2,
+              margin: 0,
+              color: "#f0d79a",
+            }}
+          >
+            Administração
+          </h2>
+        </div>
 
         <nav
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "14px",
+            gap: "12px",
           }}
         >
-          <a href="/admin" style={link}>
-            Dashboard
-          </a>
+          {menuItems.map((item) => {
+            const isActive = pathname === item.href;
 
-          <a href="/admin/cursos" style={link}>
-            Cursos
-          </a>
-
-          <a href="/admin/formadores" style={link}>
-            Formadores
-          </a>
-
-          <a href="/admin/alunos" style={link}>
-            Alunos
-          </a>
-
-          <a href="/admin/vendas" style={link}>
-            Vendas
-          </a>
-
-          <a href="/admin/levantamentos" style={link}>
-            Levantamentos
-          </a>
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={{
+                  textDecoration: "none",
+                  color: isActive ? "#140d09" : "#e6c27a",
+                  border: `1px solid ${
+                    isActive ? "#c4914d" : "rgba(166, 120, 61, 0.65)"
+                  }`,
+                  background: isActive
+                    ? "#a6783d"
+                    : "linear-gradient(180deg, rgba(34,20,15,0.88) 0%, rgba(20,13,9,0.88) 100%)",
+                  padding: "13px 14px",
+                  display: "block",
+                  fontSize: "20px",
+                  lineHeight: 1.2,
+                  boxShadow: isActive
+                    ? "0 0 18px rgba(230, 194, 122, 0.14)"
+                    : "0 6px 18px rgba(0,0,0,0.16)",
+                  transition: "all 0.22s ease",
+                }}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
+
+        <div
+          style={{
+            marginTop: "30px",
+            paddingTop: "22px",
+            borderTop: "1px solid rgba(166, 120, 61, 0.35)",
+          }}
+        >
+          <a
+            href="/"
+            style={{
+              textDecoration: "none",
+              color: "#caa15a",
+              fontSize: "18px",
+            }}
+          >
+            Voltar ao site
+          </a>
+        </div>
       </aside>
 
-      {/* CONTEÚDO */}
       <section
         style={{
           flex: 1,
-          padding: "40px",
+          padding: "36px 34px 44px",
         }}
       >
         {children}
@@ -77,13 +147,3 @@ export default function AdminLayout({
     </main>
   );
 }
-
-const link = {
-  textDecoration: "none",
-  color: "#e6c27a",
-  border: "1px solid #a6783d",
-  padding: "12px",
-  display: "block",
-  fontSize: "18px",
-  transition: "all 0.2s ease",
-};
