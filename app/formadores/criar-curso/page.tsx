@@ -1,20 +1,38 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+
+type Formador = {
+  id: number;
+  status: string | null;
+  auth_id: string | null;
+};
 
 type FormData = {
   titulo: string;
   descricao: string;
-  tipo: string;
+  tipo_produto: string;
   preco: string;
+  capa_url: string;
+  tem_certificado: boolean;
+  modo_certificado: string;
+  texto_certificado: string;
+  horas_certificado: string;
+  tem_manual_geral: boolean;
 };
 
 const initialForm: FormData = {
   titulo: "",
   descricao: "",
-  tipo: "",
+  tipo_produto: "curso_video",
   preco: "",
+  capa_url: "",
+  tem_certificado: false,
+  modo_certificado: "automatico",
+  texto_certificado: "",
+  horas_certificado: "",
+  tem_manual_geral: false,
 };
 
 export default function CriarCursoPage() {
@@ -23,20 +41,38 @@ export default function CriarCursoPage() {
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
 
-  function update(field: keyof FormData, value: string) {
+  const isCursoVideo = useMemo(
+    () => form.tipo_produto === "curso_video",
+    [form.tipo_produto]
+  );
+
+  const isPdfDigital = useMemo(
+    () => form.tipo_produto === "pdf_digital",
+    [form.tipo_produto]
+  );
+
+  const isProdutoFisico = useMemo(
+    () => form.tipo_produto === "produto_fisico",
+    [form.tipo_produto]
+  );
+
+  function update<K extends keyof FormData>(field: K, value: FormData[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
   function validar() {
-    if (!form.titulo.trim()) return "Indica o título do curso.";
-    if (!form.descricao.trim()) return "Indica a descrição do curso.";
-    if (!form.tipo.trim()) return "Indica o tipo do curso.";
-    if (!form.preco.trim()) return "Indica o preço do curso.";
+    if (!form.titulo.trim()) return "Indica o título do produto.";
+    if (!form.descricao.trim()) return "Indica a descrição do produto.";
+    if (!form.tipo_produto.trim()) return "Indica o tipo de produto.";
+    if (!form.preco.trim()) return "Indica o preço.";
 
     const precoNumero = Number(form.preco.replace(",", "."));
-
     if (Number.isNaN(precoNumero) || precoNumero < 0) {
       return "Indica um preço válido.";
+    }
+
+    if (form.tem_certificado && !form.modo_certificado.trim()) {
+      return "Indica o modo do certificado.";
     }
 
     return "";
@@ -68,78 +104,78 @@ export default function CriarCursoPage() {
 
       const { data: formador, error: formadorError } = await supabase
         .from("formadores")
-        .select("id, auth_id, status")
+        .select("id, status, auth_id")
         .eq("auth_id", user.id)
         .single();
 
       if (formadorError || !formador) {
-        setErro("Não foi possível associar este curso ao formador autenticado.");
+        setErro("Não foi possível associar este produto ao formador autenticado.");
         return;
       }
 
-      if (formador.status !== "aprovado") {
+      const formadorAtual = formador as Formador;
+
+      if (formadorAtual.status !== "aprovado") {
         setErro("A conta de formador não está aprovada.");
         return;
       }
 
       const precoNumero = Number(form.preco.replace(",", "."));
 
-      const payloadBase = {
+      const payload = {
+        formador_id: formadorAtual.id,
         titulo: form.titulo.trim(),
         descricao: form.descricao.trim(),
-        tipo: form.tipo.trim(),
+        tipo_produto: form.tipo_produto,
         preco: precoNumero,
         publicado: false,
+        tem_certificado: form.tem_certificado,
+        modo_certificado: form.tem_certificado ? form.modo_certificado : null,
+        texto_certificado: form.tem_certificado
+          ? form.texto_certificado.trim() || null
+          : null,
+        horas_certificado: form.tem_certificado
+          ? form.horas_certificado.trim() || null
+          : null,
+        tem_manual_geral: isCursoVideo ? form.tem_manual_geral : false,
+        capa_url: form.capa_url.trim() || null,
       };
 
-      let insertError: any = null;
-
-      const tentativaComFormador = await supabase
+      const { data: cursoCriado, error: insertError } = await supabase
         .from("cursos")
-        .insert([
-          {
-            ...payloadBase,
-            formador_id: formador.id,
-          },
-        ])
+        .insert([payload])
         .select("id")
         .single();
 
-      if (tentativaComFormador.error) {
-        const mensagem = tentativaComFormador.error.message || "";
-
-        const colunaNaoExiste =
-          mensagem.toLowerCase().includes("formador_id") &&
-          mensagem.toLowerCase().includes("does not exist");
-
-        if (colunaNaoExiste) {
-          const tentativaSemFormador = await supabase
-            .from("cursos")
-            .insert([payloadBase])
-            .select("id")
-            .single();
-
-          insertError = tentativaSemFormador.error;
-
-          if (!tentativaSemFormador.error) {
-            setSucesso("Curso criado com sucesso como rascunho.");
-            setForm(initialForm);
-            return;
-          }
-        } else {
-          insertError = tentativaComFormador.error;
-        }
-      } else {
-        setSucesso("Curso criado com sucesso como rascunho.");
-        setForm(initialForm);
+      if (insertError) {
+        setErro(insertError.message || "Erro ao criar produto.");
         return;
       }
 
-      if (insertError) {
-        setErro(insertError.message || "Erro ao criar curso.");
+      if (
+        cursoCriado &&
+        typeof cursoCriado.id === "number" &&
+        isCursoVideo
+      ) {
+        await supabase.from("comunidades").insert([
+          {
+            curso_id: cursoCriado.id,
+            titulo: `Comunidade - ${form.titulo.trim()}`,
+            descricao: `Comunidade interna do curso ${form.titulo.trim()}.`,
+            ativa: true,
+          },
+        ]);
       }
+
+      setSucesso(
+        isCursoVideo
+          ? "Curso criado com sucesso como rascunho. A comunidade interna base também foi preparada."
+          : "Produto criado com sucesso como rascunho."
+      );
+
+      setForm(initialForm);
     } catch {
-      setErro("Ocorreu um erro inesperado ao criar o curso.");
+      setErro("Ocorreu um erro inesperado ao criar o produto.");
     } finally {
       setLoading(false);
     }
@@ -158,7 +194,7 @@ export default function CriarCursoPage() {
     >
       <section
         style={{
-          maxWidth: "1100px",
+          maxWidth: "1180px",
           margin: "0 auto",
         }}
       >
@@ -189,7 +225,7 @@ export default function CriarCursoPage() {
               fontWeight: 500,
             }}
           >
-            Criar Curso
+            Criar Produto
           </h1>
 
           <p
@@ -198,12 +234,12 @@ export default function CriarCursoPage() {
               fontSize: "24px",
               lineHeight: 1.7,
               color: "#d7b06c",
-              maxWidth: "900px",
+              maxWidth: "960px",
             }}
           >
-            Cria a base do teu curso e guarda-o como rascunho. Depois poderás
-            continuar a estruturação dos módulos, aulas, materiais e comunidade
-            interna associada ao curso.
+            Cria um curso em vídeo, um PDF digital ou um produto físico. O
+            conteúdo será guardado como rascunho para poderes estruturar tudo
+            com calma antes da publicação.
           </p>
         </header>
 
@@ -229,8 +265,19 @@ export default function CriarCursoPage() {
                 "0 18px 42px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,225,170,0.03)",
             }}
           >
+            <SelectField
+              label="Tipo de produto"
+              value={form.tipo_produto}
+              onChange={(v) => update("tipo_produto", v)}
+              options={[
+                { value: "curso_video", label: "Curso em vídeo" },
+                { value: "pdf_digital", label: "PDF digital" },
+                { value: "produto_fisico", label: "Produto físico" },
+              ]}
+            />
+
             <Input
-              label="Título do curso"
+              label="Título"
               value={form.titulo}
               onChange={(v) => update("titulo", v)}
               placeholder="Ex.: Curso de Tarot do Básico ao Avançado"
@@ -241,7 +288,7 @@ export default function CriarCursoPage() {
               value={form.descricao}
               onChange={(v) => update("descricao", v)}
               rows={7}
-              placeholder="Descreve a proposta do curso, o seu foco, profundidade e aplicação."
+              placeholder="Descreve o produto, o seu objetivo, o público e a sua proposta."
             />
 
             <div
@@ -252,79 +299,124 @@ export default function CriarCursoPage() {
               }}
             >
               <Input
-                label="Tipo"
-                value={form.tipo}
-                onChange={(v) => update("tipo", v)}
-                placeholder="Ex.: Curso, Formação, Sacerdócio"
-              />
-
-              <Input
                 label="Preço"
                 value={form.preco}
                 onChange={(v) => update("preco", v)}
                 placeholder="Ex.: 297"
               />
+
+              <Input
+                label="URL da capa"
+                value={form.capa_url}
+                onChange={(v) => update("capa_url", v)}
+                placeholder="Opcional"
+              />
             </div>
 
-            <div
-              style={{
-                border: "1px solid rgba(166,120,61,0.22)",
-                background: "rgba(32,18,13,0.45)",
-                padding: "16px 18px",
-              }}
-            >
-              <p
-                style={{
-                  margin: "0 0 8px 0",
-                  fontSize: "16px",
-                  textTransform: "uppercase",
-                  letterSpacing: "1px",
-                  color: "#caa15a",
-                }}
-              >
-                Estado inicial
-              </p>
+            {isCursoVideo ? (
+              <div style={caixaInterna}>
+                <h2 style={subTitulo}>Configuração do curso em vídeo</h2>
 
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: "20px",
-                  lineHeight: "1.7",
-                  color: "#d7b06c",
-                }}
-              >
-                O curso será criado como <strong>rascunho</strong>, para que
-                possas continuar a construir conteúdos antes da publicação.
+                <label style={checkboxLinha}>
+                  <input
+                    type="checkbox"
+                    checked={form.tem_manual_geral}
+                    onChange={(e) =>
+                      update("tem_manual_geral", e.target.checked)
+                    }
+                    style={{ accentColor: "#a6783d" }}
+                  />
+                  <span>Este curso terá manual geral</span>
+                </label>
+
+                <p style={textoAjuda}>
+                  Os módulos, aulas, vídeos, textos, PDFs por aula e aula
+                  introdutória pública serão estruturados depois da criação do
+                  curso.
+                </p>
+              </div>
+            ) : null}
+
+            {isPdfDigital ? (
+              <div style={caixaInterna}>
+                <h2 style={subTitulo}>Configuração do PDF digital</h2>
+                <p style={textoAjuda}>
+                  Este produto será tratado como material digital autónomo, sem
+                  estrutura de módulos e aulas.
+                </p>
+              </div>
+            ) : null}
+
+            {isProdutoFisico ? (
+              <div style={caixaInterna}>
+                <h2 style={subTitulo}>Configuração do produto físico</h2>
+                <p style={textoAjuda}>
+                  Este produto será tratado como item físico. Mais tarde podes
+                  ligar imagens, detalhes adicionais e lógica de stock, se
+                  necessário.
+                </p>
+              </div>
+            ) : null}
+
+            <div style={caixaInterna}>
+              <h2 style={subTitulo}>Certificado</h2>
+
+              <label style={checkboxLinha}>
+                <input
+                  type="checkbox"
+                  checked={form.tem_certificado}
+                  onChange={(e) =>
+                    update("tem_certificado", e.target.checked)
+                  }
+                  style={{ accentColor: "#a6783d" }}
+                />
+                <span>Este produto terá certificado</span>
+              </label>
+
+              {form.tem_certificado ? (
+                <div
+                  style={{
+                    display: "grid",
+                    gap: "16px",
+                    marginTop: "16px",
+                  }}
+                >
+                  <SelectField
+                    label="Modo do certificado"
+                    value={form.modo_certificado}
+                    onChange={(v) => update("modo_certificado", v)}
+                    options={[
+                      { value: "automatico", label: "Automático" },
+                      { value: "manual", label: "Manual" },
+                    ]}
+                  />
+
+                  <Input
+                    label="Carga horária / horas"
+                    value={form.horas_certificado}
+                    onChange={(v) => update("horas_certificado", v)}
+                    placeholder="Opcional"
+                  />
+
+                  <Textarea
+                    label="Texto do certificado"
+                    value={form.texto_certificado}
+                    onChange={(v) => update("texto_certificado", v)}
+                    rows={4}
+                    placeholder="Texto opcional para personalizar a redação do certificado."
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            <div style={caixaInterna}>
+              <p style={textoEstado}>
+                O produto será criado como <strong>rascunho</strong>.
               </p>
             </div>
 
-            {erro && (
-              <div
-                style={{
-                  color: "#ffb4b4",
-                  border: "1px solid rgba(255,107,107,0.35)",
-                  background: "rgba(120,20,20,0.12)",
-                  padding: "14px 16px",
-                  fontSize: "18px",
-                }}
-              >
-                {erro}
-              </div>
-            )}
-
-            {sucesso && (
-              <div
-                style={{
-                  color: "#bff1bf",
-                  border: "1px solid rgba(74,222,128,0.35)",
-                  background: "rgba(20,90,40,0.12)",
-                  padding: "14px 16px",
-                  fontSize: "18px",
-                }}
-              >
-                {sucesso}
-              </div>
-            )}
+            {erro ? <MensagemErro texto={erro} /> : null}
+            {sucesso ? <MensagemSucesso texto={sucesso} /> : null}
 
             <button
               type="submit"
@@ -345,7 +437,7 @@ export default function CriarCursoPage() {
                 opacity: loading ? 0.7 : 1,
               }}
             >
-              {loading ? "A criar curso..." : "Criar curso"}
+              {loading ? "A criar..." : "Criar produto"}
             </button>
           </form>
 
@@ -369,7 +461,7 @@ export default function CriarCursoPage() {
                 fontWeight: 500,
               }}
             >
-              Estrutura recomendada
+              Como isto funciona
             </h2>
 
             <ul
@@ -381,11 +473,11 @@ export default function CriarCursoPage() {
                 color: "#d7b06c",
               }}
             >
-              <li>Define um título claro e forte.</li>
-              <li>Escreve uma descrição sólida e orientada ao aluno.</li>
-              <li>Indica o tipo de formação.</li>
-              <li>Define o valor inicial do curso.</li>
-              <li>Guarda primeiro em rascunho.</li>
+              <li>Curso em vídeo: estrutura modular com aulas e comunidade.</li>
+              <li>PDF digital: material autónomo sem estrutura de aulas.</li>
+              <li>Produto físico: item físico para venda dentro da plataforma.</li>
+              <li>Certificado: opcional e configurável por produto.</li>
+              <li>Publicação: o produto nasce como rascunho.</li>
             </ul>
 
             <div
@@ -412,9 +504,9 @@ export default function CriarCursoPage() {
                   color: "#d7b06c",
                 }}
               >
-                Depois de criares o curso, o passo seguinte será estruturar
-                módulos, aulas, materiais complementares e a comunidade interna
-                desse curso.
+                Depois de criares um curso em vídeo, o passo seguinte será
+                estruturar módulos, aulas, PDFs, conteúdos textuais, aula
+                pública e comunidade interna.
               </p>
             </div>
           </aside>
@@ -455,16 +547,7 @@ function Input({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        style={{
-          width: "100%",
-          padding: "14px 14px",
-          background: "#1a100c",
-          border: "1px solid #8a5d31",
-          color: "#e6c27a",
-          fontSize: "18px",
-          outline: "none",
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
-        }}
+        style={campoBase}
       />
     </div>
   );
@@ -502,17 +585,135 @@ function Textarea({
         rows={rows}
         placeholder={placeholder}
         style={{
-          width: "100%",
-          padding: "14px 14px",
-          background: "#1a100c",
-          border: "1px solid #8a5d31",
-          color: "#e6c27a",
-          fontSize: "18px",
-          outline: "none",
+          ...campoBase,
           resize: "vertical",
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
         }}
       />
     </div>
   );
 }
+
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <div>
+      <label
+        style={{
+          display: "block",
+          fontSize: "19px",
+          marginBottom: "8px",
+          color: "#e6c27a",
+        }}
+      >
+        {label}
+      </label>
+
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={campoBase}
+      >
+        {options.map((option) => (
+          <option
+            key={option.value}
+            value={option.value}
+            style={{
+              background: "#1a100c",
+              color: "#e6c27a",
+            }}
+          >
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function MensagemErro({ texto }: { texto: string }) {
+  return (
+    <div
+      style={{
+        color: "#ffb4b4",
+        border: "1px solid rgba(255,107,107,0.35)",
+        background: "rgba(120,20,20,0.12)",
+        padding: "14px 16px",
+        fontSize: "18px",
+      }}
+    >
+      {texto}
+    </div>
+  );
+}
+
+function MensagemSucesso({ texto }: { texto: string }) {
+  return (
+    <div
+      style={{
+        color: "#bff1bf",
+        border: "1px solid rgba(74,222,128,0.35)",
+        background: "rgba(20,90,40,0.12)",
+        padding: "14px 16px",
+        fontSize: "18px",
+      }}
+    >
+      {texto}
+    </div>
+  );
+}
+
+const campoBase: React.CSSProperties = {
+  width: "100%",
+  padding: "14px 14px",
+  background: "#1a100c",
+  border: "1px solid #8a5d31",
+  color: "#e6c27a",
+  fontSize: "18px",
+  outline: "none",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+};
+
+const caixaInterna: React.CSSProperties = {
+  border: "1px solid rgba(166,120,61,0.22)",
+  background: "rgba(32,18,13,0.45)",
+  padding: "18px 18px",
+};
+
+const subTitulo: React.CSSProperties = {
+  margin: "0 0 14px 0",
+  fontFamily: "Cinzel, serif",
+  fontSize: "28px",
+  color: "#e6c27a",
+  fontWeight: 500,
+};
+
+const textoAjuda: React.CSSProperties = {
+  margin: 0,
+  fontSize: "19px",
+  lineHeight: 1.7,
+  color: "#d7b06c",
+};
+
+const checkboxLinha: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  fontSize: "19px",
+  color: "#e6c27a",
+};
+
+const textoEstado: React.CSSProperties = {
+  margin: 0,
+  fontSize: "20px",
+  lineHeight: 1.7,
+  color: "#d7b06c",
+};

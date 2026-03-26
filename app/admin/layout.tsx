@@ -16,6 +16,7 @@ export default function AdminLayout({
     { href: "/admin/candidaturas-formador", label: "Candidaturas" },
     { href: "/admin/formadores", label: "Formadores" },
     { href: "/admin/alunos", label: "Alunos" },
+    { href: "/admin/inscricoes", label: "Inscrições" },
     { href: "/admin/vendas", label: "Vendas" },
     { href: "/admin/levantamentos", label: "Levantamentos" },
   ];
@@ -33,8 +34,8 @@ export default function AdminLayout({
     >
       <aside
         style={{
-          width: "280px",
-          minWidth: "280px",
+          width: "290px",
+          minWidth: "290px",
           borderRight: "1px solid rgba(166, 120, 61, 0.55)",
           padding: "28px 20px",
           background:
@@ -43,6 +44,7 @@ export default function AdminLayout({
           position: "sticky",
           top: 0,
           height: "100vh",
+          overflowY: "auto",
         }}
       >
         <div
@@ -67,14 +69,27 @@ export default function AdminLayout({
           <h2
             style={{
               fontFamily: "Cinzel, serif",
-              fontSize: "28px",
+              fontSize: "30px",
               lineHeight: 1.2,
               margin: 0,
               color: "#f0d79a",
+              fontWeight: 500,
             }}
           >
             Administração
           </h2>
+
+          <p
+            style={{
+              margin: "12px 0 0 0",
+              fontSize: "18px",
+              lineHeight: 1.6,
+              color: "#d8b36f",
+            }}
+          >
+            Gestão central da plataforma, finanças, formadores, alunos,
+            inscrições, candidaturas e vendas.
+          </p>
         </div>
 
         <nav
@@ -98,9 +113,9 @@ export default function AdminLayout({
                     isActive ? "#c4914d" : "rgba(166, 120, 61, 0.65)"
                   }`,
                   background: isActive
-                    ? "#a6783d"
+                    ? "linear-gradient(180deg, #c4914d 0%, #a6783d 100%)"
                     : "linear-gradient(180deg, rgba(34,20,15,0.88) 0%, rgba(20,13,9,0.88) 100%)",
-                  padding: "13px 14px",
+                  padding: "14px 15px",
                   display: "block",
                   fontSize: "20px",
                   lineHeight: 1.2,
@@ -121,9 +136,11 @@ export default function AdminLayout({
             marginTop: "30px",
             paddingTop: "22px",
             borderTop: "1px solid rgba(166, 120, 61, 0.35)",
+            display: "grid",
+            gap: "12px",
           }}
         >
-          <a
+          <Link
             href="/"
             style={{
               textDecoration: "none",
@@ -132,7 +149,18 @@ export default function AdminLayout({
             }}
           >
             Voltar ao site
-          </a>
+          </Link>
+
+          <Link
+            href="/admin-login"
+            style={{
+              textDecoration: "none",
+              color: "#caa15a",
+              fontSize: "18px",
+            }}
+          >
+            Área de login admin
+          </Link>
         </div>
       </aside>
 

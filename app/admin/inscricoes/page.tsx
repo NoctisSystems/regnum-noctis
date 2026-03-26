@@ -7,7 +7,6 @@ type Aluno = {
   id: number;
   nome: string | null;
   email: string | null;
-  created_at?: string | null;
 };
 
 type Curso = {
@@ -20,18 +19,19 @@ type Inscricao = {
   aluno_id: number;
   curso_id: number;
   status: string | null;
+  created_at?: string | null;
 };
 
-type LinhaAluno = {
+type LinhaInscricao = {
   id: number;
-  nome: string;
-  email: string;
-  cursos: string[];
-  estado: string;
-  created_at: string | null;
+  alunoNome: string;
+  alunoEmail: string;
+  cursoTitulo: string;
+  status: string;
+  createdAt: string | null;
 };
 
-export default function AdminAlunosPage() {
+export default function AdminInscricoesPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
@@ -41,14 +41,13 @@ export default function AdminAlunosPage() {
   const [cursos, setCursos] = useState<Curso[]>([]);
   const [inscricoes, setInscricoes] = useState<Inscricao[]>([]);
 
-  const [mostrarNovoAluno, setMostrarNovoAluno] = useState(false);
-  const [aGuardar, setAGuardar] = useState(false);
+  const [mostrarNovaInscricao, setMostrarNovaInscricao] = useState(false);
+  const [aGuardarNova, setAGuardarNova] = useState(false);
+  const [savingStatusId, setSavingStatusId] = useState<number | null>(null);
 
-  const [usarAlunoExistente, setUsarAlunoExistente] = useState(false);
-  const [alunoExistenteId, setAlunoExistenteId] = useState("");
+  const [alunoId, setAlunoId] = useState("");
   const [cursoId, setCursoId] = useState("");
-  const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
+  const [statusNovo, setStatusNovo] = useState("ativo");
 
   useEffect(() => {
     carregarDados();
@@ -63,7 +62,7 @@ export default function AdminAlunosPage() {
       const [alunosRes, cursosRes, inscricoesRes] = await Promise.all([
         supabase
           .from("alunos")
-          .select("id, nome, email, created_at")
+          .select("id, nome, email")
           .order("nome", { ascending: true }),
 
         supabase
@@ -73,7 +72,8 @@ export default function AdminAlunosPage() {
 
         supabase
           .from("inscricoes")
-          .select("id, aluno_id, curso_id, status"),
+          .select("id, aluno_id, curso_id, status, created_at")
+          .order("id", { ascending: false }),
       ]);
 
       if (alunosRes.error) throw alunosRes.error;
@@ -84,128 +84,108 @@ export default function AdminAlunosPage() {
       setCursos((cursosRes.data || []) as Curso[]);
       setInscricoes((inscricoesRes.data || []) as Inscricao[]);
     } catch (err: any) {
-      setErro(err?.message || "Não foi possível carregar os alunos.");
+      setErro(err?.message || "Não foi possível carregar as inscrições.");
     } finally {
       setLoading(false);
     }
   }
 
   function limparFormulario() {
-    setUsarAlunoExistente(false);
-    setAlunoExistenteId("");
+    setAlunoId("");
     setCursoId("");
-    setNome("");
-    setEmail("");
+    setStatusNovo("ativo");
   }
 
-  async function criarAlunoEInscrever() {
+  async function criarInscricao() {
     setErro("");
     setSucesso("");
+
+    if (!alunoId) {
+      setErro("Seleciona o aluno.");
+      return;
+    }
 
     if (!cursoId) {
       setErro("Seleciona o curso.");
       return;
     }
 
+    const alunoIdNum = Number(alunoId);
+    const cursoIdNum = Number(cursoId);
+
+    const jaExiste = inscricoes.some(
+      (item) => item.aluno_id === alunoIdNum && item.curso_id === cursoIdNum
+    );
+
+    if (jaExiste) {
+      setErro("Este aluno já está inscrito neste curso.");
+      return;
+    }
+
     try {
-      setAGuardar(true);
+      setAGuardarNova(true);
 
-      let alunoIdFinal: number | null = null;
-
-      if (usarAlunoExistente) {
-        if (!alunoExistenteId) {
-          setErro("Seleciona um aluno existente.");
-          return;
-        }
-
-        alunoIdFinal = Number(alunoExistenteId);
-      } else {
-        const nomeLimpo = nome.trim();
-        const emailLimpo = email.trim().toLowerCase();
-
-        if (!nomeLimpo || !emailLimpo) {
-          setErro("Preenche nome e email do aluno.");
-          return;
-        }
-
-        const alunoExistentePorEmail = alunos.find(
-          (aluno) => (aluno.email || "").trim().toLowerCase() === emailLimpo
-        );
-
-        if (alunoExistentePorEmail) {
-          alunoIdFinal = alunoExistentePorEmail.id;
-        } else {
-          const { data: novoAluno, error: erroNovoAluno } = await supabase
-            .from("alunos")
-            .insert({
-              nome: nomeLimpo,
-              email: emailLimpo,
-            })
-            .select("id")
-            .single();
-
-          if (erroNovoAluno) {
-            throw erroNovoAluno;
-          }
-
-          alunoIdFinal = novoAluno.id;
-        }
-      }
-
-      if (!alunoIdFinal) {
-        setErro("Não foi possível determinar o aluno.");
-        return;
-      }
-
-      const jaExisteInscricao = inscricoes.some(
-        (item) =>
-          item.aluno_id === alunoIdFinal && item.curso_id === Number(cursoId)
-      );
-
-      if (jaExisteInscricao) {
-        setErro("Este aluno já está associado a este curso.");
-        return;
-      }
-
-      const { error: erroInscricao } = await supabase.from("inscricoes").insert({
-        aluno_id: alunoIdFinal,
-        curso_id: Number(cursoId),
-        status: "ativo",
+      const { error } = await supabase.from("inscricoes").insert({
+        aluno_id: alunoIdNum,
+        curso_id: cursoIdNum,
+        status: statusNovo,
       });
 
-      if (erroInscricao) {
-        throw erroInscricao;
-      }
+      if (error) throw error;
 
-      setSucesso("Aluno associado ao curso com sucesso.");
+      setSucesso("Inscrição criada com sucesso.");
       limparFormulario();
-      setMostrarNovoAluno(false);
+      setMostrarNovaInscricao(false);
       await carregarDados();
     } catch (err: any) {
-      setErro(err?.message || "Não foi possível associar o aluno ao curso.");
+      setErro(err?.message || "Não foi possível criar a inscrição.");
     } finally {
-      setAGuardar(false);
+      setAGuardarNova(false);
+    }
+  }
+
+  async function atualizarStatus(inscricaoId: number, novoStatus: string) {
+    setErro("");
+    setSucesso("");
+
+    try {
+      setSavingStatusId(inscricaoId);
+
+      const { error } = await supabase
+        .from("inscricoes")
+        .update({ status: novoStatus })
+        .eq("id", inscricaoId);
+
+      if (error) throw error;
+
+      setInscricoes((prev) =>
+        prev.map((item) =>
+          item.id === inscricaoId ? { ...item, status: novoStatus } : item
+        )
+      );
+
+      setSucesso("Estado da inscrição atualizado com sucesso.");
+    } catch (err: any) {
+      setErro(err?.message || "Não foi possível atualizar a inscrição.");
+    } finally {
+      setSavingStatusId(null);
     }
   }
 
   function exportarCSV() {
-    const linhas = linhasAlunosFiltradas.map((aluno) => ({
-      nome: aluno.nome,
-      email: aluno.email,
-      cursos: aluno.cursos.join(" | "),
-      estado: aluno.estado,
+    const linhas = linhasFiltradas.map((linha) => ({
+      aluno: linha.alunoNome,
+      email: linha.alunoEmail,
+      curso: linha.cursoTitulo,
+      status: linha.status,
+      data: formatarData(linha.createdAt),
     }));
 
-    const cabecalho = ["Nome", "Email", "Cursos", "Estado"];
+    const cabecalho = ["Aluno", "Email", "Curso", "Estado", "Data"];
     const conteudo = [
       cabecalho.join(";"),
       ...linhas.map((linha) =>
-        [
-          linha.nome,
-          linha.email,
-          linha.cursos,
-          linha.estado,
-        ]
+        [linha.aluno, linha.email, linha.curso, linha.status, linha.data]
           .map((valor) => `"${String(valor || "").replace(/"/g, '""')}"`)
           .join(";")
       ),
@@ -218,78 +198,57 @@ export default function AdminAlunosPage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "alunos-regnum-noctis.csv";
+    link.download = "inscricoes-regnum-noctis.csv";
     link.click();
     URL.revokeObjectURL(url);
   }
 
+  const mapaAlunos = useMemo(() => {
+    return new Map<number, Aluno>(alunos.map((aluno) => [aluno.id, aluno]));
+  }, [alunos]);
+
   const mapaCursos = useMemo(() => {
-    return new Map<number, string>(
-      cursos.map((curso) => [curso.id, curso.titulo || "Curso sem título"])
-    );
+    return new Map<number, Curso>(cursos.map((curso) => [curso.id, curso]));
   }, [cursos]);
 
-  const linhasAlunos = useMemo<LinhaAluno[]>(() => {
-    return alunos.map((aluno) => {
-      const inscricoesDoAluno = inscricoes.filter(
-        (inscricao) => inscricao.aluno_id === aluno.id
-      );
-
-      const nomesCursos = inscricoesDoAluno
-        .map((inscricao) => mapaCursos.get(inscricao.curso_id) || "Curso")
-        .filter(Boolean);
-
-      const estados = inscricoesDoAluno
-        .map((inscricao) => (inscricao.status || "").trim().toLowerCase())
-        .filter(Boolean);
-
-      let estadoFinal = "Sem inscrição";
-
-      if (estados.some((estado) => estado === "ativo" || estado === "activa")) {
-        estadoFinal = "Ativo";
-      } else if (estados.length > 0) {
-        estadoFinal = "Com inscrição";
-      }
+  const linhasInscricoes = useMemo<LinhaInscricao[]>(() => {
+    return inscricoes.map((inscricao) => {
+      const aluno = mapaAlunos.get(inscricao.aluno_id);
+      const curso = mapaCursos.get(inscricao.curso_id);
 
       return {
-        id: aluno.id,
-        nome: aluno.nome || "Sem nome",
-        email: aluno.email || "Sem email",
-        cursos: nomesCursos,
-        estado: estadoFinal,
-        created_at: aluno.created_at || null,
+        id: inscricao.id,
+        alunoNome: aluno?.nome || "Aluno sem nome",
+        alunoEmail: aluno?.email || "Sem email",
+        cursoTitulo: curso?.titulo || "Curso sem título",
+        status: inscricao.status || "ativo",
+        createdAt: inscricao.created_at || null,
       };
     });
-  }, [alunos, inscricoes, mapaCursos]);
+  }, [inscricoes, mapaAlunos, mapaCursos]);
 
-  const linhasAlunosFiltradas = useMemo(() => {
+  const linhasFiltradas = useMemo(() => {
     const termo = pesquisa.trim().toLowerCase();
 
-    if (!termo) return linhasAlunos;
+    if (!termo) return linhasInscricoes;
 
-    return linhasAlunos.filter((aluno) => {
+    return linhasInscricoes.filter((linha) => {
       return (
-        aluno.nome.toLowerCase().includes(termo) ||
-        aluno.email.toLowerCase().includes(termo) ||
-        aluno.cursos.join(" ").toLowerCase().includes(termo)
+        linha.alunoNome.toLowerCase().includes(termo) ||
+        linha.alunoEmail.toLowerCase().includes(termo) ||
+        linha.cursoTitulo.toLowerCase().includes(termo) ||
+        linha.status.toLowerCase().includes(termo)
       );
     });
-  }, [linhasAlunos, pesquisa]);
+  }, [linhasInscricoes, pesquisa]);
 
-  const totalAlunos = alunos.length;
+  const totalInscricoes = inscricoes.length;
   const inscricoesAtivas = inscricoes.filter((item) =>
     ["ativo", "activa"].includes((item.status || "").trim().toLowerCase())
   ).length;
-
-  const agora = new Date();
-  const novosEsteMes = alunos.filter((aluno) => {
-    if (!aluno.created_at) return false;
-    const data = new Date(aluno.created_at);
-    return (
-      data.getFullYear() === agora.getFullYear() &&
-      data.getMonth() === agora.getMonth()
-    );
-  }).length;
+  const inscricoesConcluidas = inscricoes.filter(
+    (item) => (item.status || "").trim().toLowerCase() === "concluido"
+  ).length;
 
   return (
     <>
@@ -301,7 +260,7 @@ export default function AdminAlunosPage() {
           color: "#e6c27a",
         }}
       >
-        Alunos
+        Inscrições
       </h1>
 
       <div
@@ -313,8 +272,8 @@ export default function AdminAlunosPage() {
         }}
       >
         <div style={card}>
-          <h3 style={cardTitle}>Total de alunos</h3>
-          <p style={cardValue}>{loading ? "..." : totalAlunos}</p>
+          <h3 style={cardTitle}>Total de inscrições</h3>
+          <p style={cardValue}>{loading ? "..." : totalInscricoes}</p>
         </div>
 
         <div style={card}>
@@ -323,8 +282,8 @@ export default function AdminAlunosPage() {
         </div>
 
         <div style={card}>
-          <h3 style={cardTitle}>Novos este mês</h3>
-          <p style={cardValue}>{loading ? "..." : novosEsteMes}</p>
+          <h3 style={cardTitle}>Concluídas</h3>
+          <p style={cardValue}>{loading ? "..." : inscricoesConcluidas}</p>
         </div>
       </div>
 
@@ -343,7 +302,7 @@ export default function AdminAlunosPage() {
       >
         <input
           type="text"
-          placeholder="Pesquisar aluno..."
+          placeholder="Pesquisar inscrição..."
           value={pesquisa}
           onChange={(e) => setPesquisa(e.target.value)}
           style={inputPesquisa}
@@ -364,44 +323,19 @@ export default function AdminAlunosPage() {
             type="button"
             style={button}
             onClick={() => {
-              setMostrarNovoAluno((prev) => !prev);
+              setMostrarNovaInscricao((prev) => !prev);
               setErro("");
               setSucesso("");
             }}
           >
-            {mostrarNovoAluno ? "Fechar" : "Novo aluno"}
+            {mostrarNovaInscricao ? "Fechar" : "Nova inscrição"}
           </button>
         </div>
       </div>
 
-      {mostrarNovoAluno ? (
+      {mostrarNovaInscricao ? (
         <div style={boxFormulario}>
-          <h2 style={tituloFormulario}>Inserir aluno num curso</h2>
-
-          <div style={linhaRadios}>
-            <label style={radioLabel}>
-              <input
-                type="radio"
-                checked={!usarAlunoExistente}
-                onChange={() => {
-                  setUsarAlunoExistente(false);
-                  setAlunoExistenteId("");
-                }}
-                style={{ accentColor: "#a6783d" }}
-              />
-              Criar aluno novo
-            </label>
-
-            <label style={radioLabel}>
-              <input
-                type="radio"
-                checked={usarAlunoExistente}
-                onChange={() => setUsarAlunoExistente(true)}
-                style={{ accentColor: "#a6783d" }}
-              />
-              Usar aluno existente
-            </label>
-          </div>
+          <h2 style={tituloFormulario}>Criar inscrição manual</h2>
 
           <div
             style={{
@@ -411,47 +345,21 @@ export default function AdminAlunosPage() {
               marginBottom: "18px",
             }}
           >
-            {usarAlunoExistente ? (
-              <div>
-                <label style={label}>Aluno</label>
-                <select
-                  value={alunoExistenteId}
-                  onChange={(e) => setAlunoExistenteId(e.target.value)}
-                  style={input}
-                >
-                  <option value="">Selecionar aluno</option>
-                  {alunos.map((aluno) => (
-                    <option key={aluno.id} value={aluno.id}>
-                      {(aluno.nome || "Sem nome") + " — " + (aluno.email || "Sem email")}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : (
-              <>
-                <div>
-                  <label style={label}>Nome do aluno</label>
-                  <input
-                    type="text"
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    style={input}
-                    placeholder="Nome"
-                  />
-                </div>
-
-                <div>
-                  <label style={label}>Email do aluno</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    style={input}
-                    placeholder="Email"
-                  />
-                </div>
-              </>
-            )}
+            <div>
+              <label style={label}>Aluno</label>
+              <select
+                value={alunoId}
+                onChange={(e) => setAlunoId(e.target.value)}
+                style={input}
+              >
+                <option value="">Selecionar aluno</option>
+                {alunos.map((aluno) => (
+                  <option key={aluno.id} value={aluno.id}>
+                    {(aluno.nome || "Sem nome") + " — " + (aluno.email || "Sem email")}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <div>
               <label style={label}>Curso</label>
@@ -468,6 +376,20 @@ export default function AdminAlunosPage() {
                 ))}
               </select>
             </div>
+
+            <div>
+              <label style={label}>Estado</label>
+              <select
+                value={statusNovo}
+                onChange={(e) => setStatusNovo(e.target.value)}
+                style={input}
+              >
+                <option value="ativo">Ativo</option>
+                <option value="inativo">Inativo</option>
+                <option value="cancelado">Cancelado</option>
+                <option value="concluido">Concluído</option>
+              </select>
+            </div>
           </div>
 
           <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
@@ -475,13 +397,13 @@ export default function AdminAlunosPage() {
               type="button"
               style={{
                 ...button,
-                opacity: aGuardar ? 0.7 : 1,
-                cursor: aGuardar ? "not-allowed" : "pointer",
+                opacity: aGuardarNova ? 0.7 : 1,
+                cursor: aGuardarNova ? "not-allowed" : "pointer",
               }}
-              disabled={aGuardar}
-              onClick={criarAlunoEInscrever}
+              disabled={aGuardarNova}
+              onClick={criarInscricao}
             >
-              {aGuardar ? "A guardar..." : "Guardar inscrição"}
+              {aGuardarNova ? "A guardar..." : "Guardar inscrição"}
             </button>
 
             <button
@@ -489,7 +411,7 @@ export default function AdminAlunosPage() {
               style={buttonSecundario}
               onClick={() => {
                 limparFormulario();
-                setMostrarNovoAluno(false);
+                setMostrarNovaInscricao(false);
               }}
             >
               Cancelar
@@ -500,31 +422,61 @@ export default function AdminAlunosPage() {
 
       <div style={box}>
         <div style={headerTabela}>
-          <span style={colunaNome}>Nome</span>
+          <span style={colunaNome}>Aluno</span>
           <span style={coluna}>Email</span>
-          <span style={coluna}>Cursos</span>
+          <span style={coluna}>Curso</span>
           <span style={coluna}>Estado</span>
+          <span style={coluna}>Data</span>
+          <span style={coluna}>Ações</span>
         </div>
 
         {loading ? (
-          <div style={linhaVazia}>A carregar alunos...</div>
-        ) : linhasAlunosFiltradas.length === 0 ? (
-          <div style={linhaVazia}>Ainda não existem alunos registados.</div>
+          <div style={linhaVazia}>A carregar inscrições...</div>
+        ) : linhasFiltradas.length === 0 ? (
+          <div style={linhaVazia}>Ainda não existem inscrições registadas.</div>
         ) : (
-          linhasAlunosFiltradas.map((aluno) => (
-            <div key={aluno.id} style={linhaTabela}>
-              <span style={colunaNomeValor}>{aluno.nome}</span>
-              <span style={colunaValor}>{aluno.email}</span>
+          linhasFiltradas.map((linha) => (
+            <div key={linha.id} style={linhaTabela}>
+              <span style={colunaNomeValor}>{linha.alunoNome}</span>
+              <span style={colunaValor}>{linha.alunoEmail}</span>
+              <span style={colunaValor}>{linha.cursoTitulo}</span>
+
+              <select
+                value={linha.status}
+                onChange={(e) => atualizarStatus(linha.id, e.target.value)}
+                disabled={savingStatusId === linha.id}
+                style={{
+                  ...inputTabela,
+                  opacity: savingStatusId === linha.id ? 0.7 : 1,
+                }}
+              >
+                <option value="ativo">Ativo</option>
+                <option value="inativo">Inativo</option>
+                <option value="cancelado">Cancelado</option>
+                <option value="concluido">Concluído</option>
+              </select>
+
+              <span style={colunaValor}>{formatarData(linha.createdAt)}</span>
+
               <span style={colunaValor}>
-                {aluno.cursos.length > 0 ? aluno.cursos.join(", ") : "Sem cursos"}
+                {savingStatusId === linha.id ? "A guardar..." : "Atualização direta"}
               </span>
-              <span style={colunaValor}>{aluno.estado}</span>
             </div>
           ))
         )}
       </div>
     </>
   );
+}
+
+function formatarData(valor: string | null) {
+  if (!valor) return "—";
+
+  const data = new Date(valor);
+
+  if (Number.isNaN(data.getTime())) return "—";
+
+  return data.toLocaleDateString("pt-PT");
 }
 
 const card: CSSProperties = {
@@ -568,6 +520,16 @@ const input: CSSProperties = {
   outline: "none",
 };
 
+const inputTabela: CSSProperties = {
+  width: "100%",
+  padding: "10px 12px",
+  border: "1px solid #8a5d31",
+  background: "#140d09",
+  color: "#e6c27a",
+  fontSize: "15px",
+  outline: "none",
+};
+
 const label: CSSProperties = {
   display: "block",
   marginBottom: "8px",
@@ -603,7 +565,7 @@ const box: CSSProperties = {
 
 const headerTabela: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "2fr 2fr 2fr 1fr",
+  gridTemplateColumns: "1.6fr 1.8fr 1.8fr 1fr 0.9fr 1fr",
   gap: "16px",
   padding: "16px 18px",
   background: "#1b110c",
@@ -614,12 +576,12 @@ const headerTabela: CSSProperties = {
 
 const linhaTabela: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "2fr 2fr 2fr 1fr",
+  gridTemplateColumns: "1.6fr 1.8fr 1.8fr 1fr 0.9fr 1fr",
   gap: "16px",
   padding: "18px",
   borderTop: "1px solid #8a5d31",
   color: "#e6c27a",
-  alignItems: "start",
+  alignItems: "center",
 };
 
 const linhaVazia: CSSProperties = {
@@ -662,21 +624,6 @@ const tituloFormulario: CSSProperties = {
   marginTop: 0,
   marginBottom: "18px",
   color: "#e6c27a",
-};
-
-const linhaRadios: CSSProperties = {
-  display: "flex",
-  gap: "18px",
-  flexWrap: "wrap",
-  marginBottom: "20px",
-};
-
-const radioLabel: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  color: "#e6c27a",
-  fontSize: "17px",
 };
 
 const caixaErro: CSSProperties = {
