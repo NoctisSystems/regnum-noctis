@@ -1,4 +1,50 @@
-export default function Home() {
+import { supabase } from "@/lib/supabase";
+
+type PublicidadeParceiro = {
+  id: number;
+  nome: string;
+  slug: string | null;
+  tipo: string;
+  plano: string;
+  descricao_curta: string | null;
+  descricao: string | null;
+  imagem_url: string | null;
+  link_url: string | null;
+  email_contacto: string | null;
+  whatsapp_contacto: string | null;
+  estado: string;
+  mostrar_na_home: boolean;
+  ordem_home: number | null;
+  destaque: boolean;
+  data_inicio: string | null;
+  data_fim: string | null;
+  ativo: boolean;
+  notas_admin: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export default async function Home() {
+  let publicidadeHome: PublicidadeParceiro[] = [];
+
+  try {
+    const { data, error } = await supabase
+      .from("publicidade_parceiros")
+      .select("*")
+      .eq("ativo", true)
+      .eq("estado", "ativo")
+      .eq("mostrar_na_home", true)
+      .order("ordem_home", { ascending: true, nullsFirst: false })
+      .order("destaque", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    if (!error) {
+      publicidadeHome = ((data || []) as PublicidadeParceiro[]).slice(0, 3);
+    }
+  } catch {
+    publicidadeHome = [];
+  }
+
   return (
     <main className="home-page">
       <section className="home-banner">
@@ -182,6 +228,108 @@ export default function Home() {
         <div className="home-container">
           <article className="home-card home-card-premium fade-in-up fade-delay-3">
             <p className="home-card-kicker center-title">
+              Publicidade e Parceiros
+            </p>
+
+            <h2 className="home-section-title center-title">
+              Espaço preparado para divulgação selecionada
+            </h2>
+
+            <p className="home-text center-title">
+              Esta área reúne presenças aprovadas pela administração da
+              plataforma. O destaque institucional mantém-se separado da lógica
+              comercial.
+            </p>
+
+            <div className="home-publicidade-actions fade-in-up fade-delay-4">
+              <a
+                href="/publicidade-e-parceiros"
+                className="home-action-button"
+              >
+                Ver publicidade e parceiros
+              </a>
+
+              <a href="/publicidade" className="home-action-button">
+                Divulgar no Regnum Noctis
+              </a>
+            </div>
+
+            {publicidadeHome.length === 0 ? (
+              <div className="home-publicidade-placeholder">
+                <div className="home-publicidade-placeholder-inner">
+                  Área reservada para cards de publicidade aprovados pela
+                  administração.
+                </div>
+              </div>
+            ) : (
+              <div className="home-cards-grid fade-in-up fade-delay-4">
+                {publicidadeHome.map((item) => (
+                  <article key={item.id} className="home-mini-card">
+                    <p className="home-mini-kicker">
+                      {item.tipo === "parceiro" ? "Parceiro" : "Publicidade"}
+                    </p>
+
+                    <h3 className="home-mini-title">{item.nome}</h3>
+
+                    <p className="home-mini-text">
+                      {limitarTexto(
+                        item.descricao_curta ||
+                          item.descricao ||
+                          "Presença aprovada na plataforma.",
+                        160
+                      )}
+                    </p>
+
+                    <div
+                      style={{
+                        marginTop: "18px",
+                        display: "flex",
+                        gap: "10px",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      {item.link_url ? (
+                        <a
+                          href={item.link_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="home-action-button"
+                          style={{
+                            minHeight: "44px",
+                            fontSize: "17px",
+                            padding: "10px 16px",
+                          }}
+                        >
+                          Visitar
+                        </a>
+                      ) : null}
+
+                      {item.email_contacto ? (
+                        <a
+                          href={`mailto:${item.email_contacto}`}
+                          className="home-action-button"
+                          style={{
+                            minHeight: "44px",
+                            fontSize: "17px",
+                            padding: "10px 16px",
+                          }}
+                        >
+                          Email
+                        </a>
+                      ) : null}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </article>
+        </div>
+      </section>
+
+      <section className="home-section">
+        <div className="home-container">
+          <article className="home-card home-card-premium fade-in-up fade-delay-3">
+            <p className="home-card-kicker center-title">
               Contactos da plataforma
             </p>
 
@@ -215,4 +363,9 @@ export default function Home() {
       </section>
     </main>
   );
+}
+
+function limitarTexto(texto: string, max: number) {
+  if (texto.length <= max) return texto;
+  return `${texto.slice(0, max).trim()}...`;
 }

@@ -31,6 +31,10 @@ export default function RootLayout({
               Cursos
             </a>
 
+            <a href="/publicidade-e-parceiros" className="nav-button">
+              Publicidade e Parceiros
+            </a>
+
             <a href="/tornar-me-formador" className="nav-button">
               Torna-te Formador
             </a>

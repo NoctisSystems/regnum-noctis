@@ -33,6 +33,8 @@ export default function AdminDashboard() {
   const [totalAlunos, setTotalAlunos] = useState(0);
   const [totalInscricoes, setTotalInscricoes] = useState(0);
   const [totalLevantamentosPendentes, setTotalLevantamentosPendentes] = useState(0);
+  const [totalPublicidade, setTotalPublicidade] = useState(0);
+  const [totalPublicidadeHome, setTotalPublicidadeHome] = useState(0);
 
   const [financeiro, setFinanceiro] =
     useState<AdminResumoFinanceiro>(resumoFinanceiroVazio);
@@ -54,6 +56,8 @@ export default function AdminDashboard() {
         alunosRes,
         inscricoesRes,
         levantamentosRes,
+        publicidadeRes,
+        publicidadeHomeRes,
       ] = await Promise.all([
         supabase.from("cursos").select("id", { count: "exact", head: true }),
         supabase
@@ -70,6 +74,14 @@ export default function AdminDashboard() {
           .from("levantamentos_formador")
           .select("id", { count: "exact", head: true })
           .in("estado", ["aguarda_fatura", "fatura_enviada", "validado_admin"]),
+        supabase
+          .from("publicidade_parceiros")
+          .select("id", { count: "exact", head: true }),
+        supabase
+          .from("publicidade_parceiros")
+          .select("id", { count: "exact", head: true })
+          .eq("mostrar_na_home", true)
+          .eq("ativo", true),
       ]);
 
       if (cursosRes.error) throw cursosRes.error;
@@ -78,6 +90,8 @@ export default function AdminDashboard() {
       if (alunosRes.error) throw alunosRes.error;
       if (inscricoesRes.error) throw inscricoesRes.error;
       if (levantamentosRes.error) throw levantamentosRes.error;
+      if (publicidadeRes.error) throw publicidadeRes.error;
+      if (publicidadeHomeRes.error) throw publicidadeHomeRes.error;
 
       setTotalCursos(cursosRes.count || 0);
       setTotalCandidaturasPendentes(candidaturasRes.count || 0);
@@ -85,6 +99,8 @@ export default function AdminDashboard() {
       setTotalAlunos(alunosRes.count || 0);
       setTotalInscricoes(inscricoesRes.count || 0);
       setTotalLevantamentosPendentes(levantamentosRes.count || 0);
+      setTotalPublicidade(publicidadeRes.count || 0);
+      setTotalPublicidadeHome(publicidadeHomeRes.count || 0);
 
       const financeiroRes = await supabase
         .from("admin_resumo_financeiro")
@@ -217,6 +233,13 @@ export default function AdminDashboard() {
               value={String(totalInscricoes)}
               subtitle="Relações ativas e históricas entre alunos e cursos"
               href="/admin/inscricoes"
+            />
+
+            <DashboardCard
+              title="Publicidade"
+              value={String(totalPublicidade)}
+              subtitle={`Total de anúncios e parceiros. Home ativa: ${totalPublicidadeHome}`}
+              href="/admin/publicidade"
             />
 
             <DashboardCard
@@ -372,6 +395,10 @@ export default function AdminDashboard() {
                 <QuickLink
                   href="/admin/inscricoes"
                   label="Gerir inscrições manuais e estados"
+                />
+                <QuickLink
+                  href="/admin/publicidade"
+                  label="Gerir publicidade e parceiros"
                 />
                 <QuickLink
                   href="/admin/vendas"

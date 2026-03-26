@@ -1370,3 +1370,38 @@ img {
     font-size: 18px;
   }
 }
+/* HOME — PUBLICIDADE PREPARADA */
+.home-publicidade-actions {
+  margin-top: 28px;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.home-publicidade-placeholder {
+  margin-top: 28px;
+  border: 1px dashed rgba(166, 120, 61, 0.5);
+  background: rgba(38, 20, 15, 0.32);
+  padding: 18px;
+}
+
+.home-publicidade-placeholder-inner {
+  min-height: 90px;
+  border: 1px solid rgba(166, 120, 61, 0.24);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+  font-size: 19px;
+  line-height: 1.7;
+  color: #cfa968;
+  background: rgba(20, 13, 9, 0.45);
+}
+
+@media (max-width: 768px) {
+  .home-publicidade-actions {
+    flex-direction: column;
+  }
+}
