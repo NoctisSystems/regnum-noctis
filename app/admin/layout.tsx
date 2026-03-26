@@ -18,6 +18,7 @@ export default function AdminLayout({
     { href: "/admin/alunos", label: "Alunos" },
     { href: "/admin/inscricoes", label: "Inscrições" },
     { href: "/admin/publicidade", label: "Publicidade" },
+    { href: "/admin/publicidade-candidaturas", label: "Pedidos publicidade" },
     { href: "/admin/vendas", label: "Vendas" },
     { href: "/admin/levantamentos", label: "Levantamentos" },
   ];

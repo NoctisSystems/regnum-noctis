@@ -35,6 +35,8 @@ export default function AdminDashboard() {
   const [totalLevantamentosPendentes, setTotalLevantamentosPendentes] = useState(0);
   const [totalPublicidade, setTotalPublicidade] = useState(0);
   const [totalPublicidadeHome, setTotalPublicidadeHome] = useState(0);
+  const [totalPublicidadeCandidaturas, setTotalPublicidadeCandidaturas] = useState(0);
+  const [totalPublicidadeCandidaturasPendentes, setTotalPublicidadeCandidaturasPendentes] = useState(0);
 
   const [financeiro, setFinanceiro] =
     useState<AdminResumoFinanceiro>(resumoFinanceiroVazio);
@@ -58,6 +60,8 @@ export default function AdminDashboard() {
         levantamentosRes,
         publicidadeRes,
         publicidadeHomeRes,
+        publicidadeCandidaturasRes,
+        publicidadeCandidaturasPendentesRes,
       ] = await Promise.all([
         supabase.from("cursos").select("id", { count: "exact", head: true }),
         supabase
@@ -82,6 +86,13 @@ export default function AdminDashboard() {
           .select("id", { count: "exact", head: true })
           .eq("mostrar_na_home", true)
           .eq("ativo", true),
+        supabase
+          .from("publicidade_candidaturas")
+          .select("id", { count: "exact", head: true }),
+        supabase
+          .from("publicidade_candidaturas")
+          .select("id", { count: "exact", head: true })
+          .eq("estado", "pendente"),
       ]);
 
       if (cursosRes.error) throw cursosRes.error;
@@ -92,6 +103,8 @@ export default function AdminDashboard() {
       if (levantamentosRes.error) throw levantamentosRes.error;
       if (publicidadeRes.error) throw publicidadeRes.error;
       if (publicidadeHomeRes.error) throw publicidadeHomeRes.error;
+      if (publicidadeCandidaturasRes.error) throw publicidadeCandidaturasRes.error;
+      if (publicidadeCandidaturasPendentesRes.error) throw publicidadeCandidaturasPendentesRes.error;
 
       setTotalCursos(cursosRes.count || 0);
       setTotalCandidaturasPendentes(candidaturasRes.count || 0);
@@ -101,6 +114,10 @@ export default function AdminDashboard() {
       setTotalLevantamentosPendentes(levantamentosRes.count || 0);
       setTotalPublicidade(publicidadeRes.count || 0);
       setTotalPublicidadeHome(publicidadeHomeRes.count || 0);
+      setTotalPublicidadeCandidaturas(publicidadeCandidaturasRes.count || 0);
+      setTotalPublicidadeCandidaturasPendentes(
+        publicidadeCandidaturasPendentesRes.count || 0
+      );
 
       const financeiroRes = await supabase
         .from("admin_resumo_financeiro")
@@ -240,6 +257,13 @@ export default function AdminDashboard() {
               value={String(totalPublicidade)}
               subtitle={`Total de anúncios e parceiros. Home ativa: ${totalPublicidadeHome}`}
               href="/admin/publicidade"
+            />
+
+            <DashboardCard
+              title="Pedidos publicidade"
+              value={String(totalPublicidadeCandidaturasPendentes)}
+              subtitle={`Total recebidos: ${totalPublicidadeCandidaturas}`}
+              href="/admin/publicidade-candidaturas"
             />
 
             <DashboardCard
@@ -399,6 +423,10 @@ export default function AdminDashboard() {
                 <QuickLink
                   href="/admin/publicidade"
                   label="Gerir publicidade e parceiros"
+                />
+                <QuickLink
+                  href="/admin/publicidade-candidaturas"
+                  label="Aprovar ou rejeitar pedidos de publicidade"
                 />
                 <QuickLink
                   href="/admin/vendas"
