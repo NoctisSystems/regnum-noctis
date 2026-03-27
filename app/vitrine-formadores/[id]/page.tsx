@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
-import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+
+export const dynamic = "force-dynamic";
 
 type Formador = {
   id: number;
@@ -11,17 +13,19 @@ type Formador = {
   status: string | null;
 };
 
-export default async function FormadorDetalhePage({
-  params,
-}: {
+type PageProps = {
   params: Promise<{ id: string }>;
-}) {
+};
+
+export default async function FormadorDetalhePage({ params }: PageProps) {
   const resolvedParams = await params;
   const formadorId = Number(resolvedParams.id);
 
   if (Number.isNaN(formadorId)) {
     notFound();
   }
+
+  const supabaseAdmin = getSupabaseAdmin();
 
   const { data, error } = await supabaseAdmin
     .from("formadores")
@@ -35,7 +39,8 @@ export default async function FormadorDetalhePage({
   }
 
   const formador = data as Formador;
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+
   const fotoSrc =
     formador.foto_url && supabaseUrl
       ? `${supabaseUrl}/storage/v1/object/public/formadores-fotos/${formador.foto_url}`
