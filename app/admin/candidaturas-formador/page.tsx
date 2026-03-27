@@ -1,6 +1,7 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { aprovarCandidatura, rejeitarCandidatura } from "./actions";
-import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 type Candidatura = {
   id: number;
@@ -19,6 +20,8 @@ type Candidatura = {
 };
 
 export default async function CandidaturasFormadorPage() {
+  const supabaseAdmin = getSupabaseAdmin();
+
   const { data, error } = await supabaseAdmin
     .from("formador_candidaturas")
     .select(
@@ -35,13 +38,14 @@ export default async function CandidaturasFormadorPage() {
         minHeight: "100vh",
         color: "#e6c27a",
         fontFamily: "Cormorant Garamond, serif",
+        padding: "20px 16px 40px",
       }}
     >
       <section
         style={{
           maxWidth: "1240px",
           margin: "0 auto",
-          padding: "10px 0 30px 0",
+          padding: "6px 0 24px 0",
         }}
       >
         <div
@@ -53,14 +57,14 @@ export default async function CandidaturasFormadorPage() {
             gap: "18px",
           }}
         >
-          <div>
+          <div style={{ flex: "1 1 720px", minWidth: "280px" }}>
             <p
               style={{
                 letterSpacing: "3px",
                 textTransform: "uppercase",
                 color: "#caa15a",
-                fontSize: "16px",
-                marginBottom: "14px",
+                fontSize: "14px",
+                marginBottom: "12px",
               }}
             >
               Administração
@@ -69,10 +73,11 @@ export default async function CandidaturasFormadorPage() {
             <h1
               style={{
                 fontFamily: "Cinzel, serif",
-                fontSize: "52px",
+                fontSize: "clamp(32px, 5vw, 52px)",
                 fontWeight: 500,
-                margin: "0 0 16px 0",
+                margin: "0 0 14px 0",
                 color: "#f0d79a",
+                lineHeight: 1.1,
               }}
             >
               Candidaturas de Formador
@@ -80,7 +85,7 @@ export default async function CandidaturasFormadorPage() {
 
             <p
               style={{
-                fontSize: "22px",
+                fontSize: "clamp(18px, 2.2vw, 22px)",
                 lineHeight: "1.7",
                 color: "#d7b06c",
                 maxWidth: "920px",
@@ -109,9 +114,9 @@ export default async function CandidaturasFormadorPage() {
             style={{
               border: "1px solid rgba(255,107,107,0.35)",
               background: "rgba(120,20,20,0.12)",
-              padding: "24px",
+              padding: "20px",
               color: "#ffb4b4",
-              fontSize: "20px",
+              fontSize: "18px",
             }}
           >
             Ocorreu um erro ao carregar as candidaturas.
@@ -121,14 +126,14 @@ export default async function CandidaturasFormadorPage() {
             style={{
               border: "1px solid #8a5d31",
               background: "#140d09",
-              padding: "34px",
+              padding: "28px",
               textAlign: "center",
             }}
           >
             <h2
               style={{
                 fontFamily: "Cinzel, serif",
-                fontSize: "32px",
+                fontSize: "clamp(26px, 4vw, 32px)",
                 margin: "0 0 14px 0",
                 color: "#e6c27a",
               }}
@@ -139,7 +144,7 @@ export default async function CandidaturasFormadorPage() {
             <p
               style={{
                 margin: 0,
-                fontSize: "21px",
+                fontSize: "clamp(18px, 2.1vw, 21px)",
                 lineHeight: "1.7",
                 color: "#d7b06c",
               }}
@@ -161,7 +166,7 @@ export default async function CandidaturasFormadorPage() {
                   border: "1px solid #8a5d31",
                   background:
                     "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-                  padding: "24px",
+                  padding: "clamp(16px, 2vw, 24px)",
                   boxShadow:
                     "0 12px 26px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,225,170,0.03)",
                 }}
@@ -176,11 +181,11 @@ export default async function CandidaturasFormadorPage() {
                     marginBottom: "18px",
                   }}
                 >
-                  <div>
+                  <div style={{ minWidth: "220px", flex: "1 1 320px" }}>
                     <h2
                       style={{
                         fontFamily: "Cinzel, serif",
-                        fontSize: "30px",
+                        fontSize: "clamp(24px, 3vw, 30px)",
                         margin: "0 0 8px 0",
                         color: "#e6c27a",
                       }}
@@ -191,8 +196,9 @@ export default async function CandidaturasFormadorPage() {
                     <p
                       style={{
                         margin: "0 0 6px 0",
-                        fontSize: "19px",
+                        fontSize: "clamp(17px, 2vw, 19px)",
                         color: "#d7b06c",
+                        wordBreak: "break-word",
                       }}
                     >
                       {candidatura.email}
@@ -201,7 +207,7 @@ export default async function CandidaturasFormadorPage() {
                     <p
                       style={{
                         margin: 0,
-                        fontSize: "18px",
+                        fontSize: "16px",
                         color: "#caa15a",
                       }}
                     >
@@ -214,6 +220,7 @@ export default async function CandidaturasFormadorPage() {
                       display: "flex",
                       gap: "12px",
                       flexWrap: "wrap",
+                      alignItems: "stretch",
                     }}
                   >
                     <form action={aprovarCandidatura}>
@@ -266,7 +273,7 @@ export default async function CandidaturasFormadorPage() {
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
                     gap: "14px",
                     marginBottom: "16px",
                   }}
@@ -339,7 +346,7 @@ function MiniBox({
       <p
         style={{
           margin: "0 0 6px 0",
-          fontSize: "15px",
+          fontSize: "14px",
           textTransform: "uppercase",
           letterSpacing: "1px",
           color: "#caa15a",
@@ -351,10 +358,11 @@ function MiniBox({
       <p
         style={{
           margin: 0,
-          fontSize: "18px",
+          fontSize: "clamp(17px, 2vw, 18px)",
           lineHeight: "1.55",
           color: "#d7b06c",
           whiteSpace: "pre-line",
+          wordBreak: "break-word",
         }}
       >
         {value}
@@ -381,7 +389,7 @@ function InfoBlock({
       <p
         style={{
           margin: "0 0 8px 0",
-          fontSize: "16px",
+          fontSize: "14px",
           textTransform: "uppercase",
           letterSpacing: "1px",
           color: "#caa15a",
@@ -393,10 +401,11 @@ function InfoBlock({
       <p
         style={{
           margin: 0,
-          fontSize: "20px",
+          fontSize: "clamp(18px, 2.1vw, 20px)",
           lineHeight: "1.7",
           color: "#d7b06c",
           whiteSpace: "pre-line",
+          wordBreak: "break-word",
         }}
       >
         {value}
@@ -405,57 +414,64 @@ function InfoBlock({
   );
 }
 
-const botaoTopo: React.CSSProperties = {
+const botaoTopo: CSSProperties = {
   textDecoration: "none",
   border: "1px solid #a6783d",
   color: "#e6c27a",
   padding: "12px 18px",
-  fontSize: "16px",
+  fontSize: "14px",
   fontWeight: 700,
   textTransform: "uppercase",
   letterSpacing: "0.05em",
   background: "rgba(32, 18, 13, 0.55)",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minHeight: "46px",
 };
 
-const botaoAprovar: React.CSSProperties = {
+const botaoAprovar: CSSProperties = {
   textDecoration: "none",
   border: "1px solid #c4914d",
   padding: "12px 16px",
   background: "linear-gradient(180deg, #c4914d 0%, #a6783d 100%)",
   color: "#140d09",
   cursor: "pointer",
-  fontSize: "15px",
+  fontSize: "14px",
   fontWeight: 700,
   letterSpacing: "0.05em",
   textTransform: "uppercase",
   boxShadow:
     "0 0 18px rgba(230,194,122,0.12), inset 0 1px 0 rgba(255,255,255,0.18)",
+  minHeight: "46px",
 };
 
-const botaoRejeitar: React.CSSProperties = {
+const botaoRejeitar: CSSProperties = {
   textDecoration: "none",
   border: "1px solid #8a5d31",
   padding: "12px 16px",
   background: "linear-gradient(180deg, #24140f 0%, #1a100c 100%)",
   color: "#e6c27a",
   cursor: "pointer",
-  fontSize: "15px",
+  fontSize: "14px",
   fontWeight: 700,
   letterSpacing: "0.05em",
   textTransform: "uppercase",
+  minHeight: "46px",
 };
 
-const botaoSecundario: React.CSSProperties = {
+const botaoSecundario: CSSProperties = {
   textDecoration: "none",
   border: "1px solid rgba(166, 120, 61, 0.7)",
   padding: "12px 16px",
   background: "rgba(32, 18, 13, 0.55)",
   color: "#e6c27a",
-  fontSize: "15px",
+  fontSize: "14px",
   fontWeight: 700,
   letterSpacing: "0.05em",
   textTransform: "uppercase",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
+  minHeight: "46px",
 };

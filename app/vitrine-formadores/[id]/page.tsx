@@ -17,6 +17,20 @@ type PageProps = {
   params: Promise<{ id: string }>;
 };
 
+function construirFotoSrc(fotoUrl: string | null, supabaseUrl: string) {
+  if (!fotoUrl) return null;
+
+  const valor = fotoUrl.trim();
+
+  if (!valor) return null;
+
+  if (valor.startsWith("http://") || valor.startsWith("https://")) {
+    return valor;
+  }
+
+  return `${supabaseUrl}/storage/v1/object/public/formadores-fotos/${valor}`;
+}
+
 export default async function FormadorDetalhePage({ params }: PageProps) {
   const resolvedParams = await params;
   const formadorId = Number(resolvedParams.id);
@@ -40,11 +54,7 @@ export default async function FormadorDetalhePage({ params }: PageProps) {
 
   const formador = data as Formador;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-
-  const fotoSrc =
-    formador.foto_url && supabaseUrl
-      ? `${supabaseUrl}/storage/v1/object/public/formadores-fotos/${formador.foto_url}`
-      : null;
+  const fotoSrc = construirFotoSrc(formador.foto_url, supabaseUrl);
 
   return (
     <main
@@ -54,9 +64,9 @@ export default async function FormadorDetalhePage({ params }: PageProps) {
         color: "#e6c27a",
         fontFamily: "Cormorant Garamond, serif",
         paddingTop: "60px",
-        paddingRight: "20px",
+        paddingRight: "16px",
         paddingBottom: "90px",
-        paddingLeft: "20px",
+        paddingLeft: "16px",
       }}
     >
       <section
@@ -67,8 +77,8 @@ export default async function FormadorDetalhePage({ params }: PageProps) {
           marginBottom: 0,
           marginLeft: "auto",
           display: "grid",
-          gridTemplateColumns: "380px minmax(0, 1fr)",
-          gap: "34px",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: "24px",
           alignItems: "start",
         }}
       >
@@ -83,7 +93,7 @@ export default async function FormadorDetalhePage({ params }: PageProps) {
           <div
             style={{
               width: "100%",
-              height: "500px",
+              height: "clamp(340px, 55vw, 500px)",
               background:
                 "radial-gradient(circle at top, rgba(212,175,55,0.08), transparent 45%), #1a100c",
               display: "flex",
@@ -114,10 +124,10 @@ export default async function FormadorDetalhePage({ params }: PageProps) {
             border: "1px solid #8a5d31",
             background: "#140d09",
             boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
-            paddingTop: "34px",
-            paddingRight: "30px",
-            paddingBottom: "34px",
-            paddingLeft: "30px",
+            paddingTop: "28px",
+            paddingRight: "22px",
+            paddingBottom: "28px",
+            paddingLeft: "22px",
           }}
         >
           <p
@@ -138,7 +148,7 @@ export default async function FormadorDetalhePage({ params }: PageProps) {
           <h1
             style={{
               fontFamily: "Cinzel, serif",
-              fontSize: "clamp(38px, 5vw, 56px)",
+              fontSize: "clamp(32px, 5vw, 56px)",
               marginTop: 0,
               marginRight: 0,
               marginBottom: "14px",
@@ -168,7 +178,7 @@ export default async function FormadorDetalhePage({ params }: PageProps) {
           {formador.bio_curta && (
             <p
               style={{
-                fontSize: "23px",
+                fontSize: "clamp(19px, 2.5vw, 23px)",
                 lineHeight: "1.7",
                 color: "#d7b06c",
                 marginTop: 0,
@@ -204,7 +214,7 @@ export default async function FormadorDetalhePage({ params }: PageProps) {
 
             <p
               style={{
-                fontSize: "22px",
+                fontSize: "clamp(18px, 2.4vw, 22px)",
                 lineHeight: "1.85",
                 color: "#d7b06c",
                 marginTop: 0,

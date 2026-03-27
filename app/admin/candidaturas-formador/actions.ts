@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function aprovarCandidatura(formData: FormData) {
+  const supabaseAdmin = getSupabaseAdmin();
+
   const candidaturaId = String(formData.get("candidaturaId") || "");
 
   if (!candidaturaId) {
@@ -80,11 +82,21 @@ export async function aprovarCandidatura(formData: FormData) {
   revalidatePath("/admin/candidaturas-formador");
   revalidatePath("/admin/candidaturas-formador/historico");
   revalidatePath("/admin/formadores");
+  revalidatePath("/vitrine-formadores");
 
   try {
+    const redirectBaseUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      process.env.RAILWAY_STATIC_URL ||
+      "http://localhost:3000";
+
+    const redirectTo = redirectBaseUrl.startsWith("http")
+      ? `${redirectBaseUrl.replace(/\/$/, "")}/formador/login`
+      : `https://${redirectBaseUrl.replace(/\/$/, "")}/formador/login`;
+
     const { error: inviteError } =
       await supabaseAdmin.auth.admin.inviteUserByEmail(candidatura.email, {
-        redirectTo: "http://localhost:3000/formadores/login",
+        redirectTo,
       });
 
     if (inviteError) {
@@ -96,6 +108,8 @@ export async function aprovarCandidatura(formData: FormData) {
 }
 
 export async function rejeitarCandidatura(formData: FormData) {
+  const supabaseAdmin = getSupabaseAdmin();
+
   const candidaturaId = String(formData.get("candidaturaId") || "");
 
   if (!candidaturaId) {

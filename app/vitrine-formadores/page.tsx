@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 type Formador = {
   id: number;
@@ -24,6 +24,8 @@ function construirFotoSrc(fotoUrl: string | null, supabaseUrl: string) {
 }
 
 export default async function VitrineFormadoresPage() {
+  const supabaseAdmin = getSupabaseAdmin();
+
   const { data, error } = await supabaseAdmin
     .from("formadores")
     .select("id, nome, bio_curta, foto_url, status")
@@ -41,22 +43,23 @@ export default async function VitrineFormadoresPage() {
           "radial-gradient(circle at top, rgba(166,120,61,0.08), transparent 20%), #2b160f",
         color: "#e6c27a",
         fontFamily: "Cormorant Garamond, serif",
-        padding: "60px 20px 90px",
+        padding: "60px 16px 90px",
       }}
     >
       <section
         style={{
           maxWidth: "1280px",
-          margin: "0 auto 42px auto",
+          margin: "0 auto 36px auto",
           textAlign: "center",
         }}
       >
         <h1
           style={{
             fontFamily: "Cinzel, serif",
-            fontSize: "clamp(40px, 6vw, 62px)",
+            fontSize: "clamp(34px, 6vw, 62px)",
             margin: "0 0 14px 0",
             color: "#f0d79a",
+            lineHeight: 1.1,
           }}
         >
           Formadores
@@ -65,7 +68,7 @@ export default async function VitrineFormadoresPage() {
         <p
           style={{
             margin: 0,
-            fontSize: "24px",
+            fontSize: "clamp(18px, 2.4vw, 24px)",
             lineHeight: 1.7,
             color: "#d7b06c",
           }}
@@ -97,14 +100,14 @@ export default async function VitrineFormadoresPage() {
             style={{
               border: "1px solid #8a5d31",
               background: "#140d09",
-              padding: "34px",
+              padding: "28px",
               textAlign: "center",
             }}
           >
             <h2
               style={{
                 fontFamily: "Cinzel, serif",
-                fontSize: "32px",
+                fontSize: "clamp(26px, 4vw, 32px)",
                 margin: "0 0 14px 0",
                 color: "#e6c27a",
               }}
@@ -115,7 +118,7 @@ export default async function VitrineFormadoresPage() {
             <p
               style={{
                 margin: 0,
-                fontSize: "21px",
+                fontSize: "clamp(18px, 2.1vw, 21px)",
                 lineHeight: 1.7,
                 color: "#d7b06c",
               }}
@@ -128,9 +131,8 @@ export default async function VitrineFormadoresPage() {
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
-              gap: "26px",
-              justifyItems: "center",
-              alignItems: "start",
+              gap: "22px",
+              alignItems: "stretch",
             }}
           >
             {formadores.map((formador) => {
@@ -141,7 +143,6 @@ export default async function VitrineFormadoresPage() {
                   key={formador.id}
                   style={{
                     width: "100%",
-                    maxWidth: "250px",
                     background:
                       "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
                     border: "1px solid rgba(166,120,61,0.45)",
@@ -149,13 +150,14 @@ export default async function VitrineFormadoresPage() {
                     padding: "14px",
                     display: "flex",
                     flexDirection: "column",
-                    minHeight: "540px",
+                    minHeight: "520px",
                   }}
                 >
                   <div
                     style={{
                       width: "100%",
-                      height: "300px",
+                      minHeight: "260px",
+                      height: "clamp(260px, 35vw, 300px)",
                       overflow: "hidden",
                       background: "#1a100c",
                       marginBottom: "14px",
@@ -166,8 +168,6 @@ export default async function VitrineFormadoresPage() {
                       <img
                         src={fotoSrc}
                         alt={formador.nome || "Formador"}
-                        width={400}
-                        height={500}
                         style={{
                           width: "100%",
                           height: "100%",
@@ -197,7 +197,7 @@ export default async function VitrineFormadoresPage() {
                   <h2
                     style={{
                       fontFamily: "Cinzel, serif",
-                      fontSize: "22px",
+                      fontSize: "clamp(20px, 2.5vw, 22px)",
                       lineHeight: 1.2,
                       textAlign: "center",
                       margin: "0 0 14px 0",
@@ -215,8 +215,8 @@ export default async function VitrineFormadoresPage() {
                     style={{
                       margin: "0 0 18px 0",
                       textAlign: "center",
-                      fontSize: "17px",
-                      lineHeight: 1.55,
+                      fontSize: "clamp(16px, 2vw, 17px)",
+                      lineHeight: 1.6,
                       color: "#d7b06c",
                       flex: 1,
                     }}
@@ -233,8 +233,8 @@ export default async function VitrineFormadoresPage() {
                       border: "1px solid #a6783d",
                       color: "#e6c27a",
                       padding: "12px 14px",
-                      fontSize: "16px",
-                      fontWeight: 600,
+                      fontSize: "14px",
+                      fontWeight: 700,
                       background: "transparent",
                       textTransform: "uppercase",
                       letterSpacing: "0.04em",
