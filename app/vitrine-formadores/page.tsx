@@ -46,7 +46,7 @@ export default async function VitrineFormadoresPage() {
           "radial-gradient(circle at top, rgba(166,120,61,0.08), transparent 20%), #2b160f",
         color: "#e6c27a",
         fontFamily: "Cormorant Garamond, serif",
-        padding: "clamp(40px, 6vw, 60px) clamp(14px, 4vw, 16px) clamp(70px, 8vw, 90px)",
+        padding: "60px 16px 90px",
       }}
     >
       <section
@@ -59,7 +59,7 @@ export default async function VitrineFormadoresPage() {
         <h1
           style={{
             fontFamily: "Cinzel, serif",
-            fontSize: "clamp(30px, 6vw, 62px)",
+            fontSize: "clamp(34px, 6vw, 62px)",
             margin: "0 0 14px 0",
             color: "#f0d79a",
             lineHeight: 1.1,
@@ -110,7 +110,7 @@ export default async function VitrineFormadoresPage() {
             <h2
               style={{
                 fontFamily: "Cinzel, serif",
-                fontSize: "clamp(24px, 4vw, 32px)",
+                fontSize: "clamp(26px, 4vw, 32px)",
                 margin: "0 0 14px 0",
                 color: "#e6c27a",
               }}
@@ -133,10 +133,9 @@ export default async function VitrineFormadoresPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fit, minmax(min(100%, 230px), 1fr))",
-              gap: "18px",
-              alignItems: "stretch",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 260px))",
+              justifyContent: "center",
+              gap: "22px",
             }}
           >
             {formadores.map((formador) => {
@@ -147,6 +146,7 @@ export default async function VitrineFormadoresPage() {
                   key={formador.id}
                   style={{
                     width: "100%",
+                    maxWidth: "260px",
                     background:
                       "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
                     border: "1px solid rgba(166,120,61,0.45)",
@@ -154,14 +154,12 @@ export default async function VitrineFormadoresPage() {
                     padding: "14px",
                     display: "flex",
                     flexDirection: "column",
-                    minHeight: "500px",
                   }}
                 >
                   <div
                     style={{
                       width: "100%",
-                      minHeight: "250px",
-                      height: "clamp(250px, 35vw, 300px)",
+                      height: "300px",
                       overflow: "hidden",
                       background: "#1a100c",
                       marginBottom: "14px",
@@ -201,12 +199,12 @@ export default async function VitrineFormadoresPage() {
                   <h2
                     style={{
                       fontFamily: "Cinzel, serif",
-                      fontSize: "clamp(20px, 2.5vw, 22px)",
+                      fontSize: "22px",
                       lineHeight: 1.2,
                       textAlign: "center",
-                      margin: "0 0 14px 0",
+                      margin: "0 0 12px 0",
                       color: "#e6c27a",
-                      minHeight: "52px",
+                      minHeight: "54px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -217,15 +215,18 @@ export default async function VitrineFormadoresPage() {
 
                   <p
                     style={{
-                      margin: "0 0 18px 0",
+                      margin: "0 0 16px 0",
                       textAlign: "center",
-                      fontSize: "clamp(16px, 2vw, 17px)",
+                      fontSize: "17px",
                       lineHeight: 1.6,
                       color: "#d7b06c",
-                      flex: 1,
+                      minHeight: "82px",
                     }}
                   >
-                    {formador.bio_curta || "Perfil em atualização."}
+                    {limitarTexto(
+                      formador.bio_curta || "Perfil em atualização.",
+                      110
+                    )}
                   </p>
 
                   <Link
@@ -254,4 +255,9 @@ export default async function VitrineFormadoresPage() {
       </section>
     </main>
   );
+}
+
+function limitarTexto(texto: string, max: number) {
+  if (texto.length <= max) return texto;
+  return `${texto.slice(0, max).trim()}...`;
 }

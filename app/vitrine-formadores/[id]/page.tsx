@@ -94,7 +94,7 @@ export default async function FormadorDetalhePage({ params }: PageProps) {
           <div
             style={{
               width: "100%",
-              height: "clamp(320px, 55vw, 500px)",
+              height: "clamp(420px, 62vw, 720px)",
               background:
                 "radial-gradient(circle at top, rgba(212,175,55,0.08), transparent 45%), #1a100c",
               display: "flex",
@@ -115,7 +115,15 @@ export default async function FormadorDetalhePage({ params }: PageProps) {
                 }}
               />
             ) : (
-              <span>Sem fotografia</span>
+              <span
+                style={{
+                  fontSize: "20px",
+                  textAlign: "center",
+                  padding: "24px",
+                }}
+              >
+                Sem fotografia
+              </span>
             )}
           </div>
         </div>
@@ -164,7 +172,7 @@ export default async function FormadorDetalhePage({ params }: PageProps) {
             {formador.area_ensino || "Área em atualização"}
           </p>
 
-          {formador.bio_curta && (
+          {formador.bio_curta ? (
             <p
               style={{
                 fontSize: "clamp(18px, 2.5vw, 23px)",
@@ -175,7 +183,7 @@ export default async function FormadorDetalhePage({ params }: PageProps) {
             >
               {formador.bio_curta}
             </p>
-          )}
+          ) : null}
 
           <div
             style={{

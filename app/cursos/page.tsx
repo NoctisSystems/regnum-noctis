@@ -86,10 +86,10 @@ export default async function CursosPage() {
         background: "#2b160f",
         color: "#e6c27a",
         fontFamily: "Cormorant Garamond, serif",
-        paddingTop: "clamp(40px, 6vw, 60px)",
-        paddingRight: "clamp(14px, 4vw, 20px)",
-        paddingBottom: "clamp(70px, 8vw, 90px)",
-        paddingLeft: "clamp(14px, 4vw, 20px)",
+        paddingTop: "60px",
+        paddingRight: "20px",
+        paddingBottom: "90px",
+        paddingLeft: "20px",
       }}
     >
       <section
@@ -97,7 +97,7 @@ export default async function CursosPage() {
           maxWidth: "1150px",
           margin: "0 auto 50px auto",
           textAlign: "center",
-          padding: "10px clamp(10px, 3vw, 20px) 50px",
+          padding: "10px 20px 50px 20px",
           background:
             "radial-gradient(circle at center, rgba(106,58,27,0.30) 0%, rgba(43,22,15,0) 68%)",
         }}
@@ -107,7 +107,7 @@ export default async function CursosPage() {
             letterSpacing: "3px",
             textTransform: "uppercase",
             color: "#caa15a",
-            fontSize: "clamp(13px, 2vw, 16px)",
+            fontSize: "16px",
             margin: "0 0 16px 0",
           }}
         >
@@ -117,7 +117,7 @@ export default async function CursosPage() {
         <h1
           style={{
             fontFamily: "Cinzel, serif",
-            fontSize: "clamp(34px, 6vw, 64px)",
+            fontSize: "clamp(42px, 6vw, 64px)",
             fontWeight: 500,
             margin: "0 0 18px 0",
             color: "#e6c27a",
@@ -131,13 +131,13 @@ export default async function CursosPage() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: "12px",
+            gap: "14px",
             margin: "0 0 28px 0",
           }}
         >
           <div
             style={{
-              width: "min(180px, 22vw)",
+              width: "180px",
               height: "1px",
               background: "#a6783d",
             }}
@@ -152,7 +152,7 @@ export default async function CursosPage() {
           />
           <div
             style={{
-              width: "min(180px, 22vw)",
+              width: "180px",
               height: "1px",
               background: "#a6783d",
             }}
@@ -161,7 +161,7 @@ export default async function CursosPage() {
 
         <p
           style={{
-            fontSize: "clamp(18px, 2.8vw, 28px)",
+            fontSize: "clamp(22px, 2.4vw, 28px)",
             lineHeight: "1.75",
             color: "#e6c27a",
             maxWidth: "980px",
@@ -174,7 +174,11 @@ export default async function CursosPage() {
         </p>
       </section>
 
-      <section style={{ padding: "0 0 26px 0" }}>
+      <section
+        style={{
+          padding: "0 20px 26px 20px",
+        }}
+      >
         <div
           style={{
             maxWidth: "1150px",
@@ -185,7 +189,7 @@ export default async function CursosPage() {
             style={{
               border: "1px solid #8a5d31",
               background: "#140d09",
-              padding: "clamp(20px, 4vw, 34px) clamp(18px, 4vw, 30px)",
+              padding: "34px 30px",
               boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
               marginBottom: "26px",
             }}
@@ -193,7 +197,7 @@ export default async function CursosPage() {
             <h2
               style={{
                 fontFamily: "Cinzel, serif",
-                fontSize: "clamp(24px, 4vw, 40px)",
+                fontSize: "clamp(28px, 4vw, 40px)",
                 margin: "0 0 14px 0",
                 color: "#e6c27a",
               }}
@@ -203,7 +207,7 @@ export default async function CursosPage() {
 
             <p
               style={{
-                fontSize: "clamp(18px, 2.5vw, 22px)",
+                fontSize: "22px",
                 lineHeight: "1.75",
                 color: "#d7b06c",
                 margin: 0,
@@ -238,7 +242,7 @@ export default async function CursosPage() {
               <h3
                 style={{
                   fontFamily: "Cinzel, serif",
-                  fontSize: "clamp(24px, 4vw, 34px)",
+                  fontSize: "34px",
                   margin: "0 0 14px 0",
                   color: "#e6c27a",
                 }}
@@ -248,7 +252,7 @@ export default async function CursosPage() {
 
               <p
                 style={{
-                  fontSize: "clamp(18px, 2.5vw, 22px)",
+                  fontSize: "22px",
                   lineHeight: "1.75",
                   color: "#d7b06c",
                   margin: 0,
@@ -262,9 +266,8 @@ export default async function CursosPage() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
-                gap: "20px",
+                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                gap: "24px",
               }}
             >
               {cursos.map((curso) => {
@@ -327,7 +330,7 @@ export default async function CursosPage() {
 
                     <div
                       style={{
-                        padding: "22px",
+                        padding: "24px",
                         display: "flex",
                         flexDirection: "column",
                         flex: 1,
@@ -348,7 +351,7 @@ export default async function CursosPage() {
                       <h3
                         style={{
                           fontFamily: "Cinzel, serif",
-                          fontSize: "clamp(22px, 3vw, 28px)",
+                          fontSize: "28px",
                           margin: "0 0 14px 0",
                           color: "#e6c27a",
                           lineHeight: 1.2,
@@ -359,7 +362,7 @@ export default async function CursosPage() {
 
                       <p
                         style={{
-                          fontSize: "clamp(17px, 2.2vw, 19px)",
+                          fontSize: "19px",
                           lineHeight: "1.7",
                           color: "#d7b06c",
                           margin: "0 0 18px 0",
@@ -383,7 +386,7 @@ export default async function CursosPage() {
                       >
                         <span
                           style={{
-                            fontSize: "clamp(18px, 2.5vw, 22px)",
+                            fontSize: "22px",
                             color: "#f0d38b",
                           }}
                         >
@@ -405,14 +408,18 @@ export default async function CursosPage() {
         </div>
       </section>
 
-      <section style={{ padding: "0 0 34px 0" }}>
+      <section
+        style={{
+          padding: "0 20px 34px 20px",
+        }}
+      >
         <div
           style={{
             maxWidth: "1150px",
             margin: "0 auto",
             border: "1px solid #8a5d31",
             background: "#140d09",
-            padding: "clamp(20px, 4vw, 28px) clamp(18px, 4vw, 30px)",
+            padding: "28px 30px",
             boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
           }}
         >
@@ -452,7 +459,7 @@ export default async function CursosPage() {
 
               <p
                 style={{
-                  fontSize: "clamp(17px, 2.3vw, 19px)",
+                  fontSize: "19px",
                   lineHeight: "1.7",
                   color: "#d7b06c",
                   maxWidth: "760px",
@@ -504,8 +511,7 @@ export default async function CursosPage() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(min(100%, 190px), 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
                 gap: "16px",
               }}
             >
@@ -600,7 +606,11 @@ export default async function CursosPage() {
         </div>
       </section>
 
-      <section style={{ padding: "0" }}>
+      <section
+        style={{
+          padding: "0 20px 0 20px",
+        }}
+      >
         <div
           style={{
             maxWidth: "1150px",
@@ -608,7 +618,7 @@ export default async function CursosPage() {
             border: "1px solid #8a5d31",
             background:
               "linear-gradient(180deg, rgba(20,13,9,1) 0%, rgba(26,16,12,1) 100%)",
-            padding: "clamp(22px, 4vw, 34px) clamp(18px, 4vw, 30px)",
+            padding: "34px 30px",
             textAlign: "center",
             boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
           }}
@@ -616,7 +626,7 @@ export default async function CursosPage() {
           <h2
             style={{
               fontFamily: "Cinzel, serif",
-              fontSize: "clamp(24px, 4vw, 40px)",
+              fontSize: "clamp(28px, 4vw, 40px)",
               margin: "0 0 16px 0",
               color: "#e6c27a",
             }}
@@ -626,7 +636,7 @@ export default async function CursosPage() {
 
           <p
             style={{
-              fontSize: "clamp(18px, 2.6vw, 22px)",
+              fontSize: "22px",
               lineHeight: "1.8",
               color: "#d7b06c",
               maxWidth: "900px",
@@ -688,38 +698,41 @@ function baralharArray<T>(array: T[]) {
   return copia;
 }
 
-const botaoCard: React.CSSProperties = {
+const botaoCard = {
   textDecoration: "none",
   border: "1px solid #a6783d",
   color: "#e6c27a",
-  padding: "12px 18px",
+  paddingTop: "12px",
+  paddingRight: "18px",
+  paddingBottom: "12px",
+  paddingLeft: "18px",
+  fontSize: "18px",
+  display: "inline-block",
+  background: "transparent",
+};
+
+const botaoSecundario = {
+  textDecoration: "none",
+  border: "1px solid #a6783d",
+  color: "#e6c27a",
+  paddingTop: "12px",
+  paddingRight: "18px",
+  paddingBottom: "12px",
+  paddingLeft: "18px",
+  fontSize: "18px",
+  display: "inline-block",
+  background: "transparent",
+};
+
+const botaoMiniPerfil = {
+  textDecoration: "none",
+  border: "1px solid #a6783d",
+  color: "#e6c27a",
+  paddingTop: "10px",
+  paddingRight: "14px",
+  paddingBottom: "10px",
+  paddingLeft: "14px",
   fontSize: "16px",
   display: "inline-block",
   background: "transparent",
-  width: "min(100%, 180px)",
-  textAlign: "center",
-};
-
-const botaoSecundario: React.CSSProperties = {
-  textDecoration: "none",
-  border: "1px solid #a6783d",
-  color: "#e6c27a",
-  padding: "12px 18px",
-  fontSize: "16px",
-  display: "inline-block",
-  background: "transparent",
-  width: "min(100%, 240px)",
-  textAlign: "center",
-};
-
-const botaoMiniPerfil: React.CSSProperties = {
-  textDecoration: "none",
-  border: "1px solid #a6783d",
-  color: "#e6c27a",
-  padding: "10px 14px",
-  fontSize: "15px",
-  display: "inline-block",
-  background: "transparent",
-  width: "min(100%, 150px)",
-  textAlign: "center",
 };

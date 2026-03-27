@@ -52,19 +52,14 @@ export default function CriarCursoPage() {
     [form.tipo_produto]
   );
 
-  const isProdutoFisico = useMemo(
-    () => form.tipo_produto === "produto_fisico",
-    [form.tipo_produto]
-  );
-
   function update<K extends keyof FormData>(field: K, value: FormData[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
   function validar() {
-    if (!form.titulo.trim()) return "Indica o título do produto.";
-    if (!form.descricao.trim()) return "Indica a descrição do produto.";
-    if (!form.tipo_produto.trim()) return "Indica o tipo de produto.";
+    if (!form.titulo.trim()) return "Indica o título.";
+    if (!form.descricao.trim()) return "Indica a descrição.";
+    if (!form.tipo_produto.trim()) return "Indica o tipo.";
     if (!form.preco.trim()) return "Indica o preço.";
 
     const precoNumero = Number(form.preco.replace(",", "."));
@@ -88,6 +83,18 @@ export default function CriarCursoPage() {
     try {
       setUploadingCapa(true);
 
+      const tiposPermitidos = ["image/jpeg", "image/png", "image/webp"];
+      if (!tiposPermitidos.includes(file.type)) {
+        setErro("A capa tem de estar em JPG, PNG ou WEBP.");
+        return;
+      }
+
+      const maxBytes = 5 * 1024 * 1024;
+      if (file.size > maxBytes) {
+        setErro("A capa não pode ultrapassar 5 MB.");
+        return;
+      }
+
       const extensao = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const nomeFicheiro = `curso-${Date.now()}-${Math.random()
         .toString(36)
@@ -101,7 +108,7 @@ export default function CriarCursoPage() {
         });
 
       if (uploadError) {
-        setErro(uploadError.message || "Não foi possível fazer upload da capa.");
+        setErro(uploadError.message || "Não foi possível carregar a capa.");
         return;
       }
 
@@ -149,7 +156,7 @@ export default function CriarCursoPage() {
         .single();
 
       if (formadorError || !formador) {
-        setErro("Não foi possível associar este produto ao formador autenticado.");
+        setErro("Não foi possível associar este conteúdo ao formador autenticado.");
         return;
       }
 
@@ -188,15 +195,11 @@ export default function CriarCursoPage() {
         .single();
 
       if (insertError) {
-        setErro(insertError.message || "Erro ao criar produto.");
+        setErro(insertError.message || "Erro ao criar conteúdo.");
         return;
       }
 
-      if (
-        cursoCriado &&
-        typeof cursoCriado.id === "number" &&
-        isCursoVideo
-      ) {
+      if (cursoCriado && typeof cursoCriado.id === "number" && isCursoVideo) {
         await supabase.from("comunidades").insert([
           {
             curso_id: cursoCriado.id,
@@ -209,13 +212,13 @@ export default function CriarCursoPage() {
 
       setSucesso(
         isCursoVideo
-          ? "Curso criado com sucesso como rascunho. A comunidade interna base também foi preparada."
-          : "Produto criado com sucesso como rascunho."
+          ? "Curso criado com sucesso como rascunho."
+          : "PDF criado com sucesso como rascunho."
       );
 
       setForm(initialForm);
     } catch {
-      setErro("Ocorreu um erro inesperado ao criar o produto.");
+      setErro("Ocorreu um erro inesperado ao criar o conteúdo.");
     } finally {
       setLoading(false);
     }
@@ -265,7 +268,7 @@ export default function CriarCursoPage() {
               fontWeight: 500,
             }}
           >
-            Criar Produto
+            Criar Conteúdo
           </h1>
 
           <p
@@ -277,9 +280,9 @@ export default function CriarCursoPage() {
               maxWidth: "960px",
             }}
           >
-            Cria um curso em vídeo, um PDF digital ou um produto físico. O
-            conteúdo será guardado como rascunho para poderes estruturar tudo
-            com calma antes da publicação.
+            Cria um curso em vídeo ou um PDF digital. O conteúdo será guardado
+            como rascunho para poderes estruturar tudo com calma antes da
+            publicação.
           </p>
         </header>
 
@@ -306,13 +309,12 @@ export default function CriarCursoPage() {
             }}
           >
             <SelectField
-              label="Tipo de produto"
+              label="Tipo"
               value={form.tipo_produto}
               onChange={(v) => update("tipo_produto", v)}
               options={[
                 { value: "curso_video", label: "Curso em vídeo" },
                 { value: "pdf_digital", label: "PDF digital" },
-                { value: "produto_fisico", label: "Produto físico" },
               ]}
             />
 
@@ -328,7 +330,7 @@ export default function CriarCursoPage() {
               value={form.descricao}
               onChange={(v) => update("descricao", v)}
               rows={7}
-              placeholder="Descreve o produto, o seu objetivo, o público e a sua proposta."
+              placeholder="Descreve o conteúdo, o seu objetivo, o público e a sua proposta."
             />
 
             <div
@@ -354,7 +356,7 @@ export default function CriarCursoPage() {
             </div>
 
             <div style={caixaInterna}>
-              <h2 style={subTitulo}>Capa do curso</h2>
+              <h2 style={subTitulo}>Capa</h2>
 
               <label
                 style={{
@@ -369,7 +371,7 @@ export default function CriarCursoPage() {
 
               <input
                 type="file"
-                accept="image/*"
+                accept="image/png,image/jpeg,image/webp"
                 onChange={(e) => handleUploadCapa(e.target.files?.[0] || null)}
                 style={{
                   ...campoBase,
@@ -378,7 +380,7 @@ export default function CriarCursoPage() {
               />
 
               <p style={{ ...textoAjuda, marginTop: "12px" }}>
-                O upload será feito para o bucket público <strong>curso_capas</strong>.
+                Formatos aceites: JPG, PNG ou WEBP. Máximo: 5 MB.
               </p>
 
               {form.capa_url ? (
@@ -424,9 +426,8 @@ export default function CriarCursoPage() {
                 </label>
 
                 <p style={textoAjuda}>
-                  Os módulos, aulas, vídeos, textos, PDFs por aula e aula
-                  introdutória pública serão estruturados depois da criação do
-                  curso.
+                  Os módulos, aulas, vídeos, textos e materiais complementares
+                  serão organizados depois da criação do curso.
                 </p>
               </div>
             ) : null}
@@ -435,19 +436,8 @@ export default function CriarCursoPage() {
               <div style={caixaInterna}>
                 <h2 style={subTitulo}>Configuração do PDF digital</h2>
                 <p style={textoAjuda}>
-                  Este produto será tratado como material digital autónomo, sem
-                  estrutura de módulos e aulas.
-                </p>
-              </div>
-            ) : null}
-
-            {isProdutoFisico ? (
-              <div style={caixaInterna}>
-                <h2 style={subTitulo}>Configuração do produto físico</h2>
-                <p style={textoAjuda}>
-                  Este produto será tratado como item físico. Mais tarde podes
-                  ligar imagens, detalhes adicionais e lógica de stock, se
-                  necessário.
+                  Este conteúdo será tratado como material digital autónomo, sem
+                  módulos nem aulas.
                 </p>
               </div>
             ) : null}
@@ -459,12 +449,10 @@ export default function CriarCursoPage() {
                 <input
                   type="checkbox"
                   checked={form.tem_certificado}
-                  onChange={(e) =>
-                    update("tem_certificado", e.target.checked)
-                  }
+                  onChange={(e) => update("tem_certificado", e.target.checked)}
                   style={{ accentColor: "#a6783d" }}
                 />
-                <span>Este produto terá certificado</span>
+                <span>Este conteúdo terá certificado</span>
               </label>
 
               {form.tem_certificado ? (
@@ -497,7 +485,7 @@ export default function CriarCursoPage() {
                     value={form.texto_certificado}
                     onChange={(v) => update("texto_certificado", v)}
                     rows={4}
-                    placeholder="Texto opcional para personalizar a redação do certificado."
+                    placeholder="Texto opcional para personalizar o certificado."
                   />
                 </div>
               ) : null}
@@ -505,7 +493,7 @@ export default function CriarCursoPage() {
 
             <div style={caixaInterna}>
               <p style={textoEstado}>
-                O produto será criado como <strong>rascunho</strong>.
+                O conteúdo será criado como <strong>rascunho</strong>.
               </p>
             </div>
 
@@ -521,8 +509,7 @@ export default function CriarCursoPage() {
                 background:
                   "linear-gradient(180deg, #c4914d 0%, #a6783d 100%)",
                 color: "#140d09",
-                cursor:
-                  loading || uploadingCapa ? "not-allowed" : "pointer",
+                cursor: loading || uploadingCapa ? "not-allowed" : "pointer",
                 fontSize: "18px",
                 fontWeight: 700,
                 letterSpacing: "0.08em",
@@ -536,7 +523,9 @@ export default function CriarCursoPage() {
                 ? "A carregar capa..."
                 : loading
                 ? "A criar..."
-                : "Criar produto"}
+                : isCursoVideo
+                ? "Criar curso"
+                : "Criar PDF"}
             </button>
           </form>
 
@@ -574,9 +563,8 @@ export default function CriarCursoPage() {
             >
               <li>Curso em vídeo: estrutura modular com aulas e comunidade.</li>
               <li>PDF digital: material autónomo sem estrutura de aulas.</li>
-              <li>Produto físico: item físico para venda dentro da plataforma.</li>
-              <li>Certificado: opcional e configurável por produto.</li>
-              <li>Publicação: o produto nasce como rascunho.</li>
+              <li>Certificado: opcional e configurável por conteúdo.</li>
+              <li>Publicação: o conteúdo nasce como rascunho.</li>
             </ul>
 
             <div
@@ -604,8 +592,8 @@ export default function CriarCursoPage() {
                 }}
               >
                 Depois de criares um curso em vídeo, o passo seguinte será
-                estruturar módulos, aulas, PDFs, conteúdos textuais, aula
-                pública e comunidade interna.
+                organizar módulos, aulas, PDFs, conteúdos textuais, aula pública
+                e comunidade interna.
               </p>
             </div>
           </aside>

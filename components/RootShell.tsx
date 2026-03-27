@@ -33,10 +33,6 @@ export default function RootShell({
             Cursos
           </Link>
 
-          <Link href="/vitrine-formadores" className="nav-button">
-            Formadores
-          </Link>
-
           <Link href="/publicidade-e-parceiros" className="nav-button">
             Publicidade e Parceiros
           </Link>
@@ -45,11 +41,11 @@ export default function RootShell({
             Torna-te Formador
           </Link>
 
-          <Link href="/aluno" className="nav-button">
+          <Link href="/aluno/login" className="nav-button">
             Área do Aluno
           </Link>
 
-          <Link href="/formador/login" className="nav-button">
+          <Link href="/formadores/login" className="nav-button">
             Área do Formador
           </Link>
         </nav>
