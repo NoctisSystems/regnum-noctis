@@ -136,60 +136,29 @@ export default function AdminPublicidadePage() {
   const totalPendentes = registos.filter((item) => item.estado === "pendente").length;
 
   return (
-    <>
-      <h1
-        style={{
-          fontFamily: "Cinzel, serif",
-          fontSize: "48px",
-          marginBottom: "24px",
-          color: "#e6c27a",
-        }}
-      >
-        Publicidade e Parceiros
-      </h1>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "24px",
-          marginBottom: "32px",
-        }}
-      >
-        <div style={card}>
-          <h3 style={cardTitle}>Total</h3>
-          <p style={cardValue}>{loading ? "..." : totalRegistos}</p>
+    <main style={main}>
+      <section style={topo}>
+        <div style={topoTexto}>
+          <p style={eyebrow}>Administração</p>
+          <h1 style={titulo}>Publicidade e Parceiros</h1>
+          <p style={descricao}>
+            Gestão administrativa dos parceiros, anúncios, destaque na home e
+            respetivos dados de contacto, plano e estado.
+          </p>
         </div>
+      </section>
 
-        <div style={card}>
-          <h3 style={cardTitle}>Ativos</h3>
-          <p style={cardValue}>{loading ? "..." : totalAtivos}</p>
-        </div>
+      <section style={statsGrid}>
+        <StatCard label="Total" value={loading ? "..." : String(totalRegistos)} />
+        <StatCard label="Ativos" value={loading ? "..." : String(totalAtivos)} />
+        <StatCard label="Na Home" value={loading ? "..." : String(totalHome)} />
+        <StatCard label="Pendentes" value={loading ? "..." : String(totalPendentes)} />
+      </section>
 
-        <div style={card}>
-          <h3 style={cardTitle}>Na Home</h3>
-          <p style={cardValue}>{loading ? "..." : totalHome}</p>
-        </div>
+      {erro ? <MensagemErro texto={erro} /> : null}
+      {sucesso ? <MensagemSucesso texto={sucesso} /> : null}
 
-        <div style={card}>
-          <h3 style={cardTitle}>Pendentes</h3>
-          <p style={cardValue}>{loading ? "..." : totalPendentes}</p>
-        </div>
-      </div>
-
-      {erro ? <div style={caixaErro}>{erro}</div> : null}
-      {sucesso ? <div style={caixaSucesso}>{sucesso}</div> : null}
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "16px",
-          flexWrap: "wrap",
-          marginBottom: "24px",
-        }}
-      >
+      <section style={barra}>
         <input
           type="text"
           placeholder="Pesquisar registo..."
@@ -200,39 +169,45 @@ export default function AdminPublicidadePage() {
 
         <button
           type="button"
-          style={buttonSecundario}
+          style={botaoSecundario}
           onClick={carregarPublicidade}
         >
           Atualizar
         </button>
-      </div>
+      </section>
 
       {loading ? (
-        <div style={linhaVazia}>A carregar publicidade...</div>
+        <EstadoBox texto="A carregar publicidade..." />
       ) : registosFiltrados.length === 0 ? (
-        <div style={linhaVazia}>Ainda não existem registos de publicidade.</div>
+        <EstadoBox texto="Ainda não existem registos de publicidade." />
       ) : (
-        <div style={{ display: "grid", gap: "14px" }}>
+        <section style={lista}>
           {registosFiltrados.map((item) => (
-            <article
-              key={item.id}
-              style={{
-                border: "1px solid #a6783d",
-                background: "linear-gradient(145deg, #1a0f0a, #140d09)",
-                boxShadow: "0 0 20px rgba(166, 120, 61, 0.12)",
-                padding: "20px",
-              }}
-            >
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "minmax(180px, 220px) minmax(180px, 220px) minmax(180px, 220px) minmax(220px, 1fr) auto",
-                  gap: "12px",
-                  alignItems: "end",
-                  marginBottom: "12px",
-                }}
-              >
+            <article key={item.id} style={card}>
+              <div style={cardHeader}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <p style={miniLabel}>Registo #{item.id}</p>
+                  <h2 style={cardTitulo}>{item.nome}</h2>
+                  <p style={subinfo}>
+                    Tipo: {item.tipo} • Plano: {item.plano} • Estado: {item.estado}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => guardarRegisto(item)}
+                  disabled={savingId === item.id}
+                  style={{
+                    ...botaoPrimario,
+                    opacity: savingId === item.id ? 0.7 : 1,
+                    cursor: savingId === item.id ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {savingId === item.id ? "Guardar..." : "Guardar"}
+                </button>
+              </div>
+
+              <div style={grid4}>
                 <Campo
                   titulo="Nome"
                   value={item.nome || ""}
@@ -265,30 +240,9 @@ export default function AdminPublicidadePage() {
                   value={item.slug || ""}
                   onChange={(v) => atualizarCampo(item.id, "slug", v)}
                 />
-
-                <button
-                  type="button"
-                  onClick={() => guardarRegisto(item)}
-                  disabled={savingId === item.id}
-                  style={{
-                    ...button,
-                    opacity: savingId === item.id ? 0.7 : 1,
-                    cursor: savingId === item.id ? "not-allowed" : "pointer",
-                  }}
-                >
-                  {savingId === item.id ? "Guardar..." : "Guardar"}
-                </button>
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "minmax(220px, 1fr) minmax(220px, 1fr) minmax(220px, 1fr)",
-                  gap: "12px",
-                  marginBottom: "12px",
-                }}
-              >
+              <div style={grid3}>
                 <Campo
                   titulo="Imagem URL"
                   value={item.imagem_url || ""}
@@ -304,21 +258,11 @@ export default function AdminPublicidadePage() {
                 <Campo
                   titulo="Email contacto"
                   value={item.email_contacto || ""}
-                  onChange={(v) =>
-                    atualizarCampo(item.id, "email_contacto", v)
-                  }
+                  onChange={(v) => atualizarCampo(item.id, "email_contacto", v)}
                 />
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "minmax(220px, 1fr) minmax(220px, 1fr) minmax(180px, 220px) minmax(180px, 220px)",
-                  gap: "12px",
-                  marginBottom: "12px",
-                }}
-              >
+              <div style={grid4}>
                 <Campo
                   titulo="WhatsApp"
                   value={item.whatsapp_contacto || ""}
@@ -343,7 +287,9 @@ export default function AdminPublicidadePage() {
                 <Campo
                   titulo="Ordem Home"
                   value={
-                    item.ordem_home === null ? "" : String(item.ordem_home)
+                    item.ordem_home === null || item.ordem_home === undefined
+                      ? ""
+                      : String(item.ordem_home)
                   }
                   onChange={(v) =>
                     atualizarCampo(
@@ -356,7 +302,8 @@ export default function AdminPublicidadePage() {
 
                 <div>
                   <label style={label}>Ativações</label>
-                  <div style={{ display: "grid", gap: "8px", paddingTop: "6px" }}>
+
+                  <div style={checksBox}>
                     <label style={checkLabel}>
                       <input
                         type="checkbox"
@@ -400,20 +347,11 @@ export default function AdminPublicidadePage() {
                 </div>
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "12px",
-                  marginBottom: "12px",
-                }}
-              >
+              <div style={grid2}>
                 <AreaCampo
                   titulo="Descrição curta"
                   value={item.descricao_curta || ""}
-                  onChange={(v) =>
-                    atualizarCampo(item.id, "descricao_curta", v)
-                  }
+                  onChange={(v) => atualizarCampo(item.id, "descricao_curta", v)}
                   rows={3}
                 />
 
@@ -425,13 +363,7 @@ export default function AdminPublicidadePage() {
                 />
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "12px",
-                }}
-              >
+              <div style={grid2}>
                 <AreaCampo
                   titulo="Notas admin"
                   value={item.notas_admin || ""}
@@ -439,7 +371,7 @@ export default function AdminPublicidadePage() {
                   rows={3}
                 />
 
-                <div style={{ display: "grid", gap: "10px" }}>
+                <div style={{ display: "grid", gap: "12px" }}>
                   <Campo
                     titulo="Data início"
                     value={item.data_inicio || ""}
@@ -455,9 +387,9 @@ export default function AdminPublicidadePage() {
               </div>
             </article>
           ))}
-        </div>
+        </section>
       )}
-    </>
+    </main>
   );
 }
 
@@ -539,35 +471,177 @@ function SelectCampo({
   );
 }
 
-const card: CSSProperties = {
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <article style={statCard}>
+      <p style={statLabel}>{label}</p>
+      <p style={statValue}>{value}</p>
+    </article>
+  );
+}
+
+function EstadoBox({ texto }: { texto: string }) {
+  return <div style={estadoBox}>{texto}</div>;
+}
+
+function MensagemErro({ texto }: { texto: string }) {
+  return <div style={caixaErro}>{texto}</div>;
+}
+
+function MensagemSucesso({ texto }: { texto: string }) {
+  return <div style={caixaSucesso}>{texto}</div>;
+}
+
+const main: CSSProperties = {
+  color: "#e6c27a",
+  fontFamily: "Cormorant Garamond, serif",
+};
+
+const topo: CSSProperties = {
+  marginBottom: "24px",
+};
+
+const topoTexto: CSSProperties = {
+  maxWidth: "980px",
+};
+
+const eyebrow: CSSProperties = {
+  margin: "0 0 10px 0",
+  letterSpacing: "0.14em",
+  textTransform: "uppercase",
+  fontSize: "14px",
+  color: "#caa15a",
+};
+
+const titulo: CSSProperties = {
+  margin: "0 0 12px 0",
+  fontFamily: "Cinzel, serif",
+  fontSize: "clamp(32px, 5vw, 48px)",
+  color: "#f0d79a",
+  lineHeight: 1.08,
+  fontWeight: 500,
+};
+
+const descricao: CSSProperties = {
+  margin: 0,
+  color: "#d7b06c",
+  fontSize: "clamp(18px, 2.3vw, 22px)",
+  lineHeight: 1.7,
+};
+
+const statsGrid: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+  gap: "16px",
+  marginBottom: "24px",
+};
+
+const statCard: CSSProperties = {
   border: "1px solid #a6783d",
-  padding: "24px",
+  padding: "20px",
   background: "linear-gradient(145deg, #1a0f0a, #140d09)",
   boxShadow: "0 0 20px rgba(166, 120, 61, 0.12)",
 };
 
-const cardTitle: CSSProperties = {
-  fontSize: "22px",
-  marginBottom: "14px",
+const statLabel: CSSProperties = {
+  margin: "0 0 10px 0",
+  fontSize: "18px",
   color: "#e6c27a",
 };
 
-const cardValue: CSSProperties = {
-  fontSize: "40px",
+const statValue: CSSProperties = {
+  margin: 0,
+  fontSize: "34px",
+  lineHeight: 1.1,
   fontFamily: "Cinzel, serif",
-  color: "#e6c27a",
+  color: "#f0d79a",
+};
+
+const barra: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "12px",
+  flexWrap: "wrap",
+  marginBottom: "24px",
 };
 
 const inputPesquisa: CSSProperties = {
-  minWidth: "280px",
+  minWidth: "260px",
   flex: 1,
-  maxWidth: "420px",
+  width: "100%",
+  maxWidth: "520px",
   padding: "12px 14px",
   border: "1px solid #a6783d",
   background: "#140d09",
   color: "#e6c27a",
-  fontSize: "18px",
+  fontSize: "17px",
   outline: "none",
+};
+
+const lista: CSSProperties = {
+  display: "grid",
+  gap: "16px",
+};
+
+const card: CSSProperties = {
+  border: "1px solid #a6783d",
+  background: "linear-gradient(145deg, #1a0f0a, #140d09)",
+  boxShadow: "0 0 20px rgba(166, 120, 61, 0.12)",
+  padding: "clamp(16px, 2vw, 20px)",
+};
+
+const cardHeader: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "14px",
+  flexWrap: "wrap",
+  marginBottom: "16px",
+};
+
+const miniLabel: CSSProperties = {
+  margin: "0 0 8px 0",
+  fontSize: "13px",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  color: "#caa15a",
+};
+
+const cardTitulo: CSSProperties = {
+  margin: "0 0 8px 0",
+  fontFamily: "Cinzel, serif",
+  fontSize: "clamp(24px, 3vw, 30px)",
+  color: "#f0d79a",
+  lineHeight: 1.15,
+};
+
+const subinfo: CSSProperties = {
+  margin: 0,
+  fontSize: "17px",
+  color: "#d7b06c",
+  lineHeight: 1.6,
+};
+
+const grid4: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+  gap: "12px",
+  marginBottom: "12px",
+};
+
+const grid3: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
+  gap: "12px",
+  marginBottom: "12px",
+};
+
+const grid2: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+  gap: "12px",
+  marginBottom: "12px",
 };
 
 const input: CSSProperties = {
@@ -576,7 +650,7 @@ const input: CSSProperties = {
   border: "1px solid #8a5d31",
   background: "#140d09",
   color: "#e6c27a",
-  fontSize: "17px",
+  fontSize: "16px",
   outline: "none",
 };
 
@@ -586,7 +660,7 @@ const textarea: CSSProperties = {
   border: "1px solid #8a5d31",
   background: "#140d09",
   color: "#e6c27a",
-  fontSize: "17px",
+  fontSize: "16px",
   outline: "none",
   resize: "vertical",
   fontFamily: "Cormorant Garamond, serif",
@@ -596,9 +670,17 @@ const label: CSSProperties = {
   display: "block",
   marginBottom: "8px",
   color: "#caa15a",
-  fontSize: "15px",
+  fontSize: "14px",
   textTransform: "uppercase",
   letterSpacing: "1px",
+};
+
+const checksBox: CSSProperties = {
+  border: "1px solid rgba(166,120,61,0.28)",
+  background: "rgba(38,20,15,0.35)",
+  padding: "12px",
+  display: "grid",
+  gap: "10px",
 };
 
 const checkLabel: CSSProperties = {
@@ -606,34 +688,37 @@ const checkLabel: CSSProperties = {
   alignItems: "center",
   gap: "8px",
   color: "#e6c27a",
-  fontSize: "16px",
+  fontSize: "15px",
 };
 
-const button: CSSProperties = {
+const botaoPrimario: CSSProperties = {
   padding: "12px 18px",
   border: "1px solid #a6783d",
   background: "#a6783d",
   color: "#140d09",
-  fontSize: "18px",
+  fontSize: "16px",
   cursor: "pointer",
+  minHeight: "46px",
 };
 
-const buttonSecundario: CSSProperties = {
+const botaoSecundario: CSSProperties = {
   padding: "12px 18px",
   border: "1px solid #a6783d",
   background: "transparent",
   color: "#e6c27a",
-  fontSize: "18px",
+  fontSize: "16px",
   cursor: "pointer",
+  minHeight: "46px",
 };
 
-const linhaVazia: CSSProperties = {
+const estadoBox: CSSProperties = {
   border: "1px solid #a6783d",
   background: "#140d09",
-  padding: "28px 18px",
+  padding: "24px 18px",
   textAlign: "center",
   color: "#caa15a",
-  fontSize: "21px",
+  fontSize: "20px",
+  marginBottom: "20px",
 };
 
 const caixaErro: CSSProperties = {

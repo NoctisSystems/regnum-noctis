@@ -251,33 +251,23 @@ export default function AdminInscricoesPage() {
   ).length;
 
   return (
-    <>
-      <h1
-        style={{
-          fontFamily: "Cinzel, serif",
-          fontSize: "48px",
-          marginBottom: "24px",
-          color: "#e6c27a",
-        }}
-      >
-        Inscrições
-      </h1>
+    <main style={pagina}>
+      <section style={hero}>
+        <p style={kicker}>Administração</p>
+        <h1 style={titulo}>Inscrições</h1>
+        <p style={descricao}>
+          Gestão manual das inscrições entre alunos e cursos.
+        </p>
+      </section>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "24px",
-          marginBottom: "32px",
-        }}
-      >
+      <section style={gridMetricas}>
         <div style={card}>
           <h3 style={cardTitle}>Total de inscrições</h3>
           <p style={cardValue}>{loading ? "..." : totalInscricoes}</p>
         </div>
 
         <div style={card}>
-          <h3 style={cardTitle}>Inscrições activas</h3>
+          <h3 style={cardTitle}>Inscrições ativas</h3>
           <p style={cardValue}>{loading ? "..." : inscricoesAtivas}</p>
         </div>
 
@@ -285,21 +275,12 @@ export default function AdminInscricoesPage() {
           <h3 style={cardTitle}>Concluídas</h3>
           <p style={cardValue}>{loading ? "..." : inscricoesConcluidas}</p>
         </div>
-      </div>
+      </section>
 
       {erro ? <div style={caixaErro}>{erro}</div> : null}
       {sucesso ? <div style={caixaSucesso}>{sucesso}</div> : null}
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "16px",
-          flexWrap: "wrap",
-          marginBottom: "24px",
-        }}
-      >
+      <section style={barraTopo}>
         <input
           type="text"
           placeholder="Pesquisar inscrição..."
@@ -308,13 +289,7 @@ export default function AdminInscricoesPage() {
           style={inputPesquisa}
         />
 
-        <div
-          style={{
-            display: "flex",
-            gap: "12px",
-            flexWrap: "wrap",
-          }}
-        >
+        <div style={acoesTopo}>
           <button type="button" style={buttonSecundario} onClick={exportarCSV}>
             Exportar
           </button>
@@ -331,20 +306,13 @@ export default function AdminInscricoesPage() {
             {mostrarNovaInscricao ? "Fechar" : "Nova inscrição"}
           </button>
         </div>
-      </div>
+      </section>
 
       {mostrarNovaInscricao ? (
-        <div style={boxFormulario}>
+        <section style={boxFormulario}>
           <h2 style={tituloFormulario}>Criar inscrição manual</h2>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-              gap: "16px",
-              marginBottom: "18px",
-            }}
-          >
+          <div style={gridFormulario}>
             <div>
               <label style={label}>Aluno</label>
               <select
@@ -355,7 +323,9 @@ export default function AdminInscricoesPage() {
                 <option value="">Selecionar aluno</option>
                 {alunos.map((aluno) => (
                   <option key={aluno.id} value={aluno.id}>
-                    {(aluno.nome || "Sem nome") + " — " + (aluno.email || "Sem email")}
+                    {(aluno.nome || "Sem nome") +
+                      " — " +
+                      (aluno.email || "Sem email")}
                   </option>
                 ))}
               </select>
@@ -392,7 +362,7 @@ export default function AdminInscricoesPage() {
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+          <div style={acoesFormulario}>
             <button
               type="button"
               style={{
@@ -417,55 +387,65 @@ export default function AdminInscricoesPage() {
               Cancelar
             </button>
           </div>
-        </div>
+        </section>
       ) : null}
 
-      <div style={box}>
-        <div style={headerTabela}>
-          <span style={colunaNome}>Aluno</span>
-          <span style={coluna}>Email</span>
-          <span style={coluna}>Curso</span>
-          <span style={coluna}>Estado</span>
-          <span style={coluna}>Data</span>
-          <span style={coluna}>Ações</span>
-        </div>
-
+      <section style={listaCards}>
         {loading ? (
           <div style={linhaVazia}>A carregar inscrições...</div>
         ) : linhasFiltradas.length === 0 ? (
           <div style={linhaVazia}>Ainda não existem inscrições registadas.</div>
         ) : (
           linhasFiltradas.map((linha) => (
-            <div key={linha.id} style={linhaTabela}>
-              <span style={colunaNomeValor}>{linha.alunoNome}</span>
-              <span style={colunaValor}>{linha.alunoEmail}</span>
-              <span style={colunaValor}>{linha.cursoTitulo}</span>
+            <article key={linha.id} style={cardLinha}>
+              <div style={cardLinhaHeader}>
+                <div>
+                  <h3 style={nomeLinha}>{linha.alunoNome}</h3>
+                  <p style={subLinha}>{linha.alunoEmail}</p>
+                </div>
 
-              <select
-                value={linha.status}
-                onChange={(e) => atualizarStatus(linha.id, e.target.value)}
-                disabled={savingStatusId === linha.id}
-                style={{
-                  ...inputTabela,
-                  opacity: savingStatusId === linha.id ? 0.7 : 1,
-                }}
-              >
-                <option value="ativo">Ativo</option>
-                <option value="inativo">Inativo</option>
-                <option value="cancelado">Cancelado</option>
-                <option value="concluido">Concluído</option>
-              </select>
+                <select
+                  value={linha.status}
+                  onChange={(e) => atualizarStatus(linha.id, e.target.value)}
+                  disabled={savingStatusId === linha.id}
+                  style={{
+                    ...inputTabela,
+                    minWidth: "180px",
+                    opacity: savingStatusId === linha.id ? 0.7 : 1,
+                  }}
+                >
+                  <option value="ativo">Ativo</option>
+                  <option value="inativo">Inativo</option>
+                  <option value="cancelado">Cancelado</option>
+                  <option value="concluido">Concluído</option>
+                </select>
+              </div>
 
-              <span style={colunaValor}>{formatarData(linha.createdAt)}</span>
+              <div style={gridInfo}>
+                <div style={infoBloco}>
+                  <p style={infoLabel}>Curso</p>
+                  <p style={infoValor}>{linha.cursoTitulo}</p>
+                </div>
 
-              <span style={colunaValor}>
-                {savingStatusId === linha.id ? "A guardar..." : "Atualização direta"}
-              </span>
-            </div>
+                <div style={infoBloco}>
+                  <p style={infoLabel}>Data</p>
+                  <p style={infoValor}>{formatarData(linha.createdAt)}</p>
+                </div>
+
+                <div style={infoBloco}>
+                  <p style={infoLabel}>Ações</p>
+                  <p style={infoValor}>
+                    {savingStatusId === linha.id
+                      ? "A guardar..."
+                      : "Atualização direta"}
+                  </p>
+                </div>
+              </div>
+            </article>
           ))
         )}
-      </div>
-    </>
+      </section>
+    </main>
   );
 }
 
@@ -479,34 +459,88 @@ function formatarData(valor: string | null) {
   return data.toLocaleDateString("pt-PT");
 }
 
+const pagina: CSSProperties = {
+  display: "grid",
+  gap: "24px",
+};
+
+const hero: CSSProperties = {
+  display: "grid",
+  gap: "10px",
+};
+
+const kicker: CSSProperties = {
+  margin: 0,
+  fontSize: "14px",
+  letterSpacing: "0.14em",
+  textTransform: "uppercase",
+  color: "#caa15a",
+};
+
+const titulo: CSSProperties = {
+  fontFamily: "Cinzel, serif",
+  fontSize: "clamp(34px, 5vw, 48px)",
+  margin: 0,
+  color: "#e6c27a",
+};
+
+const descricao: CSSProperties = {
+  margin: 0,
+  color: "#d7b06c",
+  fontSize: "clamp(18px, 2.2vw, 21px)",
+  lineHeight: 1.7,
+};
+
+const gridMetricas: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: "18px",
+};
+
 const card: CSSProperties = {
   border: "1px solid #a6783d",
-  padding: "24px",
+  padding: "20px",
   background: "linear-gradient(145deg, #1a0f0a, #140d09)",
   boxShadow: "0 0 20px rgba(166, 120, 61, 0.12)",
 };
 
 const cardTitle: CSSProperties = {
-  fontSize: "22px",
-  marginBottom: "14px",
+  fontSize: "20px",
+  marginBottom: "12px",
   color: "#e6c27a",
 };
 
 const cardValue: CSSProperties = {
-  fontSize: "40px",
+  fontSize: "clamp(30px, 5vw, 40px)",
   fontFamily: "Cinzel, serif",
   color: "#e6c27a",
+  margin: 0,
+};
+
+const barraTopo: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "stretch",
+  gap: "12px",
+  flexWrap: "wrap",
+};
+
+const acoesTopo: CSSProperties = {
+  display: "flex",
+  gap: "12px",
+  flexWrap: "wrap",
 };
 
 const inputPesquisa: CSSProperties = {
-  minWidth: "280px",
+  minWidth: "260px",
   flex: 1,
-  maxWidth: "420px",
+  width: "100%",
+  maxWidth: "100%",
   padding: "12px 14px",
   border: "1px solid #a6783d",
   background: "#140d09",
   color: "#e6c27a",
-  fontSize: "18px",
+  fontSize: "17px",
   outline: "none",
 };
 
@@ -534,7 +568,7 @@ const label: CSSProperties = {
   display: "block",
   marginBottom: "8px",
   color: "#caa15a",
-  fontSize: "15px",
+  fontSize: "14px",
   textTransform: "uppercase",
   letterSpacing: "1px",
 };
@@ -544,8 +578,9 @@ const button: CSSProperties = {
   border: "1px solid #a6783d",
   background: "#a6783d",
   color: "#140d09",
-  fontSize: "18px",
+  fontSize: "17px",
   cursor: "pointer",
+  minHeight: "46px",
 };
 
 const buttonSecundario: CSSProperties = {
@@ -553,77 +588,109 @@ const buttonSecundario: CSSProperties = {
   border: "1px solid #a6783d",
   background: "transparent",
   color: "#e6c27a",
-  fontSize: "18px",
+  fontSize: "17px",
   cursor: "pointer",
-};
-
-const box: CSSProperties = {
-  border: "1px solid #a6783d",
-  background: "#140d09",
-  overflow: "hidden",
-};
-
-const headerTabela: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "1.6fr 1.8fr 1.8fr 1fr 0.9fr 1fr",
-  gap: "16px",
-  padding: "16px 18px",
-  background: "#1b110c",
-  color: "#e6c27a",
-  fontSize: "18px",
-  borderBottom: "1px solid #8a5d31",
-};
-
-const linhaTabela: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "1.6fr 1.8fr 1.8fr 1fr 0.9fr 1fr",
-  gap: "16px",
-  padding: "18px",
-  borderTop: "1px solid #8a5d31",
-  color: "#e6c27a",
-  alignItems: "center",
-};
-
-const linhaVazia: CSSProperties = {
-  padding: "28px 18px",
-  textAlign: "center",
-  color: "#caa15a",
-  fontSize: "21px",
-  borderTop: "1px solid #8a5d31",
-};
-
-const colunaNome: CSSProperties = {
-  fontWeight: 600,
-};
-
-const coluna: CSSProperties = {
-  fontWeight: 600,
-};
-
-const colunaNomeValor: CSSProperties = {
-  fontWeight: 600,
-  color: "#f2d38f",
-};
-
-const colunaValor: CSSProperties = {
-  color: "#e6c27a",
-  lineHeight: 1.5,
+  minHeight: "46px",
 };
 
 const boxFormulario: CSSProperties = {
   border: "1px solid #a6783d",
   background: "linear-gradient(145deg, #1a0f0a, #140d09)",
-  padding: "24px",
-  marginBottom: "24px",
+  padding: "20px",
   boxShadow: "0 0 20px rgba(166, 120, 61, 0.12)",
 };
 
 const tituloFormulario: CSSProperties = {
   fontFamily: "Cinzel, serif",
-  fontSize: "30px",
+  fontSize: "clamp(24px, 4vw, 30px)",
   marginTop: 0,
   marginBottom: "18px",
   color: "#e6c27a",
+};
+
+const gridFormulario: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+  gap: "16px",
+  marginBottom: "18px",
+};
+
+const acoesFormulario: CSSProperties = {
+  display: "flex",
+  gap: "12px",
+  flexWrap: "wrap",
+};
+
+const listaCards: CSSProperties = {
+  display: "grid",
+  gap: "14px",
+};
+
+const cardLinha: CSSProperties = {
+  border: "1px solid #a6783d",
+  background: "#140d09",
+  padding: "18px",
+};
+
+const cardLinhaHeader: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "12px",
+  flexWrap: "wrap",
+  marginBottom: "14px",
+};
+
+const nomeLinha: CSSProperties = {
+  margin: "0 0 6px 0",
+  color: "#f2d38f",
+  fontSize: "22px",
+  lineHeight: 1.3,
+};
+
+const subLinha: CSSProperties = {
+  margin: 0,
+  color: "#d7b06c",
+  fontSize: "17px",
+  lineHeight: 1.6,
+  wordBreak: "break-word",
+};
+
+const gridInfo: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: "12px",
+};
+
+const infoBloco: CSSProperties = {
+  border: "1px solid rgba(166,120,61,0.24)",
+  background: "rgba(38,20,15,0.35)",
+  padding: "14px",
+};
+
+const infoLabel: CSSProperties = {
+  margin: "0 0 8px 0",
+  color: "#caa15a",
+  fontSize: "13px",
+  textTransform: "uppercase",
+  letterSpacing: "1px",
+};
+
+const infoValor: CSSProperties = {
+  margin: 0,
+  color: "#e6c27a",
+  fontSize: "17px",
+  lineHeight: 1.6,
+  wordBreak: "break-word",
+};
+
+const linhaVazia: CSSProperties = {
+  border: "1px solid #a6783d",
+  background: "#140d09",
+  padding: "28px 18px",
+  textAlign: "center",
+  color: "#caa15a",
+  fontSize: "21px",
 };
 
 const caixaErro: CSSProperties = {
@@ -633,7 +700,6 @@ const caixaErro: CSSProperties = {
   color: "#ffb4b4",
   fontSize: "18px",
   lineHeight: 1.6,
-  marginBottom: "20px",
 };
 
 const caixaSucesso: CSSProperties = {
@@ -643,5 +709,4 @@ const caixaSucesso: CSSProperties = {
   color: "#bff1bf",
   fontSize: "18px",
   lineHeight: 1.6,
-  marginBottom: "20px",
 };

@@ -90,9 +90,11 @@ export async function aprovarCandidatura(formData: FormData) {
       process.env.RAILWAY_STATIC_URL ||
       "http://localhost:3000";
 
-    const redirectTo = redirectBaseUrl.startsWith("http")
-      ? `${redirectBaseUrl.replace(/\/$/, "")}/formador/login`
-      : `https://${redirectBaseUrl.replace(/\/$/, "")}/formador/login`;
+    const baseNormalizada = redirectBaseUrl.startsWith("http")
+      ? redirectBaseUrl.replace(/\/$/, "")
+      : `https://${redirectBaseUrl.replace(/\/$/, "")}`;
+
+    const redirectTo = `${baseNormalizada}/formadores/primeiro-login`;
 
     const { error: inviteError } =
       await supabaseAdmin.auth.admin.inviteUserByEmail(candidatura.email, {

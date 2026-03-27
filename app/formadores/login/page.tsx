@@ -81,7 +81,7 @@ export default function LoginFormadorPage() {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        padding: "40px 20px",
+        padding: "40px 16px",
       }}
     >
       <section
@@ -90,13 +90,13 @@ export default function LoginFormadorPage() {
           maxWidth: "520px",
           border: "1px solid #a6783d",
           background: "#140d09",
-          padding: "40px",
+          padding: "clamp(24px, 4vw, 40px)",
         }}
       >
         <h1
           style={{
             fontFamily: "Cinzel, serif",
-            fontSize: "42px",
+            fontSize: "clamp(32px, 5vw, 42px)",
             textAlign: "center",
             marginTop: 0,
             marginBottom: "12px",
@@ -108,9 +108,10 @@ export default function LoginFormadorPage() {
         <p
           style={{
             textAlign: "center",
-            fontSize: "20px",
+            fontSize: "clamp(18px, 2.2vw, 20px)",
             color: "#caa15a",
             marginBottom: "30px",
+            lineHeight: 1.6,
           }}
         >
           Entra na tua área de formador

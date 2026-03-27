@@ -194,6 +194,20 @@ export default function AlunoDashboardPage() {
                 <button
                   type="button"
                   className={`aluno-dashboard-dropdown-link ${
+                    activeTab === "resumo" ? "active" : ""
+                  }`}
+                  onClick={() => {
+                    setActiveTab("resumo");
+                    setMenuAberto(false);
+                  }}
+                >
+                  <span className="aluno-dashboard-dropdown-icon">◈</span>
+                  <span>Resumo</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`aluno-dashboard-dropdown-link ${
                     activeTab === "meus-cursos" ? "active" : ""
                   }`}
                   onClick={() => {
@@ -337,7 +351,8 @@ export default function AlunoDashboardPage() {
 
                 <p className="home-text center-title">
                   Quando isso acontecer, os cards serão gerados automaticamente
-                  com base nos cursos reais do aluno, mostrando o progresso, os acessos e as informações relevantes de cada curso.
+                  com base nos cursos reais do aluno, mostrando o progresso, os
+                  acessos e as informações relevantes de cada curso.
                 </p>
 
                 <div className="aluno-dashboard-quick-actions">

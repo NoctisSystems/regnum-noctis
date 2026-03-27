@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(request: NextRequest) {
-  const supabaseAdmin = getSupabaseAdmin();
-
   try {
+    const supabaseAdmin = getSupabaseAdmin();
+
     const { searchParams } = new URL(request.url);
     const bucket = searchParams.get("bucket");
     const path = searchParams.get("path");

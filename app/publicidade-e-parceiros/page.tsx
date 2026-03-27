@@ -58,10 +58,10 @@ export default async function PublicidadeParceirosPage() {
         background: "#2b160f",
         color: "#e6c27a",
         fontFamily: "Cormorant Garamond, serif",
-        paddingTop: "60px",
-        paddingRight: "20px",
-        paddingBottom: "90px",
-        paddingLeft: "20px",
+        paddingTop: "clamp(40px, 6vw, 60px)",
+        paddingRight: "clamp(14px, 4vw, 20px)",
+        paddingBottom: "clamp(70px, 8vw, 90px)",
+        paddingLeft: "clamp(14px, 4vw, 20px)",
       }}
     >
       <section
@@ -69,7 +69,7 @@ export default async function PublicidadeParceirosPage() {
           maxWidth: "1150px",
           margin: "0 auto 42px auto",
           textAlign: "center",
-          padding: "10px 20px 44px 20px",
+          padding: "10px clamp(10px, 3vw, 20px) 44px",
           background:
             "radial-gradient(circle at center, rgba(106,58,27,0.26) 0%, rgba(43,22,15,0) 68%)",
         }}
@@ -79,7 +79,7 @@ export default async function PublicidadeParceirosPage() {
             letterSpacing: "3px",
             textTransform: "uppercase",
             color: "#caa15a",
-            fontSize: "16px",
+            fontSize: "clamp(13px, 2vw, 16px)",
             margin: "0 0 16px 0",
           }}
         >
@@ -89,7 +89,7 @@ export default async function PublicidadeParceirosPage() {
         <h1
           style={{
             fontFamily: "Cinzel, serif",
-            fontSize: "clamp(40px, 5vw, 62px)",
+            fontSize: "clamp(34px, 6vw, 62px)",
             fontWeight: 500,
             margin: "0 0 18px 0",
             color: "#e6c27a",
@@ -101,7 +101,7 @@ export default async function PublicidadeParceirosPage() {
 
         <p
           style={{
-            fontSize: "clamp(22px, 2.4vw, 28px)",
+            fontSize: "clamp(18px, 2.8vw, 28px)",
             lineHeight: "1.75",
             color: "#d7b06c",
             maxWidth: "980px",
@@ -116,7 +116,7 @@ export default async function PublicidadeParceirosPage() {
           style={{
             display: "flex",
             justifyContent: "center",
-            gap: "14px",
+            gap: "12px",
             flexWrap: "wrap",
           }}
         >
@@ -170,22 +170,12 @@ export default async function PublicidadeParceirosPage() {
               textAlign: "center",
             }}
           >
-            <p
-              style={{
-                letterSpacing: "2px",
-                textTransform: "uppercase",
-                color: "#caa15a",
-                fontSize: "14px",
-                margin: "0 0 10px 0",
-              }}
-            >
-              Em destaque
-            </p>
+            <p style={kicker}>Em destaque</p>
 
             <h2
               style={{
                 fontFamily: "Cinzel, serif",
-                fontSize: "clamp(30px, 4vw, 44px)",
+                fontSize: "clamp(26px, 4vw, 44px)",
                 margin: 0,
                 color: "#e6c27a",
               }}
@@ -197,8 +187,9 @@ export default async function PublicidadeParceirosPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-              gap: "24px",
+              gridTemplateColumns:
+                "repeat(auto-fit, minmax(min(100%, 300px), 1fr))",
+              gap: "20px",
             }}
           >
             {destaques.map((item) => (
@@ -226,7 +217,7 @@ export default async function PublicidadeParceirosPage() {
                   <h3
                     style={{
                       fontFamily: "Cinzel, serif",
-                      fontSize: "30px",
+                      fontSize: "clamp(24px, 3vw, 30px)",
                       margin: "0 0 12px 0",
                       color: "#f0d79a",
                     }}
@@ -236,7 +227,7 @@ export default async function PublicidadeParceirosPage() {
 
                   <p
                     style={{
-                      fontSize: "20px",
+                      fontSize: "clamp(18px, 2.4vw, 20px)",
                       lineHeight: "1.75",
                       color: "#d7b06c",
                       margin: "0 0 20px 0",
@@ -247,7 +238,7 @@ export default async function PublicidadeParceirosPage() {
                       "Presença em destaque na plataforma."}
                   </p>
 
-                  <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                     {item.link_url ? (
                       <a
                         href={item.link_url}
@@ -299,22 +290,12 @@ export default async function PublicidadeParceirosPage() {
             textAlign: "center",
           }}
         >
-          <p
-            style={{
-              letterSpacing: "2px",
-              textTransform: "uppercase",
-              color: "#caa15a",
-              fontSize: "14px",
-              margin: "0 0 10px 0",
-            }}
-          >
-            Listagem completa
-          </p>
+          <p style={kicker}>Listagem completa</p>
 
           <h2
             style={{
               fontFamily: "Cinzel, serif",
-              fontSize: "clamp(30px, 4vw, 44px)",
+              fontSize: "clamp(26px, 4vw, 44px)",
               margin: "0 0 10px 0",
               color: "#e6c27a",
             }}
@@ -324,7 +305,7 @@ export default async function PublicidadeParceirosPage() {
 
           <p
             style={{
-              fontSize: "21px",
+              fontSize: "clamp(18px, 2.5vw, 21px)",
               lineHeight: "1.75",
               color: "#d7b06c",
               maxWidth: "860px",
@@ -350,7 +331,7 @@ export default async function PublicidadeParceirosPage() {
             <h3
               style={{
                 fontFamily: "Cinzel, serif",
-                fontSize: "32px",
+                fontSize: "clamp(24px, 4vw, 32px)",
                 margin: "0 0 14px 0",
                 color: "#e6c27a",
               }}
@@ -360,7 +341,7 @@ export default async function PublicidadeParceirosPage() {
 
             <p
               style={{
-                fontSize: "21px",
+                fontSize: "clamp(18px, 2.5vw, 21px)",
                 lineHeight: "1.8",
                 color: "#d7b06c",
                 margin: "0 0 18px 0",
@@ -378,11 +359,12 @@ export default async function PublicidadeParceirosPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-              gap: "22px",
+              gridTemplateColumns:
+                "repeat(auto-fit, minmax(min(100%, 260px), 1fr))",
+              gap: "20px",
             }}
           >
-            {registos.map((item) => (
+            {[...destaques, ...restantes].map((item) => (
               <article
                 key={item.id}
                 style={{
@@ -414,7 +396,7 @@ export default async function PublicidadeParceirosPage() {
                   <h3
                     style={{
                       fontFamily: "Cinzel, serif",
-                      fontSize: "26px",
+                      fontSize: "clamp(22px, 3vw, 26px)",
                       margin: "0 0 12px 0",
                       color: "#e6c27a",
                       lineHeight: 1.2,
@@ -425,7 +407,7 @@ export default async function PublicidadeParceirosPage() {
 
                   <p
                     style={{
-                      fontSize: "19px",
+                      fontSize: "clamp(17px, 2.2vw, 19px)",
                       lineHeight: "1.75",
                       color: "#d7b06c",
                       margin: "0 0 18px 0",
@@ -479,27 +461,17 @@ export default async function PublicidadeParceirosPage() {
             border: "1px solid #8a5d31",
             background:
               "linear-gradient(180deg, rgba(20,13,9,1) 0%, rgba(16,10,8,1) 100%)",
-            padding: "34px 30px",
+            padding: "clamp(22px, 4vw, 34px) clamp(18px, 4vw, 30px)",
             boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
             textAlign: "center",
           }}
         >
-          <p
-            style={{
-              letterSpacing: "2px",
-              textTransform: "uppercase",
-              color: "#caa15a",
-              fontSize: "14px",
-              margin: "0 0 12px 0",
-            }}
-          >
-            Divulgação
-          </p>
+          <p style={kicker}>Divulgação</p>
 
           <h2
             style={{
               fontFamily: "Cinzel, serif",
-              fontSize: "clamp(30px, 4vw, 44px)",
+              fontSize: "clamp(26px, 4vw, 44px)",
               margin: "0 0 16px 0",
               color: "#e6c27a",
             }}
@@ -509,7 +481,7 @@ export default async function PublicidadeParceirosPage() {
 
           <p
             style={{
-              fontSize: "22px",
+              fontSize: "clamp(18px, 2.6vw, 22px)",
               lineHeight: "1.8",
               color: "#d7b06c",
               maxWidth: "860px",
@@ -524,7 +496,7 @@ export default async function PublicidadeParceirosPage() {
             style={{
               display: "flex",
               justifyContent: "center",
-              gap: "16px",
+              gap: "12px",
               flexWrap: "wrap",
             }}
           >
@@ -605,6 +577,14 @@ function normalizarWhatsapp(valor: string) {
   return `https://wa.me/${limpo}`;
 }
 
+const kicker: React.CSSProperties = {
+  letterSpacing: "2px",
+  textTransform: "uppercase",
+  color: "#caa15a",
+  fontSize: "14px",
+  margin: "0 0 10px 0",
+};
+
 const miniMeta: React.CSSProperties = {
   letterSpacing: "1.5px",
   textTransform: "uppercase",
@@ -617,37 +597,34 @@ const botaoPrincipal: React.CSSProperties = {
   textDecoration: "none",
   border: "1px solid #a6783d",
   color: "#140d09",
-  paddingTop: "12px",
-  paddingRight: "18px",
-  paddingBottom: "12px",
-  paddingLeft: "18px",
-  fontSize: "18px",
+  padding: "12px 18px",
+  fontSize: "16px",
   display: "inline-block",
   background: "#a6783d",
+  width: "min(100%, 220px)",
+  textAlign: "center",
 };
 
 const botaoSecundario: React.CSSProperties = {
   textDecoration: "none",
   border: "1px solid #a6783d",
   color: "#e6c27a",
-  paddingTop: "12px",
-  paddingRight: "18px",
-  paddingBottom: "12px",
-  paddingLeft: "18px",
-  fontSize: "18px",
+  padding: "12px 18px",
+  fontSize: "16px",
   display: "inline-block",
   background: "transparent",
+  width: "min(100%, 220px)",
+  textAlign: "center",
 };
 
 const botaoCard: React.CSSProperties = {
   textDecoration: "none",
   border: "1px solid #a6783d",
   color: "#e6c27a",
-  paddingTop: "10px",
-  paddingRight: "14px",
-  paddingBottom: "10px",
-  paddingLeft: "14px",
-  fontSize: "16px",
+  padding: "10px 14px",
+  fontSize: "15px",
   display: "inline-block",
   background: "transparent",
+  width: "min(100%, 150px)",
+  textAlign: "center",
 };

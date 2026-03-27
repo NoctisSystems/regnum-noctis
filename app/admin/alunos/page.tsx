@@ -71,9 +71,7 @@ export default function AdminAlunosPage() {
           .select("id, titulo")
           .order("titulo", { ascending: true }),
 
-        supabase
-          .from("inscricoes")
-          .select("id, aluno_id, curso_id, status"),
+        supabase.from("inscricoes").select("id, aluno_id, curso_id, status"),
       ]);
 
       if (alunosRes.error) throw alunosRes.error;
@@ -200,12 +198,7 @@ export default function AdminAlunosPage() {
     const conteudo = [
       cabecalho.join(";"),
       ...linhas.map((linha) =>
-        [
-          linha.nome,
-          linha.email,
-          linha.cursos,
-          linha.estado,
-        ]
+        [linha.nome, linha.email, linha.cursos, linha.estado]
           .map((valor) => `"${String(valor || "").replace(/"/g, '""')}"`)
           .join(";")
       ),
@@ -292,33 +285,23 @@ export default function AdminAlunosPage() {
   }).length;
 
   return (
-    <>
-      <h1
-        style={{
-          fontFamily: "Cinzel, serif",
-          fontSize: "48px",
-          marginBottom: "24px",
-          color: "#e6c27a",
-        }}
-      >
-        Alunos
-      </h1>
+    <main style={pagina}>
+      <section style={hero}>
+        <p style={kicker}>Administração</p>
+        <h1 style={titulo}>Alunos</h1>
+        <p style={descricao}>
+          Gestão de alunos, associação manual a cursos e exportação da listagem.
+        </p>
+      </section>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "24px",
-          marginBottom: "32px",
-        }}
-      >
+      <section style={gridMetricas}>
         <div style={card}>
           <h3 style={cardTitle}>Total de alunos</h3>
           <p style={cardValue}>{loading ? "..." : totalAlunos}</p>
         </div>
 
         <div style={card}>
-          <h3 style={cardTitle}>Inscrições activas</h3>
+          <h3 style={cardTitle}>Inscrições ativas</h3>
           <p style={cardValue}>{loading ? "..." : inscricoesAtivas}</p>
         </div>
 
@@ -326,21 +309,12 @@ export default function AdminAlunosPage() {
           <h3 style={cardTitle}>Novos este mês</h3>
           <p style={cardValue}>{loading ? "..." : novosEsteMes}</p>
         </div>
-      </div>
+      </section>
 
       {erro ? <div style={caixaErro}>{erro}</div> : null}
       {sucesso ? <div style={caixaSucesso}>{sucesso}</div> : null}
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "16px",
-          flexWrap: "wrap",
-          marginBottom: "24px",
-        }}
-      >
+      <section style={barraTopo}>
         <input
           type="text"
           placeholder="Pesquisar aluno..."
@@ -349,13 +323,7 @@ export default function AdminAlunosPage() {
           style={inputPesquisa}
         />
 
-        <div
-          style={{
-            display: "flex",
-            gap: "12px",
-            flexWrap: "wrap",
-          }}
-        >
+        <div style={acoesTopo}>
           <button type="button" style={buttonSecundario} onClick={exportarCSV}>
             Exportar
           </button>
@@ -372,10 +340,10 @@ export default function AdminAlunosPage() {
             {mostrarNovoAluno ? "Fechar" : "Novo aluno"}
           </button>
         </div>
-      </div>
+      </section>
 
       {mostrarNovoAluno ? (
-        <div style={boxFormulario}>
+        <section style={boxFormulario}>
           <h2 style={tituloFormulario}>Inserir aluno num curso</h2>
 
           <div style={linhaRadios}>
@@ -403,14 +371,7 @@ export default function AdminAlunosPage() {
             </label>
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-              gap: "16px",
-              marginBottom: "18px",
-            }}
-          >
+          <div style={gridFormulario}>
             {usarAlunoExistente ? (
               <div>
                 <label style={label}>Aluno</label>
@@ -422,7 +383,9 @@ export default function AdminAlunosPage() {
                   <option value="">Selecionar aluno</option>
                   {alunos.map((aluno) => (
                     <option key={aluno.id} value={aluno.id}>
-                      {(aluno.nome || "Sem nome") + " — " + (aluno.email || "Sem email")}
+                      {(aluno.nome || "Sem nome") +
+                        " — " +
+                        (aluno.email || "Sem email")}
                     </option>
                   ))}
                 </select>
@@ -470,7 +433,7 @@ export default function AdminAlunosPage() {
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+          <div style={acoesFormulario}>
             <button
               type="button"
               style={{
@@ -495,66 +458,136 @@ export default function AdminAlunosPage() {
               Cancelar
             </button>
           </div>
-        </div>
+        </section>
       ) : null}
 
-      <div style={box}>
-        <div style={headerTabela}>
-          <span style={colunaNome}>Nome</span>
-          <span style={coluna}>Email</span>
-          <span style={coluna}>Cursos</span>
-          <span style={coluna}>Estado</span>
-        </div>
-
+      <section style={listaCards}>
         {loading ? (
           <div style={linhaVazia}>A carregar alunos...</div>
         ) : linhasAlunosFiltradas.length === 0 ? (
           <div style={linhaVazia}>Ainda não existem alunos registados.</div>
         ) : (
           linhasAlunosFiltradas.map((aluno) => (
-            <div key={aluno.id} style={linhaTabela}>
-              <span style={colunaNomeValor}>{aluno.nome}</span>
-              <span style={colunaValor}>{aluno.email}</span>
-              <span style={colunaValor}>
-                {aluno.cursos.length > 0 ? aluno.cursos.join(", ") : "Sem cursos"}
-              </span>
-              <span style={colunaValor}>{aluno.estado}</span>
-            </div>
+            <article key={aluno.id} style={cardLinha}>
+              <div style={cardLinhaHeader}>
+                <div>
+                  <h3 style={nomeLinha}>{aluno.nome}</h3>
+                  <p style={subLinha}>{aluno.email}</p>
+                </div>
+
+                <span style={badgeEstado}>{aluno.estado}</span>
+              </div>
+
+              <div style={gridInfo}>
+                <div style={infoBloco}>
+                  <p style={infoLabel}>Cursos</p>
+                  <p style={infoValor}>
+                    {aluno.cursos.length > 0
+                      ? aluno.cursos.join(", ")
+                      : "Sem cursos"}
+                  </p>
+                </div>
+
+                <div style={infoBloco}>
+                  <p style={infoLabel}>Registo</p>
+                  <p style={infoValor}>
+                    {aluno.created_at
+                      ? new Date(aluno.created_at).toLocaleDateString("pt-PT")
+                      : "—"}
+                  </p>
+                </div>
+              </div>
+            </article>
           ))
         )}
-      </div>
-    </>
+      </section>
+    </main>
   );
 }
 
+const pagina: CSSProperties = {
+  display: "grid",
+  gap: "24px",
+};
+
+const hero: CSSProperties = {
+  display: "grid",
+  gap: "10px",
+};
+
+const kicker: CSSProperties = {
+  margin: 0,
+  fontSize: "14px",
+  letterSpacing: "0.14em",
+  textTransform: "uppercase",
+  color: "#caa15a",
+};
+
+const titulo: CSSProperties = {
+  fontFamily: "Cinzel, serif",
+  fontSize: "clamp(34px, 5vw, 48px)",
+  margin: 0,
+  color: "#e6c27a",
+};
+
+const descricao: CSSProperties = {
+  margin: 0,
+  color: "#d7b06c",
+  fontSize: "clamp(18px, 2.4vw, 21px)",
+  lineHeight: 1.7,
+  maxWidth: "900px",
+};
+
+const gridMetricas: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: "18px",
+};
+
 const card: CSSProperties = {
   border: "1px solid #a6783d",
-  padding: "24px",
+  padding: "20px",
   background: "linear-gradient(145deg, #1a0f0a, #140d09)",
   boxShadow: "0 0 20px rgba(166, 120, 61, 0.12)",
 };
 
 const cardTitle: CSSProperties = {
-  fontSize: "22px",
-  marginBottom: "14px",
+  fontSize: "20px",
+  margin: "0 0 12px 0",
   color: "#e6c27a",
 };
 
 const cardValue: CSSProperties = {
-  fontSize: "40px",
+  margin: 0,
+  fontSize: "clamp(30px, 5vw, 40px)",
   fontFamily: "Cinzel, serif",
   color: "#e6c27a",
 };
 
+const barraTopo: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "stretch",
+  gap: "12px",
+  flexWrap: "wrap",
+};
+
+const acoesTopo: CSSProperties = {
+  display: "flex",
+  gap: "12px",
+  flexWrap: "wrap",
+};
+
 const inputPesquisa: CSSProperties = {
-  minWidth: "280px",
+  minWidth: "260px",
   flex: 1,
-  maxWidth: "420px",
+  width: "100%",
+  maxWidth: "100%",
   padding: "12px 14px",
   border: "1px solid #a6783d",
   background: "#140d09",
   color: "#e6c27a",
-  fontSize: "18px",
+  fontSize: "17px",
   outline: "none",
 };
 
@@ -572,7 +605,7 @@ const label: CSSProperties = {
   display: "block",
   marginBottom: "8px",
   color: "#caa15a",
-  fontSize: "15px",
+  fontSize: "14px",
   textTransform: "uppercase",
   letterSpacing: "1px",
 };
@@ -582,8 +615,9 @@ const button: CSSProperties = {
   border: "1px solid #a6783d",
   background: "#a6783d",
   color: "#140d09",
-  fontSize: "18px",
+  fontSize: "17px",
   cursor: "pointer",
+  minHeight: "46px",
 };
 
 const buttonSecundario: CSSProperties = {
@@ -591,74 +625,21 @@ const buttonSecundario: CSSProperties = {
   border: "1px solid #a6783d",
   background: "transparent",
   color: "#e6c27a",
-  fontSize: "18px",
+  fontSize: "17px",
   cursor: "pointer",
-};
-
-const box: CSSProperties = {
-  border: "1px solid #a6783d",
-  background: "#140d09",
-  overflow: "hidden",
-};
-
-const headerTabela: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "2fr 2fr 2fr 1fr",
-  gap: "16px",
-  padding: "16px 18px",
-  background: "#1b110c",
-  color: "#e6c27a",
-  fontSize: "18px",
-  borderBottom: "1px solid #8a5d31",
-};
-
-const linhaTabela: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "2fr 2fr 2fr 1fr",
-  gap: "16px",
-  padding: "18px",
-  borderTop: "1px solid #8a5d31",
-  color: "#e6c27a",
-  alignItems: "start",
-};
-
-const linhaVazia: CSSProperties = {
-  padding: "28px 18px",
-  textAlign: "center",
-  color: "#caa15a",
-  fontSize: "21px",
-  borderTop: "1px solid #8a5d31",
-};
-
-const colunaNome: CSSProperties = {
-  fontWeight: 600,
-};
-
-const coluna: CSSProperties = {
-  fontWeight: 600,
-};
-
-const colunaNomeValor: CSSProperties = {
-  fontWeight: 600,
-  color: "#f2d38f",
-};
-
-const colunaValor: CSSProperties = {
-  color: "#e6c27a",
-  lineHeight: 1.5,
+  minHeight: "46px",
 };
 
 const boxFormulario: CSSProperties = {
   border: "1px solid #a6783d",
   background: "linear-gradient(145deg, #1a0f0a, #140d09)",
-  padding: "24px",
-  marginBottom: "24px",
+  padding: "20px",
   boxShadow: "0 0 20px rgba(166, 120, 61, 0.12)",
 };
 
 const tituloFormulario: CSSProperties = {
   fontFamily: "Cinzel, serif",
-  fontSize: "30px",
+  fontSize: "clamp(24px, 4vw, 30px)",
   marginTop: 0,
   marginBottom: "18px",
   color: "#e6c27a",
@@ -679,6 +660,101 @@ const radioLabel: CSSProperties = {
   fontSize: "17px",
 };
 
+const gridFormulario: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+  gap: "16px",
+  marginBottom: "18px",
+};
+
+const acoesFormulario: CSSProperties = {
+  display: "flex",
+  gap: "12px",
+  flexWrap: "wrap",
+};
+
+const listaCards: CSSProperties = {
+  display: "grid",
+  gap: "14px",
+};
+
+const cardLinha: CSSProperties = {
+  border: "1px solid #a6783d",
+  background: "#140d09",
+  padding: "18px",
+};
+
+const cardLinhaHeader: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "12px",
+  flexWrap: "wrap",
+  marginBottom: "14px",
+};
+
+const nomeLinha: CSSProperties = {
+  margin: "0 0 6px 0",
+  color: "#f2d38f",
+  fontSize: "22px",
+  lineHeight: 1.3,
+};
+
+const subLinha: CSSProperties = {
+  margin: 0,
+  color: "#d7b06c",
+  fontSize: "17px",
+  lineHeight: 1.6,
+  wordBreak: "break-word",
+};
+
+const badgeEstado: CSSProperties = {
+  border: "1px solid rgba(166,120,61,0.5)",
+  padding: "8px 12px",
+  color: "#e6c27a",
+  fontSize: "14px",
+  textTransform: "uppercase",
+  letterSpacing: "1px",
+  background: "rgba(38,20,15,0.35)",
+};
+
+const gridInfo: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: "12px",
+};
+
+const infoBloco: CSSProperties = {
+  border: "1px solid rgba(166,120,61,0.24)",
+  background: "rgba(38,20,15,0.35)",
+  padding: "14px",
+};
+
+const infoLabel: CSSProperties = {
+  margin: "0 0 8px 0",
+  color: "#caa15a",
+  fontSize: "13px",
+  textTransform: "uppercase",
+  letterSpacing: "1px",
+};
+
+const infoValor: CSSProperties = {
+  margin: 0,
+  color: "#e6c27a",
+  fontSize: "17px",
+  lineHeight: 1.6,
+  wordBreak: "break-word",
+};
+
+const linhaVazia: CSSProperties = {
+  border: "1px solid #a6783d",
+  background: "#140d09",
+  padding: "28px 18px",
+  textAlign: "center",
+  color: "#caa15a",
+  fontSize: "21px",
+};
+
 const caixaErro: CSSProperties = {
   border: "1px solid rgba(255,107,107,0.35)",
   background: "rgba(120,20,20,0.12)",
@@ -686,7 +762,6 @@ const caixaErro: CSSProperties = {
   color: "#ffb4b4",
   fontSize: "18px",
   lineHeight: 1.6,
-  marginBottom: "20px",
 };
 
 const caixaSucesso: CSSProperties = {
@@ -696,5 +771,4 @@ const caixaSucesso: CSSProperties = {
   color: "#bff1bf",
   fontSize: "18px",
   lineHeight: 1.6,
-  marginBottom: "20px",
 };

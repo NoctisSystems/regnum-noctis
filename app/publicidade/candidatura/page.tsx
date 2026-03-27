@@ -1,6 +1,6 @@
 "use client";
 
-import { CSSProperties, useMemo, useState } from "react";
+import { CSSProperties, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 const BUCKET_PUBLICIDADE_LOGOS = "publicidade-logos";
@@ -45,6 +45,14 @@ export default function PublicidadeCandidaturaPage() {
   const [sucesso, setSucesso] = useState("");
   const [aEnviar, setAEnviar] = useState(false);
 
+  useEffect(() => {
+    return () => {
+      if (previewLogo && previewLogo.startsWith("blob:")) {
+        URL.revokeObjectURL(previewLogo);
+      }
+    };
+  }, [previewLogo]);
+
   const planoDescricao = useMemo(() => {
     if (form.planoInteresse === "base") {
       return "Plano Base — presença simples na página de publicidade e parceiros.";
@@ -70,13 +78,23 @@ export default function PublicidadeCandidaturaPage() {
   function handleLogoChange(file: File | null) {
     setErro("");
 
+    if (previewLogo && previewLogo.startsWith("blob:")) {
+      URL.revokeObjectURL(previewLogo);
+    }
+
     if (!file) {
       setLogoFile(null);
       setPreviewLogo("");
       return;
     }
 
-    const tiposPermitidos = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
+    const tiposPermitidos = [
+      "image/png",
+      "image/jpeg",
+      "image/webp",
+      "image/svg+xml",
+    ];
+
     if (!tiposPermitidos.includes(file.type)) {
       setErro("O logótipo tem de estar em PNG, JPG, WEBP ou SVG.");
       return;
@@ -97,7 +115,8 @@ export default function PublicidadeCandidaturaPage() {
   async function uploadLogo(): Promise<string | null> {
     if (!logoFile) return null;
 
-    const extensaoOriginal = logoFile.name.split(".").pop()?.toLowerCase() || "png";
+    const extensaoOriginal =
+      logoFile.name.split(".").pop()?.toLowerCase() || "png";
     const extensaoPermitida = ["png", "jpg", "jpeg", "webp", "svg"].includes(
       extensaoOriginal
     )
@@ -112,7 +131,9 @@ export default function PublicidadeCandidaturaPage() {
       .replace(/^-+|-+$/g, "")
       .slice(0, 60);
 
-    const caminho = `candidaturas/${Date.now()}-${nomeMarcaSeguro || "publicidade"}.${extensaoPermitida}`;
+    const caminho = `candidaturas/${Date.now()}-${
+      nomeMarcaSeguro || "publicidade"
+    }.${extensaoPermitida}`;
 
     const { error: uploadError } = await supabase.storage
       .from(BUCKET_PUBLICIDADE_LOGOS)
@@ -214,10 +235,10 @@ export default function PublicidadeCandidaturaPage() {
         background: "#2b160f",
         color: "#e6c27a",
         fontFamily: "Cormorant Garamond, serif",
-        paddingTop: "60px",
-        paddingRight: "20px",
-        paddingBottom: "90px",
-        paddingLeft: "20px",
+        paddingTop: "clamp(40px, 6vw, 60px)",
+        paddingRight: "clamp(14px, 4vw, 20px)",
+        paddingBottom: "clamp(70px, 8vw, 90px)",
+        paddingLeft: "clamp(14px, 4vw, 20px)",
       }}
     >
       <section
@@ -225,7 +246,7 @@ export default function PublicidadeCandidaturaPage() {
           maxWidth: "1100px",
           margin: "0 auto 38px auto",
           textAlign: "center",
-          padding: "10px 20px 40px 20px",
+          padding: "10px clamp(10px, 3vw, 20px) 40px",
           background:
             "radial-gradient(circle at center, rgba(106,58,27,0.24) 0%, rgba(43,22,15,0) 68%)",
         }}
@@ -235,7 +256,7 @@ export default function PublicidadeCandidaturaPage() {
             letterSpacing: "3px",
             textTransform: "uppercase",
             color: "#caa15a",
-            fontSize: "16px",
+            fontSize: "clamp(13px, 2vw, 16px)",
             margin: "0 0 16px 0",
           }}
         >
@@ -245,7 +266,7 @@ export default function PublicidadeCandidaturaPage() {
         <h1
           style={{
             fontFamily: "Cinzel, serif",
-            fontSize: "clamp(38px, 5vw, 60px)",
+            fontSize: "clamp(32px, 6vw, 60px)",
             fontWeight: 500,
             margin: "0 0 18px 0",
             color: "#e6c27a",
@@ -257,7 +278,7 @@ export default function PublicidadeCandidaturaPage() {
 
         <p
           style={{
-            fontSize: "clamp(21px, 2.3vw, 27px)",
+            fontSize: "clamp(18px, 2.8vw, 27px)",
             lineHeight: "1.75",
             color: "#d7b06c",
             maxWidth: "920px",
@@ -274,8 +295,9 @@ export default function PublicidadeCandidaturaPage() {
           maxWidth: "1100px",
           margin: "0 auto",
           display: "grid",
-          gridTemplateColumns: "minmax(0, 1.15fr) minmax(300px, 0.85fr)",
-          gap: "24px",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))",
+          gap: "20px",
+          alignItems: "start",
         }}
       >
         <article
@@ -283,14 +305,14 @@ export default function PublicidadeCandidaturaPage() {
             border: "1px solid #8a5d31",
             background:
               "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-            padding: "30px",
+            padding: "clamp(18px, 4vw, 30px)",
             boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
           }}
         >
           <h2
             style={{
               fontFamily: "Cinzel, serif",
-              fontSize: "32px",
+              fontSize: "clamp(24px, 4vw, 32px)",
               margin: "0 0 18px 0",
               color: "#e6c27a",
             }}
@@ -347,7 +369,10 @@ export default function PublicidadeCandidaturaPage() {
                 label="Plano de interesse"
                 value={form.planoInteresse}
                 onChange={(v) =>
-                  atualizarCampo("planoInteresse", v as EstadoFormulario["planoInteresse"])
+                  atualizarCampo(
+                    "planoInteresse",
+                    v as EstadoFormulario["planoInteresse"]
+                  )
                 }
                 options={[
                   { value: "base", label: "Plano Base — 29€/mês" },
@@ -484,19 +509,15 @@ export default function PublicidadeCandidaturaPage() {
         <aside
           style={{
             display: "grid",
-            gap: "22px",
+            gap: "18px",
           }}
         >
-          <article
-            style={boxLateral}
-          >
+          <article style={boxLateral}>
             <h2 style={tituloLateral}>Plano selecionado</h2>
             <p style={paragrafoLateral}>{planoDescricao}</p>
           </article>
 
-          <article
-            style={boxLateral}
-          >
+          <article style={boxLateral}>
             <h2 style={tituloLateral}>O que analisarás connosco</h2>
             <ul style={listaLateral}>
               <li>compatibilidade da proposta com a plataforma;</li>
@@ -506,9 +527,7 @@ export default function PublicidadeCandidaturaPage() {
             </ul>
           </article>
 
-          <article
-            style={boxLateral}
-          >
+          <article style={boxLateral}>
             <h2 style={tituloLateral}>Planos disponíveis</h2>
             <div style={{ display: "grid", gap: "12px" }}>
               <PlanoMini
@@ -669,7 +688,7 @@ function PlanoMini({
 
 const grelha2: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "1fr 1fr",
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))",
   gap: "14px",
 };
 
@@ -683,14 +702,14 @@ const boxLateral: CSSProperties = {
 
 const tituloLateral: CSSProperties = {
   fontFamily: "Cinzel, serif",
-  fontSize: "28px",
+  fontSize: "clamp(24px, 4vw, 28px)",
   margin: "0 0 14px 0",
   color: "#e6c27a",
 };
 
 const paragrafoLateral: CSSProperties = {
   margin: 0,
-  fontSize: "20px",
+  fontSize: "clamp(18px, 2.4vw, 20px)",
   lineHeight: "1.8",
   color: "#d7b06c",
 };
@@ -702,7 +721,7 @@ const listaLateral: CSSProperties = {
   marginLeft: "20px",
   padding: 0,
   color: "#d7b06c",
-  fontSize: "20px",
+  fontSize: "clamp(18px, 2.4vw, 20px)",
   lineHeight: "1.8",
 };
 
@@ -751,13 +770,12 @@ const botaoPrincipal: CSSProperties = {
   textDecoration: "none",
   border: "1px solid #a6783d",
   color: "#140d09",
-  paddingTop: "12px",
-  paddingRight: "18px",
-  paddingBottom: "12px",
-  paddingLeft: "18px",
-  fontSize: "18px",
+  padding: "12px 18px",
+  fontSize: "clamp(16px, 2vw, 18px)",
   display: "inline-block",
   background: "#a6783d",
+  width: "min(100%, 280px)",
+  textAlign: "center",
 };
 
 const caixaErro: CSSProperties = {

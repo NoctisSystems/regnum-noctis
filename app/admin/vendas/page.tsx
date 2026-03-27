@@ -143,9 +143,7 @@ export default function AdminVendasPage() {
         alunoEmail: aluno?.email || "Sem email",
         cursoTitulo: curso?.titulo || "Sem curso associado",
         formadorNome: formador?.nome || "Sem formador associado",
-        valorBruto: Number(
-          pagamento.valor_bruto ?? pagamento.valor ?? 0
-        ),
+        valorBruto: Number(pagamento.valor_bruto ?? pagamento.valor ?? 0),
         comissaoPlataforma: Number(pagamento.comissao_plataforma ?? 0),
         valorFormador: Number(pagamento.valor_formador ?? 0),
         valor: Number(pagamento.valor ?? 0),
@@ -193,65 +191,35 @@ export default function AdminVendasPage() {
   );
 
   return (
-    <>
-      <h1
-        style={{
-          fontFamily: "Cinzel, serif",
-          fontSize: "48px",
-          marginBottom: "24px",
-          color: "#e6c27a",
-        }}
-      >
-        Vendas
-      </h1>
+    <main style={main}>
+      <section style={topo}>
+        <p style={eyebrow}>Administração</p>
+        <h1 style={titulo}>Vendas</h1>
+        <p style={descricao}>
+          Consulta das vendas registadas, estado dos pagamentos, distribuição
+          financeira por formador e comissão da plataforma.
+        </p>
+      </section>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "24px",
-          marginBottom: "32px",
-        }}
-      >
-        <div style={card}>
-          <h3 style={cardTitle}>Total de vendas</h3>
-          <p style={cardValue}>{loading ? "..." : totalVendas}</p>
-        </div>
+      <section style={statsGrid}>
+        <StatCard label="Total de vendas" value={loading ? "..." : String(totalVendas)} />
+        <StatCard
+          label="Total recebido"
+          value={loading ? "..." : formatarEuro(totalRecebido)}
+        />
+        <StatCard
+          label="Comissão plataforma"
+          value={loading ? "..." : formatarEuro(totalComissoes)}
+        />
+        <StatCard
+          label="Total formadores"
+          value={loading ? "..." : formatarEuro(totalFormadores)}
+        />
+      </section>
 
-        <div style={card}>
-          <h3 style={cardTitle}>Total recebido</h3>
-          <p style={cardValue}>
-            {loading ? "..." : formatarEuro(totalRecebido)}
-          </p>
-        </div>
+      {erro ? <MensagemErro texto={erro} /> : null}
 
-        <div style={card}>
-          <h3 style={cardTitle}>Comissão plataforma</h3>
-          <p style={cardValue}>
-            {loading ? "..." : formatarEuro(totalComissoes)}
-          </p>
-        </div>
-
-        <div style={card}>
-          <h3 style={cardTitle}>Total formadores</h3>
-          <p style={cardValue}>
-            {loading ? "..." : formatarEuro(totalFormadores)}
-          </p>
-        </div>
-      </div>
-
-      {erro ? <div style={caixaErro}>{erro}</div> : null}
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "16px",
-          flexWrap: "wrap",
-          marginBottom: "24px",
-        }}
-      >
+      <section style={barra}>
         <input
           type="text"
           placeholder="Pesquisar venda..."
@@ -260,77 +228,94 @@ export default function AdminVendasPage() {
           style={inputPesquisa}
         />
 
-        <button type="button" style={buttonSecundario} onClick={carregarDados}>
+        <button type="button" style={botaoSecundario} onClick={carregarDados}>
           Atualizar
         </button>
-      </div>
+      </section>
 
-      <div style={box}>
-        <div style={headerTabela}>
-          <span style={colunaNome}>Venda</span>
-          <span style={coluna}>Aluno</span>
-          <span style={coluna}>Curso</span>
-          <span style={coluna}>Formador</span>
-          <span style={coluna}>Valores</span>
-          <span style={coluna}>Estado</span>
-          <span style={coluna}>Data</span>
-        </div>
-
-        {loading ? (
-          <div style={linhaVazia}>A carregar vendas...</div>
-        ) : linhasFiltradas.length === 0 ? (
-          <div style={linhaVazia}>Ainda não existem vendas registadas.</div>
-        ) : (
-          linhasFiltradas.map((linha) => (
-            <div key={linha.id} style={linhaTabela}>
-              <div>
-                <div style={colunaNomeValor}>Venda #{linha.id}</div>
-                <div style={subtexto}>Método: {linha.metodo}</div>
-                <div style={subtexto}>Moeda: {linha.moeda}</div>
-                <div style={subtexto}>
-                  Stripe: {linha.stripePaymentId || "—"}
+      {loading ? (
+        <EstadoBox texto="A carregar vendas..." />
+      ) : linhasFiltradas.length === 0 ? (
+        <EstadoBox texto="Ainda não existem vendas registadas." />
+      ) : (
+        <section style={lista}>
+          {linhasFiltradas.map((linha) => (
+            <article key={linha.id} style={card}>
+              <div style={cardHeader}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <p style={miniLabel}>Venda #{linha.id}</p>
+                  <h2 style={cardTitulo}>{linha.cursoTitulo}</h2>
+                  <p style={subtextoBloco}>
+                    {linha.alunoNome} • {linha.formadorNome}
+                  </p>
                 </div>
-              </div>
 
-              <div>
-                <div style={colunaNomeValor}>{linha.alunoNome}</div>
-                <div style={subtexto}>{linha.alunoEmail}</div>
-              </div>
-
-              <div style={colunaValor}>{linha.cursoTitulo}</div>
-
-              <div style={colunaValor}>{linha.formadorNome}</div>
-
-              <div>
-                <div style={colunaValor}>
-                  Bruto: {formatarEuro(linha.valorBruto)}
-                </div>
-                <div style={subtexto}>
-                  Comissão: {formatarEuro(linha.comissaoPlataforma)}
-                </div>
-                <div style={subtexto}>
-                  Formador: {formatarEuro(linha.valorFormador)}
-                </div>
-              </div>
-
-              <div>
                 <span style={badgeEstado(linha.status)}>{linha.status}</span>
               </div>
 
-              <div>
-                <div style={subtexto}>
-                  Criado: {formatarDataHora(linha.createdAt)}
-                </div>
-                <div style={subtexto}>
-                  Atualizado: {formatarDataHora(linha.updatedAt)}
-                </div>
+              <div style={grid4}>
+                <InfoBox titulo="Aluno" valor={`${linha.alunoNome}\n${linha.alunoEmail}`} />
+                <InfoBox titulo="Curso" valor={linha.cursoTitulo} />
+                <InfoBox titulo="Formador" valor={linha.formadorNome} />
+                <InfoBox titulo="Método" valor={`${linha.metodo} • ${linha.moeda}`} />
               </div>
-            </div>
-          ))
-        )}
-      </div>
-    </>
+
+              <div style={grid3}>
+                <InfoBox titulo="Bruto" valor={formatarEuro(linha.valorBruto)} />
+                <InfoBox
+                  titulo="Comissão plataforma"
+                  valor={formatarEuro(linha.comissaoPlataforma)}
+                />
+                <InfoBox
+                  titulo="Valor formador"
+                  valor={formatarEuro(linha.valorFormador)}
+                />
+              </div>
+
+              <div style={grid2}>
+                <InfoBox
+                  titulo="Stripe Payment ID"
+                  valor={linha.stripePaymentId || "—"}
+                />
+                <InfoBox
+                  titulo="Datas"
+                  valor={`Criado: ${formatarDataHora(
+                    linha.createdAt
+                  )}\nAtualizado: ${formatarDataHora(linha.updatedAt)}`}
+                />
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
+    </main>
   );
+}
+
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <article style={statCard}>
+      <p style={statLabel}>{label}</p>
+      <p style={statValue}>{value}</p>
+    </article>
+  );
+}
+
+function InfoBox({ titulo, valor }: { titulo: string; valor: string }) {
+  return (
+    <div style={infoCard}>
+      <p style={infoLabel}>{titulo}</p>
+      <p style={infoValor}>{valor}</p>
+    </div>
+  );
+}
+
+function EstadoBox({ texto }: { texto: string }) {
+  return <div style={estadoBox}>{texto}</div>;
+}
+
+function MensagemErro({ texto }: { texto: string }) {
+  return <div style={caixaErro}>{texto}</div>;
 }
 
 function formatarEuro(valor: number) {
@@ -375,7 +360,11 @@ function badgeEstado(estado: string): CSSProperties {
     };
   }
 
-  if (["failed", "falhou", "cancelado", "canceled", "reembolsado", "refunded"].includes(normalizado)) {
+  if (
+    ["failed", "falhou", "cancelado", "canceled", "reembolsado", "refunded"].includes(
+      normalizado
+    )
+  ) {
     return {
       display: "inline-block",
       padding: "8px 12px",
@@ -396,106 +385,196 @@ function badgeEstado(estado: string): CSSProperties {
   };
 }
 
-const card: CSSProperties = {
+const main: CSSProperties = {
+  color: "#e6c27a",
+  fontFamily: "Cormorant Garamond, serif",
+};
+
+const topo: CSSProperties = {
+  marginBottom: "24px",
+  maxWidth: "980px",
+};
+
+const eyebrow: CSSProperties = {
+  margin: "0 0 10px 0",
+  letterSpacing: "0.14em",
+  textTransform: "uppercase",
+  fontSize: "14px",
+  color: "#caa15a",
+};
+
+const titulo: CSSProperties = {
+  margin: "0 0 12px 0",
+  fontFamily: "Cinzel, serif",
+  fontSize: "clamp(32px, 5vw, 48px)",
+  color: "#f0d79a",
+  lineHeight: 1.08,
+  fontWeight: 500,
+};
+
+const descricao: CSSProperties = {
+  margin: 0,
+  color: "#d7b06c",
+  fontSize: "clamp(18px, 2.3vw, 22px)",
+  lineHeight: 1.7,
+};
+
+const statsGrid: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+  gap: "16px",
+  marginBottom: "24px",
+};
+
+const statCard: CSSProperties = {
   border: "1px solid #a6783d",
-  padding: "24px",
+  padding: "20px",
   background: "linear-gradient(145deg, #1a0f0a, #140d09)",
   boxShadow: "0 0 20px rgba(166, 120, 61, 0.12)",
 };
 
-const cardTitle: CSSProperties = {
-  fontSize: "22px",
-  marginBottom: "14px",
+const statLabel: CSSProperties = {
+  margin: "0 0 10px 0",
+  fontSize: "18px",
   color: "#e6c27a",
 };
 
-const cardValue: CSSProperties = {
-  fontSize: "34px",
-  fontFamily: "Cinzel, serif",
-  color: "#e6c27a",
+const statValue: CSSProperties = {
+  margin: 0,
+  fontSize: "30px",
   lineHeight: 1.15,
+  fontFamily: "Cinzel, serif",
+  color: "#f0d79a",
+};
+
+const barra: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "12px",
+  flexWrap: "wrap",
+  marginBottom: "24px",
 };
 
 const inputPesquisa: CSSProperties = {
-  minWidth: "280px",
+  minWidth: "260px",
   flex: 1,
-  maxWidth: "420px",
+  width: "100%",
+  maxWidth: "520px",
   padding: "12px 14px",
   border: "1px solid #a6783d",
   background: "#140d09",
   color: "#e6c27a",
-  fontSize: "18px",
+  fontSize: "17px",
   outline: "none",
 };
 
-const buttonSecundario: CSSProperties = {
+const botaoSecundario: CSSProperties = {
   padding: "12px 18px",
   border: "1px solid #a6783d",
   background: "transparent",
   color: "#e6c27a",
-  fontSize: "17px",
+  fontSize: "16px",
   cursor: "pointer",
+  minHeight: "46px",
 };
 
-const box: CSSProperties = {
+const lista: CSSProperties = {
+  display: "grid",
+  gap: "16px",
+};
+
+const card: CSSProperties = {
+  border: "1px solid #a6783d",
+  background: "linear-gradient(145deg, #1a0f0a, #140d09)",
+  boxShadow: "0 0 20px rgba(166, 120, 61, 0.12)",
+  padding: "clamp(16px, 2vw, 20px)",
+};
+
+const cardHeader: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "14px",
+  flexWrap: "wrap",
+  marginBottom: "16px",
+};
+
+const miniLabel: CSSProperties = {
+  margin: "0 0 8px 0",
+  fontSize: "13px",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  color: "#caa15a",
+};
+
+const cardTitulo: CSSProperties = {
+  margin: "0 0 8px 0",
+  fontFamily: "Cinzel, serif",
+  fontSize: "clamp(22px, 3vw, 28px)",
+  color: "#f0d79a",
+  lineHeight: 1.15,
+};
+
+const subtextoBloco: CSSProperties = {
+  margin: 0,
+  fontSize: "17px",
+  lineHeight: 1.6,
+  color: "#d7b06c",
+};
+
+const grid4: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+  gap: "12px",
+  marginBottom: "12px",
+};
+
+const grid3: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: "12px",
+  marginBottom: "12px",
+};
+
+const grid2: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+  gap: "12px",
+  marginBottom: "12px",
+};
+
+const infoCard: CSSProperties = {
+  border: "1px solid rgba(166,120,61,0.28)",
+  background: "rgba(38,20,15,0.35)",
+  padding: "14px 16px",
+};
+
+const infoLabel: CSSProperties = {
+  margin: "0 0 8px 0",
+  color: "#caa15a",
+  fontSize: "14px",
+  textTransform: "uppercase",
+  letterSpacing: "1px",
+};
+
+const infoValor: CSSProperties = {
+  margin: 0,
+  color: "#e6c27a",
+  fontSize: "17px",
+  lineHeight: 1.7,
+  whiteSpace: "pre-wrap",
+  wordBreak: "break-word",
+};
+
+const estadoBox: CSSProperties = {
   border: "1px solid #a6783d",
   background: "#140d09",
-  overflow: "hidden",
-};
-
-const headerTabela: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "1.1fr 1.2fr 1.2fr 1fr 1.1fr 0.8fr 1fr",
-  gap: "16px",
-  padding: "16px 18px",
-  background: "#1b110c",
-  color: "#e6c27a",
-  fontSize: "18px",
-  borderBottom: "1px solid #8a5d31",
-};
-
-const linhaTabela: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "1.1fr 1.2fr 1.2fr 1fr 1.1fr 0.8fr 1fr",
-  gap: "16px",
-  padding: "18px",
-  borderTop: "1px solid #8a5d31",
-  color: "#e6c27a",
-  alignItems: "start",
-};
-
-const linhaVazia: CSSProperties = {
-  padding: "28px 18px",
+  padding: "24px 18px",
   textAlign: "center",
   color: "#caa15a",
-  fontSize: "21px",
-  borderTop: "1px solid #8a5d31",
-};
-
-const colunaNome: CSSProperties = {
-  fontWeight: 600,
-};
-
-const coluna: CSSProperties = {
-  fontWeight: 600,
-};
-
-const colunaNomeValor: CSSProperties = {
-  fontWeight: 600,
-  color: "#f2d38f",
-  fontSize: "18px",
-  marginBottom: "6px",
-};
-
-const colunaValor: CSSProperties = {
-  color: "#e6c27a",
-  lineHeight: 1.5,
-};
-
-const subtexto: CSSProperties = {
-  color: "#caa15a",
-  lineHeight: 1.5,
-  fontSize: "15px",
+  fontSize: "20px",
+  marginBottom: "20px",
 };
 
 const caixaErro: CSSProperties = {

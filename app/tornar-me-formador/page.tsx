@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 type FormData = {
@@ -38,6 +38,14 @@ export default function TornaTeFormadorPage() {
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    return () => {
+      if (fotoPreview && fotoPreview.startsWith("blob:")) {
+        URL.revokeObjectURL(fotoPreview);
+      }
+    };
+  }, [fotoPreview]);
+
   const isConfigured = useMemo(() => {
     return Boolean(
       process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -50,6 +58,10 @@ export default function TornaTeFormadorPage() {
   }
 
   function handleFotoChange(file: File | null) {
+    if (fotoPreview && fotoPreview.startsWith("blob:")) {
+      URL.revokeObjectURL(fotoPreview);
+    }
+
     setFoto(file);
 
     if (!file) {
@@ -192,7 +204,7 @@ export default function TornaTeFormadorPage() {
         background:
           "radial-gradient(circle at top, rgba(166,120,61,0.08), transparent 22%), #2b160f",
         color: "#e6c27a",
-        padding: "60px 20px 90px",
+        padding: "clamp(40px, 6vw, 60px) clamp(14px, 4vw, 20px) clamp(70px, 8vw, 90px)",
         fontFamily: "Cormorant Garamond, serif",
       }}
     >
@@ -205,7 +217,7 @@ export default function TornaTeFormadorPage() {
         <div
           style={{
             textAlign: "center",
-            marginBottom: "50px",
+            marginBottom: "40px",
           }}
         >
           <p
@@ -214,7 +226,7 @@ export default function TornaTeFormadorPage() {
               letterSpacing: "0.16em",
               textTransform: "uppercase",
               color: "#caa15a",
-              fontSize: "16px",
+              fontSize: "clamp(13px, 2vw, 16px)",
             }}
           >
             Regnum Noctis
@@ -223,7 +235,7 @@ export default function TornaTeFormadorPage() {
           <h1
             style={{
               fontFamily: "Cinzel, serif",
-              fontSize: "clamp(40px, 6vw, 60px)",
+              fontSize: "clamp(34px, 6vw, 60px)",
               margin: "0 0 18px 0",
               color: "#f0d79a",
               lineHeight: 1.1,
@@ -234,7 +246,7 @@ export default function TornaTeFormadorPage() {
 
           <p
             style={{
-              fontSize: "24px",
+              fontSize: "clamp(18px, 2.8vw, 24px)",
               color: "#d7b06c",
               maxWidth: "880px",
               margin: "0 auto",
@@ -249,8 +261,9 @@ export default function TornaTeFormadorPage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "minmax(0, 1.15fr) minmax(320px, 0.85fr)",
-            gap: "34px",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(min(100%, 320px), 1fr))",
+            gap: "24px",
             alignItems: "start",
           }}
         >
@@ -258,7 +271,7 @@ export default function TornaTeFormadorPage() {
             onSubmit={handleSubmit}
             style={{
               border: "1px solid #8a5d31",
-              padding: "34px",
+              padding: "clamp(20px, 4vw, 34px)",
               background:
                 "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
               display: "flex",
@@ -277,7 +290,8 @@ export default function TornaTeFormadorPage() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 1fr",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(min(100%, 220px), 1fr))",
                 gap: "18px",
               }}
             >
@@ -298,7 +312,8 @@ export default function TornaTeFormadorPage() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 1fr",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(min(100%, 220px), 1fr))",
                 gap: "18px",
               }}
             >
@@ -357,7 +372,7 @@ export default function TornaTeFormadorPage() {
             {fotoPreview && (
               <div
                 style={{
-                  width: "180px",
+                  width: "min(100%, 180px)",
                   height: "220px",
                   border: "1px solid #8a5d31",
                   overflow: "hidden",
@@ -446,7 +461,7 @@ export default function TornaTeFormadorPage() {
                   "linear-gradient(180deg, #c4914d 0%, #a6783d 100%)",
                 color: "#140d09",
                 cursor: loading ? "not-allowed" : "pointer",
-                fontSize: "18px",
+                fontSize: "17px",
                 fontWeight: 700,
                 letterSpacing: "0.08em",
                 textTransform: "uppercase",
@@ -462,7 +477,7 @@ export default function TornaTeFormadorPage() {
           <div
             style={{
               border: "1px solid #8a5d31",
-              padding: "34px",
+              padding: "clamp(20px, 4vw, 34px)",
               background:
                 "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
               boxShadow:
@@ -472,7 +487,7 @@ export default function TornaTeFormadorPage() {
             <h2
               style={{
                 fontFamily: "Cinzel, serif",
-                fontSize: "34px",
+                fontSize: "clamp(26px, 4vw, 34px)",
                 marginTop: 0,
                 marginBottom: "20px",
                 color: "#f0d79a",
@@ -486,7 +501,7 @@ export default function TornaTeFormadorPage() {
                 margin: "0 0 24px 0",
                 paddingLeft: "22px",
                 lineHeight: 1.9,
-                fontSize: "21px",
+                fontSize: "clamp(18px, 2.5vw, 21px)",
                 color: "#d7b06c",
               }}
             >
@@ -516,7 +531,7 @@ export default function TornaTeFormadorPage() {
               <p
                 style={{
                   margin: 0,
-                  fontSize: "19px",
+                  fontSize: "clamp(18px, 2.3vw, 19px)",
                   lineHeight: 1.8,
                   color: "#d7b06c",
                 }}
@@ -550,7 +565,7 @@ function Input({
       <label
         style={{
           display: "block",
-          fontSize: "19px",
+          fontSize: "18px",
           marginBottom: "8px",
           color: "#e6c27a",
         }}
@@ -569,7 +584,7 @@ function Input({
           background: "#1a100c",
           border: "1px solid #8a5d31",
           color: "#e6c27a",
-          fontSize: "18px",
+          fontSize: "17px",
           outline: "none",
           boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
         }}
@@ -596,7 +611,7 @@ function Textarea({
       <label
         style={{
           display: "block",
-          fontSize: "19px",
+          fontSize: "18px",
           marginBottom: "8px",
           color: "#e6c27a",
         }}
@@ -615,10 +630,11 @@ function Textarea({
           background: "#1a100c",
           border: "1px solid #8a5d31",
           color: "#e6c27a",
-          fontSize: "18px",
+          fontSize: "17px",
           outline: "none",
           resize: "vertical",
           boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+          fontFamily: "Cormorant Garamond, serif",
         }}
       />
     </div>
@@ -641,7 +657,7 @@ function FileField({
       <label
         style={{
           display: "block",
-          fontSize: "19px",
+          fontSize: "18px",
           marginBottom: "8px",
           color: "#e6c27a",
         }}
@@ -658,9 +674,11 @@ function FileField({
           background: "linear-gradient(180deg, #24140f 0%, #1a100c 100%)",
           color: "#e6c27a",
           padding: "12px 18px",
-          fontSize: "17px",
+          fontSize: "16px",
           cursor: "pointer",
           boxShadow: "0 0 14px rgba(166, 120, 61, 0.1)",
+          width: "min(100%, 240px)",
+          textAlign: "center",
         }}
       >
         Selecionar ficheiro

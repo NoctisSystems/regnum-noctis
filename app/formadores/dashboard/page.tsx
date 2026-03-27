@@ -207,7 +207,7 @@ export default function DashboardFormadorPage() {
           "radial-gradient(circle at top, rgba(166,120,61,0.08), transparent 20%), #2b160f",
         color: "#e6c27a",
         fontFamily: "Cormorant Garamond, serif",
-        padding: "50px 20px 90px",
+        padding: "50px 16px 90px",
       }}
     >
       <section
@@ -233,7 +233,7 @@ export default function DashboardFormadorPage() {
             style={{
               margin: "0 0 14px 0",
               fontFamily: "Cinzel, serif",
-              fontSize: "clamp(42px, 6vw, 64px)",
+              fontSize: "clamp(34px, 6vw, 64px)",
               lineHeight: 1.1,
               color: "#f0d79a",
               fontWeight: 500,
@@ -245,7 +245,7 @@ export default function DashboardFormadorPage() {
           <p
             style={{
               margin: 0,
-              fontSize: "24px",
+              fontSize: "clamp(18px, 2.4vw, 24px)",
               lineHeight: 1.7,
               color: "#d7b06c",
               maxWidth: "980px",
@@ -282,7 +282,7 @@ export default function DashboardFormadorPage() {
                 border: "1px solid #8a5d31",
                 background:
                   "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-                padding: "30px",
+                padding: "clamp(20px, 3vw, 30px)",
                 boxShadow:
                   "0 18px 42px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,225,170,0.03)",
                 marginBottom: "34px",
@@ -315,7 +315,7 @@ export default function DashboardFormadorPage() {
                     style={{
                       margin: 0,
                       fontFamily: "Cinzel, serif",
-                      fontSize: "clamp(28px, 4vw, 40px)",
+                      fontSize: "clamp(26px, 4vw, 40px)",
                       color: "#f0d79a",
                       fontWeight: 500,
                     }}
@@ -366,7 +366,7 @@ export default function DashboardFormadorPage() {
             <section
               style={{
                 display: "grid",
-                gridTemplateColumns: "1.2fr 0.8fr",
+                gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
                 gap: "24px",
                 alignItems: "start",
               }}
@@ -417,7 +417,7 @@ export default function DashboardFormadorPage() {
                     <p
                       style={{
                         margin: "0 0 14px 0",
-                        fontSize: "22px",
+                        fontSize: "clamp(18px, 2.2vw, 22px)",
                         color: "#e6c27a",
                         lineHeight: 1.6,
                       }}
@@ -428,7 +428,7 @@ export default function DashboardFormadorPage() {
                     <p
                       style={{
                         margin: 0,
-                        fontSize: "20px",
+                        fontSize: "clamp(18px, 2vw, 20px)",
                         color: "#d7b06c",
                         lineHeight: 1.7,
                       }}
@@ -555,7 +555,7 @@ function ShortcutCard({
         style={{
           margin: "0 0 12px 0",
           fontFamily: "Cinzel, serif",
-          fontSize: "28px",
+          fontSize: "clamp(24px, 3vw, 28px)",
           color: "#e6c27a",
           fontWeight: 500,
         }}
@@ -566,7 +566,7 @@ function ShortcutCard({
       <p
         style={{
           margin: "0 0 20px 0",
-          fontSize: "20px",
+          fontSize: "clamp(18px, 2vw, 20px)",
           color: "#d7b06c",
           lineHeight: 1.7,
           flex: 1,
@@ -679,7 +679,7 @@ function EmptyState({
         style={{
           margin: "0 0 12px 0",
           fontFamily: "Cinzel, serif",
-          fontSize: "30px",
+          fontSize: "clamp(24px, 3vw, 30px)",
           color: "#e6c27a",
           fontWeight: 500,
         }}
@@ -690,7 +690,7 @@ function EmptyState({
       <p
         style={{
           margin: "0 0 18px 0",
-          fontSize: "21px",
+          fontSize: "clamp(18px, 2.2vw, 21px)",
           color: "#d7b06c",
           lineHeight: 1.7,
         }}
@@ -724,7 +724,7 @@ function InfoBox({
         style={{
           margin: "0 0 12px 0",
           fontFamily: "Cinzel, serif",
-          fontSize: "28px",
+          fontSize: "clamp(24px, 3vw, 28px)",
           color: "#e6c27a",
           fontWeight: 500,
         }}
@@ -735,7 +735,7 @@ function InfoBox({
       <p
         style={{
           margin: 0,
-          fontSize: "20px",
+          fontSize: "clamp(18px, 2vw, 20px)",
           color: "#d7b06c",
           lineHeight: 1.7,
         }}
@@ -759,7 +759,7 @@ function ChecklistItem({ texto }: { texto: string }) {
       <p
         style={{
           margin: 0,
-          fontSize: "20px",
+          fontSize: "clamp(18px, 2vw, 20px)",
           color: "#d7b06c",
           lineHeight: 1.6,
         }}
@@ -785,7 +785,7 @@ function LoadingBox() {
       <h2
         style={{
           fontFamily: "Cinzel, serif",
-          fontSize: "34px",
+          fontSize: "clamp(26px, 4vw, 34px)",
           margin: "0 0 18px 0",
           color: "#f0d79a",
           fontWeight: 500,
@@ -797,7 +797,7 @@ function LoadingBox() {
       <p
         style={{
           margin: 0,
-          fontSize: "22px",
+          fontSize: "clamp(18px, 2.2vw, 22px)",
           lineHeight: 1.7,
           color: "#dfbe81",
         }}
@@ -833,8 +833,9 @@ const botao: React.CSSProperties = {
   border: "1px solid #a6783d",
   color: "#e6c27a",
   padding: "14px 18px",
-  fontSize: "18px",
+  fontSize: "16px",
   background: "transparent",
+  textAlign: "center",
 };
 
 const botaoSecundario: React.CSSProperties = {
@@ -845,7 +846,8 @@ const botaoSecundario: React.CSSProperties = {
   border: "1px solid rgba(166,120,61,0.6)",
   color: "#e6c27a",
   padding: "12px 16px",
-  fontSize: "16px",
+  fontSize: "15px",
   background: "rgba(32,18,13,0.55)",
   cursor: "pointer",
+  textAlign: "center",
 };

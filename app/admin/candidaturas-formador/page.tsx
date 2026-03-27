@@ -33,65 +33,15 @@ export default async function CandidaturasFormadorPage() {
   const candidaturas = (data || []) as Candidatura[];
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        color: "#e6c27a",
-        fontFamily: "Cormorant Garamond, serif",
-        padding: "20px 16px 40px",
-      }}
-    >
-      <section
-        style={{
-          maxWidth: "1240px",
-          margin: "0 auto",
-          padding: "6px 0 24px 0",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-end",
-            flexWrap: "wrap",
-            gap: "18px",
-          }}
-        >
-          <div style={{ flex: "1 1 720px", minWidth: "280px" }}>
-            <p
-              style={{
-                letterSpacing: "3px",
-                textTransform: "uppercase",
-                color: "#caa15a",
-                fontSize: "14px",
-                marginBottom: "12px",
-              }}
-            >
-              Administração
-            </p>
+    <main style={pagina}>
+      <section style={hero}>
+        <div style={heroWrap}>
+          <div style={heroTexto}>
+            <p style={kicker}>Administração</p>
 
-            <h1
-              style={{
-                fontFamily: "Cinzel, serif",
-                fontSize: "clamp(32px, 5vw, 52px)",
-                fontWeight: 500,
-                margin: "0 0 14px 0",
-                color: "#f0d79a",
-                lineHeight: 1.1,
-              }}
-            >
-              Candidaturas de Formador
-            </h1>
+            <h1 style={titulo}>Candidaturas de Formador</h1>
 
-            <p
-              style={{
-                fontSize: "clamp(18px, 2.2vw, 22px)",
-                lineHeight: "1.7",
-                color: "#d7b06c",
-                maxWidth: "920px",
-                margin: 0,
-              }}
-            >
+            <p style={descricao}>
               Área interna para análise, aprovação e rejeição das candidaturas
               submetidas na página pública.
             </p>
@@ -103,126 +53,34 @@ export default async function CandidaturasFormadorPage() {
         </div>
       </section>
 
-      <section
-        style={{
-          maxWidth: "1240px",
-          margin: "0 auto",
-        }}
-      >
+      <section style={conteudo}>
         {error ? (
-          <div
-            style={{
-              border: "1px solid rgba(255,107,107,0.35)",
-              background: "rgba(120,20,20,0.12)",
-              padding: "20px",
-              color: "#ffb4b4",
-              fontSize: "18px",
-            }}
-          >
+          <div style={caixaErro}>
             Ocorreu um erro ao carregar as candidaturas.
           </div>
         ) : candidaturas.length === 0 ? (
-          <div
-            style={{
-              border: "1px solid #8a5d31",
-              background: "#140d09",
-              padding: "28px",
-              textAlign: "center",
-            }}
-          >
-            <h2
-              style={{
-                fontFamily: "Cinzel, serif",
-                fontSize: "clamp(26px, 4vw, 32px)",
-                margin: "0 0 14px 0",
-                color: "#e6c27a",
-              }}
-            >
-              Não existem candidaturas pendentes
-            </h2>
-
-            <p
-              style={{
-                margin: 0,
-                fontSize: "clamp(18px, 2.1vw, 21px)",
-                lineHeight: "1.7",
-                color: "#d7b06c",
-              }}
-            >
+          <div style={caixaVazia}>
+            <h2 style={tituloVazio}>Não existem candidaturas pendentes</h2>
+            <p style={textoVazio}>
               As candidaturas aprovadas ou rejeitadas deixam de aparecer aqui.
             </p>
           </div>
         ) : (
-          <div
-            style={{
-              display: "grid",
-              gap: "20px",
-            }}
-          >
+          <div style={lista}>
             {candidaturas.map((candidatura) => (
-              <article
-                key={candidatura.id}
-                style={{
-                  border: "1px solid #8a5d31",
-                  background:
-                    "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-                  padding: "clamp(16px, 2vw, 24px)",
-                  boxShadow:
-                    "0 12px 26px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,225,170,0.03)",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: "18px",
-                    flexWrap: "wrap",
-                    alignItems: "flex-start",
-                    marginBottom: "18px",
-                  }}
-                >
-                  <div style={{ minWidth: "220px", flex: "1 1 320px" }}>
-                    <h2
-                      style={{
-                        fontFamily: "Cinzel, serif",
-                        fontSize: "clamp(24px, 3vw, 30px)",
-                        margin: "0 0 8px 0",
-                        color: "#e6c27a",
-                      }}
-                    >
-                      {candidatura.nome}
-                    </h2>
+              <article key={candidatura.id} style={card}>
+                <div style={cardHeader}>
+                  <div style={cardHeaderTexto}>
+                    <h2 style={nome}>{candidatura.nome}</h2>
 
-                    <p
-                      style={{
-                        margin: "0 0 6px 0",
-                        fontSize: "clamp(17px, 2vw, 19px)",
-                        color: "#d7b06c",
-                        wordBreak: "break-word",
-                      }}
-                    >
-                      {candidatura.email}
-                    </p>
+                    <p style={email}>{candidatura.email}</p>
 
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: "16px",
-                        color: "#caa15a",
-                      }}
-                    >
+                    <p style={estadoTexto}>
                       Estado: {candidatura.estado || "pendente"}
                     </p>
                   </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "12px",
-                      flexWrap: "wrap",
-                      alignItems: "stretch",
-                    }}
-                  >
+                  <div style={acoes}>
                     <form action={aprovarCandidatura}>
                       <input
                         type="hidden"
@@ -270,14 +128,7 @@ export default async function CandidaturasFormadorPage() {
                   </div>
                 </div>
 
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                    gap: "14px",
-                    marginBottom: "16px",
-                  }}
-                >
+                <div style={gridInfo}>
                   <MiniBox
                     label="Número de contacto"
                     value={candidatura.numero_contacto || "Não indicado"}
@@ -296,12 +147,7 @@ export default async function CandidaturasFormadorPage() {
                   />
                 </div>
 
-                <div
-                  style={{
-                    display: "grid",
-                    gap: "14px",
-                  }}
-                >
+                <div style={blocos}>
                   <InfoBlock
                     label="Cursos pretendidos"
                     value={candidatura.cursos_pretendidos || "Não indicados."}
@@ -336,37 +182,9 @@ function MiniBox({
   value: string;
 }) {
   return (
-    <div
-      style={{
-        border: "1px solid rgba(166, 120, 61, 0.22)",
-        background: "rgba(32, 18, 13, 0.45)",
-        padding: "14px 16px",
-      }}
-    >
-      <p
-        style={{
-          margin: "0 0 6px 0",
-          fontSize: "14px",
-          textTransform: "uppercase",
-          letterSpacing: "1px",
-          color: "#caa15a",
-        }}
-      >
-        {label}
-      </p>
-
-      <p
-        style={{
-          margin: 0,
-          fontSize: "clamp(17px, 2vw, 18px)",
-          lineHeight: "1.55",
-          color: "#d7b06c",
-          whiteSpace: "pre-line",
-          wordBreak: "break-word",
-        }}
-      >
-        {value}
-      </p>
+    <div style={miniBox}>
+      <p style={miniLabel}>{label}</p>
+      <p style={miniValor}>{value}</p>
     </div>
   );
 }
@@ -379,40 +197,203 @@ function InfoBlock({
   value: string;
 }) {
   return (
-    <div
-      style={{
-        border: "1px solid rgba(166, 120, 61, 0.22)",
-        background: "rgba(32, 18, 13, 0.45)",
-        padding: "16px 18px",
-      }}
-    >
-      <p
-        style={{
-          margin: "0 0 8px 0",
-          fontSize: "14px",
-          textTransform: "uppercase",
-          letterSpacing: "1px",
-          color: "#caa15a",
-        }}
-      >
-        {label}
-      </p>
-
-      <p
-        style={{
-          margin: 0,
-          fontSize: "clamp(18px, 2.1vw, 20px)",
-          lineHeight: "1.7",
-          color: "#d7b06c",
-          whiteSpace: "pre-line",
-          wordBreak: "break-word",
-        }}
-      >
-        {value}
-      </p>
+    <div style={infoBlock}>
+      <p style={miniLabel}>{label}</p>
+      <p style={infoValor}>{value}</p>
     </div>
   );
 }
+
+const pagina: CSSProperties = {
+  minHeight: "100vh",
+  color: "#e6c27a",
+  fontFamily: "Cormorant Garamond, serif",
+  padding: "20px 0 40px",
+};
+
+const hero: CSSProperties = {
+  maxWidth: "1240px",
+  margin: "0 auto",
+  padding: "6px 16px 24px",
+};
+
+const heroWrap: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-end",
+  flexWrap: "wrap",
+  gap: "18px",
+};
+
+const heroTexto: CSSProperties = {
+  flex: "1 1 720px",
+  minWidth: "280px",
+};
+
+const kicker: CSSProperties = {
+  letterSpacing: "3px",
+  textTransform: "uppercase",
+  color: "#caa15a",
+  fontSize: "14px",
+  margin: "0 0 12px 0",
+};
+
+const titulo: CSSProperties = {
+  fontFamily: "Cinzel, serif",
+  fontSize: "clamp(32px, 5vw, 52px)",
+  fontWeight: 500,
+  margin: "0 0 14px 0",
+  color: "#f0d79a",
+  lineHeight: 1.1,
+};
+
+const descricao: CSSProperties = {
+  fontSize: "clamp(18px, 2.2vw, 22px)",
+  lineHeight: 1.7,
+  color: "#d7b06c",
+  maxWidth: "920px",
+  margin: 0,
+};
+
+const conteudo: CSSProperties = {
+  maxWidth: "1240px",
+  margin: "0 auto",
+  padding: "0 16px",
+};
+
+const lista: CSSProperties = {
+  display: "grid",
+  gap: "20px",
+};
+
+const card: CSSProperties = {
+  border: "1px solid #8a5d31",
+  background:
+    "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
+  padding: "clamp(16px, 2vw, 24px)",
+  boxShadow:
+    "0 12px 26px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,225,170,0.03)",
+};
+
+const cardHeader: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "18px",
+  flexWrap: "wrap",
+  alignItems: "flex-start",
+  marginBottom: "18px",
+};
+
+const cardHeaderTexto: CSSProperties = {
+  minWidth: "220px",
+  flex: "1 1 320px",
+};
+
+const nome: CSSProperties = {
+  fontFamily: "Cinzel, serif",
+  fontSize: "clamp(24px, 3vw, 30px)",
+  margin: "0 0 8px 0",
+  color: "#e6c27a",
+};
+
+const email: CSSProperties = {
+  margin: "0 0 6px 0",
+  fontSize: "clamp(17px, 2vw, 19px)",
+  color: "#d7b06c",
+  wordBreak: "break-word",
+};
+
+const estadoTexto: CSSProperties = {
+  margin: 0,
+  fontSize: "16px",
+  color: "#caa15a",
+};
+
+const acoes: CSSProperties = {
+  display: "flex",
+  gap: "12px",
+  flexWrap: "wrap",
+  alignItems: "stretch",
+};
+
+const gridInfo: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: "14px",
+  marginBottom: "16px",
+};
+
+const blocos: CSSProperties = {
+  display: "grid",
+  gap: "14px",
+};
+
+const miniBox: CSSProperties = {
+  border: "1px solid rgba(166, 120, 61, 0.22)",
+  background: "rgba(32, 18, 13, 0.45)",
+  padding: "14px 16px",
+};
+
+const miniLabel: CSSProperties = {
+  margin: "0 0 6px 0",
+  fontSize: "14px",
+  textTransform: "uppercase",
+  letterSpacing: "1px",
+  color: "#caa15a",
+};
+
+const miniValor: CSSProperties = {
+  margin: 0,
+  fontSize: "clamp(17px, 2vw, 18px)",
+  lineHeight: 1.55,
+  color: "#d7b06c",
+  whiteSpace: "pre-line",
+  wordBreak: "break-word",
+};
+
+const infoBlock: CSSProperties = {
+  border: "1px solid rgba(166, 120, 61, 0.22)",
+  background: "rgba(32, 18, 13, 0.45)",
+  padding: "16px 18px",
+};
+
+const infoValor: CSSProperties = {
+  margin: 0,
+  fontSize: "clamp(18px, 2.1vw, 20px)",
+  lineHeight: 1.7,
+  color: "#d7b06c",
+  whiteSpace: "pre-line",
+  wordBreak: "break-word",
+};
+
+const caixaErro: CSSProperties = {
+  border: "1px solid rgba(255,107,107,0.35)",
+  background: "rgba(120,20,20,0.12)",
+  padding: "20px",
+  color: "#ffb4b4",
+  fontSize: "18px",
+};
+
+const caixaVazia: CSSProperties = {
+  border: "1px solid #8a5d31",
+  background: "#140d09",
+  padding: "28px",
+  textAlign: "center",
+};
+
+const tituloVazio: CSSProperties = {
+  fontFamily: "Cinzel, serif",
+  fontSize: "clamp(26px, 4vw, 32px)",
+  margin: "0 0 14px 0",
+  color: "#e6c27a",
+};
+
+const textoVazio: CSSProperties = {
+  margin: 0,
+  fontSize: "clamp(18px, 2.1vw, 21px)",
+  lineHeight: 1.7,
+  color: "#d7b06c",
+};
 
 const botaoTopo: CSSProperties = {
   textDecoration: "none",

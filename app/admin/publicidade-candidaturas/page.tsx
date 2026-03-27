@@ -178,60 +178,27 @@ export default function AdminPublicidadeCandidaturasPage() {
   const convertidas = candidaturas.filter((item) => item.estado === "convertida").length;
 
   return (
-    <>
-      <h1
-        style={{
-          fontFamily: "Cinzel, serif",
-          fontSize: "48px",
-          marginBottom: "24px",
-          color: "#e6c27a",
-        }}
-      >
-        Candidaturas de Publicidade
-      </h1>
+    <main style={main}>
+      <section style={topo}>
+        <p style={eyebrow}>Administração</p>
+        <h1 style={titulo}>Candidaturas de Publicidade</h1>
+        <p style={descricao}>
+          Gestão das candidaturas recebidas para publicidade e parceiros, com
+          análise, atualização de estado e conversão para registo ativo.
+        </p>
+      </section>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "24px",
-          marginBottom: "32px",
-        }}
-      >
-        <div style={card}>
-          <h3 style={cardTitle}>Total</h3>
-          <p style={cardValue}>{loading ? "..." : total}</p>
-        </div>
+      <section style={statsGrid}>
+        <StatCard label="Total" value={loading ? "..." : String(total)} />
+        <StatCard label="Pendentes" value={loading ? "..." : String(pendentes)} />
+        <StatCard label="Em análise" value={loading ? "..." : String(emAnalise)} />
+        <StatCard label="Convertidas" value={loading ? "..." : String(convertidas)} />
+      </section>
 
-        <div style={card}>
-          <h3 style={cardTitle}>Pendentes</h3>
-          <p style={cardValue}>{loading ? "..." : pendentes}</p>
-        </div>
+      {erro ? <MensagemErro texto={erro} /> : null}
+      {sucesso ? <MensagemSucesso texto={sucesso} /> : null}
 
-        <div style={card}>
-          <h3 style={cardTitle}>Em análise</h3>
-          <p style={cardValue}>{loading ? "..." : emAnalise}</p>
-        </div>
-
-        <div style={card}>
-          <h3 style={cardTitle}>Convertidas</h3>
-          <p style={cardValue}>{loading ? "..." : convertidas}</p>
-        </div>
-      </div>
-
-      {erro ? <div style={caixaErro}>{erro}</div> : null}
-      {sucesso ? <div style={caixaSucesso}>{sucesso}</div> : null}
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "16px",
-          flexWrap: "wrap",
-          marginBottom: "24px",
-        }}
-      >
+      <section style={barra}>
         <input
           type="text"
           placeholder="Pesquisar candidatura..."
@@ -242,65 +209,46 @@ export default function AdminPublicidadeCandidaturasPage() {
 
         <button
           type="button"
-          style={buttonSecundario}
+          style={botaoSecundario}
           onClick={carregarCandidaturas}
         >
           Atualizar
         </button>
-      </div>
+      </section>
 
       {loading ? (
-        <div style={linhaVazia}>A carregar candidaturas...</div>
+        <EstadoBox texto="A carregar candidaturas..." />
       ) : candidaturasFiltradas.length === 0 ? (
-        <div style={linhaVazia}>
-          Ainda não existem candidaturas de publicidade.
-        </div>
+        <EstadoBox texto="Ainda não existem candidaturas de publicidade." />
       ) : (
-        <div style={{ display: "grid", gap: "14px" }}>
+        <section style={lista}>
           {candidaturasFiltradas.map((item) => (
-            <article
-              key={item.id}
-              style={{
-                border: "1px solid #a6783d",
-                background: "linear-gradient(145deg, #1a0f0a, #140d09)",
-                boxShadow: "0 0 20px rgba(166, 120, 61, 0.12)",
-                padding: "20px",
-              }}
-            >
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "minmax(240px, 1fr) minmax(240px, 1fr) minmax(220px, 260px) minmax(240px, 1fr)",
-                  gap: "12px",
-                  marginBottom: "12px",
-                }}
-              >
-                <div>
-                  <h3
-                    style={{
-                      margin: "0 0 8px 0",
-                      fontFamily: "Cinzel, serif",
-                      fontSize: "28px",
-                      color: "#f0d79a",
-                    }}
-                  >
-                    {item.nome_marca || item.nome}
-                  </h3>
-                  <p style={subtexto}>Candidatura #{item.id}</p>
-                  <p style={subtexto}>Nome: {item.nome}</p>
-                  <p style={subtexto}>Email: {item.email}</p>
-                  <p style={subtexto}>Telefone: {item.telefone || "—"}</p>
+            <article key={item.id} style={card}>
+              <div style={cardHeader}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <p style={miniLabel}>Candidatura #{item.id}</p>
+                  <h2 style={cardTitulo}>{item.nome_marca || item.nome}</h2>
+                  <p style={subtextoBloco}>
+                    Estado atual: {item.estado} • Plano: {item.plano_interesse}
+                  </p>
                 </div>
+              </div>
 
-                <div>
-                  <p style={subtexto}>Plano: {item.plano_interesse}</p>
-                  <p style={subtexto}>Título: {item.titulo_anuncio || "—"}</p>
-                  <p style={subtexto}>Website: {item.website_url || "—"}</p>
-                  <p style={subtexto}>Instagram: {item.instagram_url || "—"}</p>
-                  <p style={subtexto}>WhatsApp: {item.whatsapp || "—"}</p>
-                </div>
+              <div style={grid4}>
+                <InfoTexto titulo="Nome" valor={item.nome} />
+                <InfoTexto titulo="Email" valor={item.email} />
+                <InfoTexto titulo="Telefone" valor={item.telefone || "—"} />
+                <InfoTexto titulo="Marca" valor={item.nome_marca || "—"} />
+              </div>
 
+              <div style={grid4}>
+                <InfoTexto titulo="Website" valor={item.website_url || "—"} />
+                <InfoTexto titulo="Instagram" valor={item.instagram_url || "—"} />
+                <InfoTexto titulo="WhatsApp" valor={item.whatsapp || "—"} />
+                <InfoTexto titulo="Título anúncio" valor={item.titulo_anuncio || "—"} />
+              </div>
+
+              <div style={grid2}>
                 <div>
                   <label style={label}>Estado</label>
                   <select
@@ -316,8 +264,11 @@ export default function AdminPublicidadeCandidaturasPage() {
                     <option value="rejeitada">Rejeitada</option>
                     <option value="convertida">Convertida</option>
                   </select>
+                </div>
 
-                  <div style={{ marginTop: "12px" }}>
+                <div>
+                  <label style={label}>Logótipo</label>
+                  <div style={boxTexto}>
                     {item.logo_url ? (
                       <a
                         href={item.logo_url}
@@ -328,36 +279,17 @@ export default function AdminPublicidadeCandidaturasPage() {
                         Ver logótipo
                       </a>
                     ) : (
-                      <span style={subtexto}>Sem logótipo</span>
+                      "Sem logótipo"
                     )}
                   </div>
                 </div>
-
-                <div>
-                  <label style={label}>Notas admin</label>
-                  <textarea
-                    value={item.notas_admin || ""}
-                    onChange={(e) =>
-                      atualizarCampo(item.id, "notas_admin", e.target.value)
-                    }
-                    rows={5}
-                    style={textarea}
-                  />
-                </div>
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "12px",
-                  marginBottom: "14px",
-                }}
-              >
-                <div>
-                  <label style={label}>Descrição curta</label>
-                  <div style={boxTexto}>{item.descricao_curta || "—"}</div>
-                </div>
+              <div style={grid2}>
+                <AreaSomenteLeitura
+                  titulo="Descrição curta"
+                  value={item.descricao_curta || "—"}
+                />
 
                 <div>
                   <label style={label}>Link destino</label>
@@ -378,18 +310,35 @@ export default function AdminPublicidadeCandidaturasPage() {
                 </div>
               </div>
 
-              <div style={{ marginBottom: "14px" }}>
-                <label style={label}>Descrição</label>
-                <div style={boxTextoGrande}>{item.descricao || "—"}</div>
+              <AreaSomenteLeitura
+                titulo="Descrição"
+                value={item.descricao || "—"}
+              />
+
+              <AreaSomenteLeitura
+                titulo="Observações do candidato"
+                value={item.observacoes || "—"}
+              />
+
+              <div style={{ marginTop: "12px" }}>
+                <label style={label}>Notas admin</label>
+                <textarea
+                  value={item.notas_admin || ""}
+                  onChange={(e) =>
+                    atualizarCampo(item.id, "notas_admin", e.target.value)
+                  }
+                  rows={4}
+                  style={textarea}
+                />
               </div>
 
-              <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+              <div style={acoes}>
                 <button
                   type="button"
                   onClick={() => guardarEstado(item)}
                   disabled={savingId === item.id}
                   style={{
-                    ...buttonSecundario,
+                    ...botaoSecundario,
                     opacity: savingId === item.id ? 0.7 : 1,
                     cursor: savingId === item.id ? "not-allowed" : "pointer",
                   }}
@@ -402,7 +351,7 @@ export default function AdminPublicidadeCandidaturasPage() {
                   onClick={() => aprovarECriarPublicidade(item)}
                   disabled={savingId === item.id || item.estado === "convertida"}
                   style={{
-                    ...button,
+                    ...botaoPrimario,
                     opacity:
                       savingId === item.id || item.estado === "convertida"
                         ? 0.7
@@ -422,9 +371,9 @@ export default function AdminPublicidadeCandidaturasPage() {
               </div>
             </article>
           ))}
-        </div>
+        </section>
       )}
-    </>
+    </main>
   );
 }
 
@@ -438,35 +387,191 @@ function criarSlug(valor: string) {
     .slice(0, 90);
 }
 
-const card: CSSProperties = {
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <article style={statCard}>
+      <p style={statLabel}>{label}</p>
+      <p style={statValue}>{value}</p>
+    </article>
+  );
+}
+
+function InfoTexto({ titulo, valor }: { titulo: string; valor: string }) {
+  return (
+    <div>
+      <label style={label}>{titulo}</label>
+      <div style={boxTexto}>{valor}</div>
+    </div>
+  );
+}
+
+function AreaSomenteLeitura({
+  titulo,
+  value,
+}: {
+  titulo: string;
+  value: string;
+}) {
+  return (
+    <div style={{ marginTop: "12px" }}>
+      <label style={label}>{titulo}</label>
+      <div style={boxTextoGrande}>{value}</div>
+    </div>
+  );
+}
+
+function EstadoBox({ texto }: { texto: string }) {
+  return <div style={estadoBox}>{texto}</div>;
+}
+
+function MensagemErro({ texto }: { texto: string }) {
+  return <div style={caixaErro}>{texto}</div>;
+}
+
+function MensagemSucesso({ texto }: { texto: string }) {
+  return <div style={caixaSucesso}>{texto}</div>;
+}
+
+const main: CSSProperties = {
+  color: "#e6c27a",
+  fontFamily: "Cormorant Garamond, serif",
+};
+
+const topo: CSSProperties = {
+  marginBottom: "24px",
+  maxWidth: "980px",
+};
+
+const eyebrow: CSSProperties = {
+  margin: "0 0 10px 0",
+  letterSpacing: "0.14em",
+  textTransform: "uppercase",
+  fontSize: "14px",
+  color: "#caa15a",
+};
+
+const titulo: CSSProperties = {
+  margin: "0 0 12px 0",
+  fontFamily: "Cinzel, serif",
+  fontSize: "clamp(32px, 5vw, 48px)",
+  color: "#f0d79a",
+  lineHeight: 1.08,
+  fontWeight: 500,
+};
+
+const descricao: CSSProperties = {
+  margin: 0,
+  color: "#d7b06c",
+  fontSize: "clamp(18px, 2.3vw, 22px)",
+  lineHeight: 1.7,
+};
+
+const statsGrid: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+  gap: "16px",
+  marginBottom: "24px",
+};
+
+const statCard: CSSProperties = {
   border: "1px solid #a6783d",
-  padding: "24px",
+  padding: "20px",
   background: "linear-gradient(145deg, #1a0f0a, #140d09)",
   boxShadow: "0 0 20px rgba(166, 120, 61, 0.12)",
 };
 
-const cardTitle: CSSProperties = {
-  fontSize: "22px",
-  marginBottom: "14px",
+const statLabel: CSSProperties = {
+  margin: "0 0 10px 0",
+  fontSize: "18px",
   color: "#e6c27a",
 };
 
-const cardValue: CSSProperties = {
-  fontSize: "40px",
+const statValue: CSSProperties = {
+  margin: 0,
+  fontSize: "34px",
+  lineHeight: 1.1,
   fontFamily: "Cinzel, serif",
-  color: "#e6c27a",
+  color: "#f0d79a",
+};
+
+const barra: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "12px",
+  flexWrap: "wrap",
+  marginBottom: "24px",
 };
 
 const inputPesquisa: CSSProperties = {
-  minWidth: "280px",
+  minWidth: "260px",
   flex: 1,
-  maxWidth: "420px",
+  width: "100%",
+  maxWidth: "520px",
   padding: "12px 14px",
   border: "1px solid #a6783d",
   background: "#140d09",
   color: "#e6c27a",
-  fontSize: "18px",
+  fontSize: "17px",
   outline: "none",
+};
+
+const lista: CSSProperties = {
+  display: "grid",
+  gap: "16px",
+};
+
+const card: CSSProperties = {
+  border: "1px solid #a6783d",
+  background: "linear-gradient(145deg, #1a0f0a, #140d09)",
+  boxShadow: "0 0 20px rgba(166, 120, 61, 0.12)",
+  padding: "clamp(16px, 2vw, 20px)",
+};
+
+const cardHeader: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "14px",
+  flexWrap: "wrap",
+  marginBottom: "16px",
+};
+
+const miniLabel: CSSProperties = {
+  margin: "0 0 8px 0",
+  fontSize: "13px",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  color: "#caa15a",
+};
+
+const cardTitulo: CSSProperties = {
+  margin: "0 0 8px 0",
+  fontFamily: "Cinzel, serif",
+  fontSize: "clamp(24px, 3vw, 30px)",
+  color: "#f0d79a",
+  lineHeight: 1.15,
+};
+
+const subtextoBloco: CSSProperties = {
+  margin: 0,
+  fontSize: "17px",
+  lineHeight: 1.6,
+  color: "#d7b06c",
+};
+
+const grid4: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+  gap: "12px",
+  marginBottom: "12px",
+};
+
+const grid2: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+  gap: "12px",
+  marginBottom: "12px",
 };
 
 const input: CSSProperties = {
@@ -475,7 +580,7 @@ const input: CSSProperties = {
   border: "1px solid #8a5d31",
   background: "#140d09",
   color: "#e6c27a",
-  fontSize: "17px",
+  fontSize: "16px",
   outline: "none",
 };
 
@@ -485,7 +590,7 @@ const textarea: CSSProperties = {
   border: "1px solid #8a5d31",
   background: "#140d09",
   color: "#e6c27a",
-  fontSize: "17px",
+  fontSize: "16px",
   outline: "none",
   resize: "vertical",
   fontFamily: "Cormorant Garamond, serif",
@@ -495,36 +600,46 @@ const label: CSSProperties = {
   display: "block",
   marginBottom: "8px",
   color: "#caa15a",
-  fontSize: "15px",
+  fontSize: "14px",
   textTransform: "uppercase",
   letterSpacing: "1px",
 };
 
-const button: CSSProperties = {
+const acoes: CSSProperties = {
+  display: "flex",
+  gap: "12px",
+  flexWrap: "wrap",
+  marginTop: "14px",
+};
+
+const botaoPrimario: CSSProperties = {
   padding: "12px 18px",
   border: "1px solid #a6783d",
   background: "#a6783d",
   color: "#140d09",
-  fontSize: "18px",
+  fontSize: "16px",
   cursor: "pointer",
+  minHeight: "46px",
 };
 
-const buttonSecundario: CSSProperties = {
+const botaoSecundario: CSSProperties = {
   padding: "12px 18px",
   border: "1px solid #a6783d",
   background: "transparent",
   color: "#e6c27a",
-  fontSize: "18px",
+  fontSize: "16px",
   cursor: "pointer",
+  minHeight: "46px",
 };
 
-const linhaVazia: CSSProperties = {
+const estadoBox: CSSProperties = {
   border: "1px solid #a6783d",
   background: "#140d09",
-  padding: "28px 18px",
+  padding: "24px 18px",
   textAlign: "center",
   color: "#caa15a",
-  fontSize: "21px",
+  fontSize: "20px",
+  marginBottom: "20px",
 };
 
 const caixaErro: CSSProperties = {
@@ -547,21 +662,15 @@ const caixaSucesso: CSSProperties = {
   marginBottom: "20px",
 };
 
-const subtexto: CSSProperties = {
-  margin: "0 0 6px 0",
-  fontSize: "17px",
-  lineHeight: "1.6",
-  color: "#d7b06c",
-};
-
 const boxTexto: CSSProperties = {
   border: "1px solid rgba(166,120,61,0.35)",
   background: "rgba(38,20,15,0.35)",
   padding: "14px 16px",
   color: "#e6c27a",
-  fontSize: "18px",
+  fontSize: "17px",
   lineHeight: "1.7",
-  minHeight: "56px",
+  minHeight: "54px",
+  wordBreak: "break-word",
 };
 
 const boxTextoGrande: CSSProperties = {
@@ -569,10 +678,11 @@ const boxTextoGrande: CSSProperties = {
   background: "rgba(38,20,15,0.35)",
   padding: "14px 16px",
   color: "#e6c27a",
-  fontSize: "18px",
+  fontSize: "17px",
   lineHeight: "1.8",
-  minHeight: "110px",
+  minHeight: "90px",
   whiteSpace: "pre-wrap",
+  wordBreak: "break-word",
 };
 
 const linkMini: CSSProperties = {

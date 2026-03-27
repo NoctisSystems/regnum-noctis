@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -28,15 +29,21 @@ export default function AdminDashboard() {
   const [avisoFinanceiro, setAvisoFinanceiro] = useState("");
 
   const [totalCursos, setTotalCursos] = useState(0);
-  const [totalCandidaturasPendentes, setTotalCandidaturasPendentes] = useState(0);
+  const [totalCandidaturasPendentes, setTotalCandidaturasPendentes] =
+    useState(0);
   const [totalFormadores, setTotalFormadores] = useState(0);
   const [totalAlunos, setTotalAlunos] = useState(0);
   const [totalInscricoes, setTotalInscricoes] = useState(0);
-  const [totalLevantamentosPendentes, setTotalLevantamentosPendentes] = useState(0);
+  const [totalLevantamentosPendentes, setTotalLevantamentosPendentes] =
+    useState(0);
   const [totalPublicidade, setTotalPublicidade] = useState(0);
   const [totalPublicidadeHome, setTotalPublicidadeHome] = useState(0);
-  const [totalPublicidadeCandidaturas, setTotalPublicidadeCandidaturas] = useState(0);
-  const [totalPublicidadeCandidaturasPendentes, setTotalPublicidadeCandidaturasPendentes] = useState(0);
+  const [totalPublicidadeCandidaturas, setTotalPublicidadeCandidaturas] =
+    useState(0);
+  const [
+    totalPublicidadeCandidaturasPendentes,
+    setTotalPublicidadeCandidaturasPendentes,
+  ] = useState(0);
 
   const [financeiro, setFinanceiro] =
     useState<AdminResumoFinanceiro>(resumoFinanceiroVazio);
@@ -103,8 +110,10 @@ export default function AdminDashboard() {
       if (levantamentosRes.error) throw levantamentosRes.error;
       if (publicidadeRes.error) throw publicidadeRes.error;
       if (publicidadeHomeRes.error) throw publicidadeHomeRes.error;
-      if (publicidadeCandidaturasRes.error) throw publicidadeCandidaturasRes.error;
-      if (publicidadeCandidaturasPendentesRes.error) throw publicidadeCandidaturasPendentesRes.error;
+      if (publicidadeCandidaturasRes.error)
+        throw publicidadeCandidaturasRes.error;
+      if (publicidadeCandidaturasPendentesRes.error)
+        throw publicidadeCandidaturasPendentesRes.error;
 
       setTotalCursos(cursosRes.count || 0);
       setTotalCandidaturasPendentes(candidaturasRes.count || 0);
@@ -126,7 +135,10 @@ export default function AdminDashboard() {
         .maybeSingle();
 
       if (financeiroRes.error) {
-        console.error("Erro ao carregar admin_resumo_financeiro:", financeiroRes.error);
+        console.error(
+          "Erro ao carregar admin_resumo_financeiro:",
+          financeiroRes.error
+        );
         setFinanceiro(resumoFinanceiroVazio);
         setAvisoFinanceiro(
           `Resumo financeiro temporariamente indisponível: ${financeiroRes.error.message}`
@@ -136,7 +148,8 @@ export default function AdminDashboard() {
       }
     } catch (err: any) {
       setErro(
-        err?.message || "Ocorreu um erro ao carregar a dashboard da administração."
+        err?.message ||
+          "Ocorreu um erro ao carregar a dashboard da administração."
       );
     } finally {
       setLoading(false);
@@ -157,8 +170,8 @@ export default function AdminDashboard() {
     <>
       <section
         style={{
-          marginBottom: "34px",
-          paddingBottom: "24px",
+          marginBottom: "30px",
+          paddingBottom: "22px",
           borderBottom: "1px solid rgba(166, 120, 61, 0.4)",
         }}
       >
@@ -167,7 +180,7 @@ export default function AdminDashboard() {
             margin: "0 0 10px 0",
             textTransform: "uppercase",
             letterSpacing: "0.14em",
-            fontSize: "16px",
+            fontSize: "14px",
             color: "#caa15a",
           }}
         >
@@ -177,7 +190,7 @@ export default function AdminDashboard() {
         <h1
           style={{
             fontFamily: "Cinzel, serif",
-            fontSize: "clamp(40px, 5vw, 58px)",
+            fontSize: "clamp(32px, 5vw, 58px)",
             lineHeight: 1.08,
             margin: "0 0 16px 0",
             color: "#f0d79a",
@@ -191,7 +204,7 @@ export default function AdminDashboard() {
           style={{
             maxWidth: "980px",
             margin: 0,
-            fontSize: "25px",
+            fontSize: "clamp(18px, 2.3vw, 25px)",
             lineHeight: 1.6,
             color: "#dfbe81",
           }}
@@ -209,14 +222,7 @@ export default function AdminDashboard() {
         <>
           {avisoFinanceiro ? <WarningBox texto={avisoFinanceiro} /> : null}
 
-          <section
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
-              gap: "22px",
-              marginBottom: "38px",
-            }}
-          >
+          <section className="admin-dashboard-grid">
             <DashboardCard
               title="Cursos"
               value={String(totalCursos)}
@@ -282,12 +288,8 @@ export default function AdminDashboard() {
           </section>
 
           <section
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
-              gap: "22px",
-              marginBottom: "38px",
-            }}
+            className="admin-dashboard-grid"
+            style={{ marginTop: "22px" }}
           >
             <DashboardCardStatic
               title="Comissões da plataforma"
@@ -298,7 +300,7 @@ export default function AdminDashboard() {
             <DashboardCardStatic
               title="Pendente formadores"
               value={formatarEuro(totalPendenteFormadores)}
-              subtitle="Saldo ainda dentro do prazo de 14 dias"
+              subtitle="Saldo ainda dentro do prazo legal"
             />
 
             <DashboardCardStatic
@@ -314,34 +316,9 @@ export default function AdminDashboard() {
             />
           </section>
 
-          <section
-            style={{
-              display: "grid",
-              gridTemplateColumns: "minmax(0, 1.35fr) minmax(320px, 0.9fr)",
-              gap: "22px",
-            }}
-          >
-            <article
-              style={{
-                border: "1px solid rgba(166, 120, 61, 0.7)",
-                background:
-                  "linear-gradient(180deg, rgba(15,9,7,0.96) 0%, rgba(28,16,12,0.98) 100%)",
-                padding: "30px",
-                boxShadow:
-                  "0 16px 40px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,225,170,0.04)",
-              }}
-            >
-              <h2
-                style={{
-                  fontFamily: "Cinzel, serif",
-                  fontSize: "34px",
-                  margin: "0 0 18px 0",
-                  color: "#f0d79a",
-                  fontWeight: 500,
-                }}
-              >
-                Resumo financeiro
-              </h2>
+          <section className="admin-dashboard-bottom">
+            <article style={painelGrande}>
+              <h2 style={tituloPainel}>Resumo financeiro</h2>
 
               <div
                 style={{
@@ -372,27 +349,8 @@ export default function AdminDashboard() {
               </div>
             </article>
 
-            <article
-              style={{
-                border: "1px solid rgba(166, 120, 61, 0.7)",
-                background:
-                  "linear-gradient(180deg, rgba(15,9,7,0.96) 0%, rgba(28,16,12,0.98) 100%)",
-                padding: "30px",
-                boxShadow:
-                  "0 16px 40px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,225,170,0.04)",
-              }}
-            >
-              <h2
-                style={{
-                  fontFamily: "Cinzel, serif",
-                  fontSize: "34px",
-                  margin: "0 0 18px 0",
-                  color: "#f0d79a",
-                  fontWeight: 500,
-                }}
-              >
-                Acesso rápido
-              </h2>
+            <article style={painelGrande}>
+              <h2 style={tituloPainel}>Acesso rápido</h2>
 
               <div
                 style={{
@@ -464,51 +422,12 @@ function DashboardCard({
   href: string;
 }) {
   return (
-    <Link
-      href={href}
-      style={{
-        textDecoration: "none",
-        border: "1px solid rgba(166, 120, 61, 0.75)",
-        padding: "26px 24px",
-        background:
-          "linear-gradient(145deg, rgba(26,15,10,0.98), rgba(20,13,9,0.98))",
-        boxShadow:
-          "0 0 24px rgba(166, 120, 61, 0.09), inset 0 1px 0 rgba(255,225,170,0.04)",
-        display: "block",
-      }}
-    >
-      <h3
-        style={{
-          margin: "0 0 14px 0",
-          fontSize: "24px",
-          color: "#e6c27a",
-        }}
-      >
-        {title}
-      </h3>
+    <Link href={href} className="admin-card-link">
+      <h3 className="admin-card-title">{title}</h3>
 
-      <p
-        style={{
-          margin: "0 0 12px 0",
-          fontSize: "44px",
-          lineHeight: 1,
-          fontFamily: "Cinzel, serif",
-          color: "#f0d79a",
-        }}
-      >
-        {value}
-      </p>
+      <p className="admin-card-value">{value}</p>
 
-      <p
-        style={{
-          margin: 0,
-          fontSize: "20px",
-          lineHeight: 1.55,
-          color: "#d8b36f",
-        }}
-      >
-        {subtitle}
-      </p>
+      <p className="admin-card-subtitle">{subtitle}</p>
     </Link>
   );
 }
@@ -523,48 +442,12 @@ function DashboardCardStatic({
   subtitle: string;
 }) {
   return (
-    <article
-      style={{
-        border: "1px solid rgba(166, 120, 61, 0.75)",
-        padding: "26px 24px",
-        background:
-          "linear-gradient(145deg, rgba(26,15,10,0.98), rgba(20,13,9,0.98))",
-        boxShadow:
-          "0 0 24px rgba(166, 120, 61, 0.09), inset 0 1px 0 rgba(255,225,170,0.04)",
-      }}
-    >
-      <h3
-        style={{
-          margin: "0 0 14px 0",
-          fontSize: "24px",
-          color: "#e6c27a",
-        }}
-      >
-        {title}
-      </h3>
+    <article className="admin-card-link">
+      <h3 className="admin-card-title">{title}</h3>
 
-      <p
-        style={{
-          margin: "0 0 12px 0",
-          fontSize: "40px",
-          lineHeight: 1,
-          fontFamily: "Cinzel, serif",
-          color: "#f0d79a",
-        }}
-      >
-        {value}
-      </p>
+      <p className="admin-card-value">{value}</p>
 
-      <p
-        style={{
-          margin: 0,
-          fontSize: "20px",
-          lineHeight: 1.55,
-          color: "#d8b36f",
-        }}
-      >
-        {subtitle}
-      </p>
+      <p className="admin-card-subtitle">{subtitle}</p>
     </article>
   );
 }
@@ -577,18 +460,7 @@ function QuickLink({
   label: string;
 }) {
   return (
-    <Link
-      href={href}
-      style={{
-        textDecoration: "none",
-        border: "1px solid rgba(166, 120, 61, 0.65)",
-        padding: "14px 16px",
-        fontSize: "21px",
-        color: "#e6c27a",
-        background: "rgba(38, 20, 15, 0.35)",
-        display: "block",
-      }}
-    >
+    <Link href={href} className="admin-quick-link">
       {label}
     </Link>
   );
@@ -612,7 +484,7 @@ function ResumoLinha({
       <p
         style={{
           margin: "0 0 8px 0",
-          fontSize: "16px",
+          fontSize: "14px",
           textTransform: "uppercase",
           letterSpacing: "0.08em",
           color: "#caa15a",
@@ -624,10 +496,11 @@ function ResumoLinha({
       <p
         style={{
           margin: 0,
-          fontSize: "24px",
+          fontSize: "clamp(20px, 2.4vw, 24px)",
           lineHeight: 1.4,
           color: "#f0d79a",
           fontFamily: "Cinzel, serif",
+          wordBreak: "break-word",
         }}
       >
         {value}
@@ -638,37 +511,19 @@ function ResumoLinha({
 
 function LoadingBox() {
   return (
-    <section
-      style={{
-        border: "1px solid rgba(166, 120, 61, 0.7)",
-        background:
-          "linear-gradient(180deg, rgba(15,9,7,0.96) 0%, rgba(28,16,12,0.98) 100%)",
-        padding: "30px",
-        boxShadow:
-          "0 16px 40px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,225,170,0.04)",
-      }}
-    >
-      <h2
-        style={{
-          fontFamily: "Cinzel, serif",
-          fontSize: "34px",
-          margin: "0 0 18px 0",
-          color: "#f0d79a",
-          fontWeight: 500,
-        }}
-      >
-        A carregar dashboard
-      </h2>
+    <section style={painelGrande}>
+      <h2 style={tituloPainel}>A carregar dashboard</h2>
 
       <p
         style={{
           margin: 0,
-          fontSize: "22px",
+          fontSize: "clamp(18px, 2.1vw, 22px)",
           lineHeight: 1.7,
           color: "#dfbe81",
         }}
       >
-        A plataforma está a reunir dados administrativos, financeiros e operacionais.
+        A plataforma está a reunir dados administrativos, financeiros e
+        operacionais.
       </p>
     </section>
   );
@@ -682,7 +537,7 @@ function ErrorBox({ texto }: { texto: string }) {
         background: "rgba(120,20,20,0.12)",
         padding: "24px",
         color: "#ffb4b4",
-        fontSize: "20px",
+        fontSize: "18px",
         lineHeight: 1.7,
       }}
     >
@@ -699,7 +554,7 @@ function WarningBox({ texto }: { texto: string }) {
         background: "rgba(120,90,20,0.12)",
         padding: "18px 20px",
         color: "#f0d79a",
-        fontSize: "18px",
+        fontSize: "17px",
         lineHeight: 1.7,
         marginBottom: "24px",
       }}
@@ -708,3 +563,20 @@ function WarningBox({ texto }: { texto: string }) {
     </section>
   );
 }
+
+const painelGrande: CSSProperties = {
+  border: "1px solid rgba(166, 120, 61, 0.7)",
+  background:
+    "linear-gradient(180deg, rgba(15,9,7,0.96) 0%, rgba(28,16,12,0.98) 100%)",
+  padding: "clamp(20px, 2.4vw, 30px)",
+  boxShadow:
+    "0 16px 40px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,225,170,0.04)",
+};
+
+const tituloPainel: CSSProperties = {
+  fontFamily: "Cinzel, serif",
+  fontSize: "clamp(26px, 3vw, 34px)",
+  margin: "0 0 18px 0",
+  color: "#f0d79a",
+  fontWeight: 500,
+};

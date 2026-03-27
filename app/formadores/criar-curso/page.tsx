@@ -38,6 +38,7 @@ const initialForm: FormData = {
 export default function CriarCursoPage() {
   const [form, setForm] = useState<FormData>(initialForm);
   const [loading, setLoading] = useState(false);
+  const [uploadingCapa, setUploadingCapa] = useState(false);
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
 
@@ -76,6 +77,45 @@ export default function CriarCursoPage() {
     }
 
     return "";
+  }
+
+  async function handleUploadCapa(file: File | null) {
+    if (!file) return;
+
+    setErro("");
+    setSucesso("");
+
+    try {
+      setUploadingCapa(true);
+
+      const extensao = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const nomeFicheiro = `curso-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}.${extensao}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("curso_capas")
+        .upload(nomeFicheiro, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        setErro(uploadError.message || "Não foi possível fazer upload da capa.");
+        return;
+      }
+
+      const { data } = supabase.storage
+        .from("curso_capas")
+        .getPublicUrl(nomeFicheiro);
+
+      update("capa_url", data.publicUrl);
+      setSucesso("Capa carregada com sucesso.");
+    } catch {
+      setErro("Ocorreu um erro inesperado ao carregar a capa.");
+    } finally {
+      setUploadingCapa(false);
+    }
   }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -188,7 +228,7 @@ export default function CriarCursoPage() {
         background:
           "radial-gradient(circle at top, rgba(166,120,61,0.08), transparent 22%), #2b160f",
         color: "#e6c27a",
-        padding: "50px 20px 90px",
+        padding: "50px 16px 90px",
         fontFamily: "Cormorant Garamond, serif",
       }}
     >
@@ -219,7 +259,7 @@ export default function CriarCursoPage() {
             style={{
               margin: "0 0 14px 0",
               fontFamily: "Cinzel, serif",
-              fontSize: "clamp(42px, 6vw, 62px)",
+              fontSize: "clamp(34px, 6vw, 62px)",
               lineHeight: 1.1,
               color: "#f0d79a",
               fontWeight: 500,
@@ -231,7 +271,7 @@ export default function CriarCursoPage() {
           <p
             style={{
               margin: 0,
-              fontSize: "24px",
+              fontSize: "clamp(18px, 2.4vw, 24px)",
               lineHeight: 1.7,
               color: "#d7b06c",
               maxWidth: "960px",
@@ -246,7 +286,7 @@ export default function CriarCursoPage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "minmax(0, 1.15fr) minmax(320px, 0.85fr)",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
             gap: "28px",
             alignItems: "start",
           }}
@@ -255,7 +295,7 @@ export default function CriarCursoPage() {
             onSubmit={handleSubmit}
             style={{
               border: "1px solid #8a5d31",
-              padding: "34px",
+              padding: "clamp(20px, 3vw, 34px)",
               background:
                 "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
               display: "flex",
@@ -294,7 +334,7 @@ export default function CriarCursoPage() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 1fr",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
                 gap: "18px",
               }}
             >
@@ -311,6 +351,60 @@ export default function CriarCursoPage() {
                 onChange={(v) => update("capa_url", v)}
                 placeholder="Opcional"
               />
+            </div>
+
+            <div style={caixaInterna}>
+              <h2 style={subTitulo}>Capa do curso</h2>
+
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "19px",
+                  marginBottom: "10px",
+                  color: "#e6c27a",
+                }}
+              >
+                Upload da capa
+              </label>
+
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleUploadCapa(e.target.files?.[0] || null)}
+                style={{
+                  ...campoBase,
+                  padding: "12px",
+                }}
+              />
+
+              <p style={{ ...textoAjuda, marginTop: "12px" }}>
+                O upload será feito para o bucket público <strong>curso_capas</strong>.
+              </p>
+
+              {form.capa_url ? (
+                <div style={{ marginTop: "16px" }}>
+                  <p
+                    style={{
+                      margin: "0 0 10px 0",
+                      fontSize: "18px",
+                      color: "#caa15a",
+                    }}
+                  >
+                    Pré-visualização da capa
+                  </p>
+
+                  <img
+                    src={form.capa_url}
+                    alt="Pré-visualização da capa"
+                    style={{
+                      width: "100%",
+                      maxWidth: "320px",
+                      border: "1px solid rgba(166,120,61,0.35)",
+                      display: "block",
+                    }}
+                  />
+                </div>
+              ) : null}
             </div>
 
             {isCursoVideo ? (
@@ -420,31 +514,36 @@ export default function CriarCursoPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || uploadingCapa}
               style={{
                 border: "1px solid #c4914d",
                 padding: "16px 22px",
                 background:
                   "linear-gradient(180deg, #c4914d 0%, #a6783d 100%)",
                 color: "#140d09",
-                cursor: loading ? "not-allowed" : "pointer",
+                cursor:
+                  loading || uploadingCapa ? "not-allowed" : "pointer",
                 fontSize: "18px",
                 fontWeight: 700,
                 letterSpacing: "0.08em",
                 textTransform: "uppercase",
                 boxShadow:
                   "0 0 24px rgba(230, 194, 122, 0.18), inset 0 1px 0 rgba(255,255,255,0.18)",
-                opacity: loading ? 0.7 : 1,
+                opacity: loading || uploadingCapa ? 0.7 : 1,
               }}
             >
-              {loading ? "A criar..." : "Criar produto"}
+              {uploadingCapa
+                ? "A carregar capa..."
+                : loading
+                ? "A criar..."
+                : "Criar produto"}
             </button>
           </form>
 
           <aside
             style={{
               border: "1px solid #8a5d31",
-              padding: "34px",
+              padding: "clamp(20px, 3vw, 34px)",
               background:
                 "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
               boxShadow:
@@ -454,7 +553,7 @@ export default function CriarCursoPage() {
             <h2
               style={{
                 fontFamily: "Cinzel, serif",
-                fontSize: "34px",
+                fontSize: "clamp(26px, 4vw, 34px)",
                 marginTop: 0,
                 marginBottom: "20px",
                 color: "#f0d79a",
@@ -469,7 +568,7 @@ export default function CriarCursoPage() {
                 margin: "0 0 24px 0",
                 paddingLeft: "22px",
                 lineHeight: 1.9,
-                fontSize: "21px",
+                fontSize: "clamp(18px, 2vw, 21px)",
                 color: "#d7b06c",
               }}
             >

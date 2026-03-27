@@ -20,7 +20,10 @@ function construirFotoSrc(fotoUrl: string | null, supabaseUrl: string) {
     return valor;
   }
 
-  return `${supabaseUrl}/storage/v1/object/public/formadores-fotos/${valor}`;
+  return `${supabaseUrl}/storage/v1/object/public/formadores-fotos/${valor.replace(
+    /^\/+/,
+    ""
+  )}`;
 }
 
 export default async function VitrineFormadoresPage() {
@@ -43,7 +46,7 @@ export default async function VitrineFormadoresPage() {
           "radial-gradient(circle at top, rgba(166,120,61,0.08), transparent 20%), #2b160f",
         color: "#e6c27a",
         fontFamily: "Cormorant Garamond, serif",
-        padding: "60px 16px 90px",
+        padding: "clamp(40px, 6vw, 60px) clamp(14px, 4vw, 16px) clamp(70px, 8vw, 90px)",
       }}
     >
       <section
@@ -56,7 +59,7 @@ export default async function VitrineFormadoresPage() {
         <h1
           style={{
             fontFamily: "Cinzel, serif",
-            fontSize: "clamp(34px, 6vw, 62px)",
+            fontSize: "clamp(30px, 6vw, 62px)",
             margin: "0 0 14px 0",
             color: "#f0d79a",
             lineHeight: 1.1,
@@ -107,7 +110,7 @@ export default async function VitrineFormadoresPage() {
             <h2
               style={{
                 fontFamily: "Cinzel, serif",
-                fontSize: "clamp(26px, 4vw, 32px)",
+                fontSize: "clamp(24px, 4vw, 32px)",
                 margin: "0 0 14px 0",
                 color: "#e6c27a",
               }}
@@ -130,8 +133,9 @@ export default async function VitrineFormadoresPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
-              gap: "22px",
+              gridTemplateColumns:
+                "repeat(auto-fit, minmax(min(100%, 230px), 1fr))",
+              gap: "18px",
               alignItems: "stretch",
             }}
           >
@@ -150,14 +154,14 @@ export default async function VitrineFormadoresPage() {
                     padding: "14px",
                     display: "flex",
                     flexDirection: "column",
-                    minHeight: "520px",
+                    minHeight: "500px",
                   }}
                 >
                   <div
                     style={{
                       width: "100%",
-                      minHeight: "260px",
-                      height: "clamp(260px, 35vw, 300px)",
+                      minHeight: "250px",
+                      height: "clamp(250px, 35vw, 300px)",
                       overflow: "hidden",
                       background: "#1a100c",
                       marginBottom: "14px",

@@ -8,10 +8,10 @@ export default function PublicidadePage() {
         background: "#2b160f",
         color: "#e6c27a",
         fontFamily: "Cormorant Garamond, serif",
-        paddingTop: "60px",
-        paddingRight: "20px",
-        paddingBottom: "90px",
-        paddingLeft: "20px",
+        paddingTop: "clamp(40px, 6vw, 60px)",
+        paddingRight: "clamp(14px, 4vw, 20px)",
+        paddingBottom: "clamp(70px, 8vw, 90px)",
+        paddingLeft: "clamp(14px, 4vw, 20px)",
       }}
     >
       <section
@@ -19,7 +19,7 @@ export default function PublicidadePage() {
           maxWidth: "1150px",
           margin: "0 auto 42px auto",
           textAlign: "center",
-          padding: "10px 20px 44px 20px",
+          padding: "10px clamp(10px, 3vw, 20px) 44px",
           background:
             "radial-gradient(circle at center, rgba(106,58,27,0.26) 0%, rgba(43,22,15,0) 68%)",
         }}
@@ -29,7 +29,7 @@ export default function PublicidadePage() {
             letterSpacing: "3px",
             textTransform: "uppercase",
             color: "#caa15a",
-            fontSize: "16px",
+            fontSize: "clamp(13px, 2vw, 16px)",
             margin: "0 0 16px 0",
           }}
         >
@@ -39,7 +39,7 @@ export default function PublicidadePage() {
         <h1
           style={{
             fontFamily: "Cinzel, serif",
-            fontSize: "clamp(40px, 5vw, 62px)",
+            fontSize: "clamp(34px, 6vw, 62px)",
             fontWeight: 500,
             margin: "0 0 18px 0",
             color: "#e6c27a",
@@ -51,7 +51,7 @@ export default function PublicidadePage() {
 
         <p
           style={{
-            fontSize: "clamp(22px, 2.4vw, 28px)",
+            fontSize: "clamp(18px, 2.8vw, 28px)",
             lineHeight: "1.75",
             color: "#d7b06c",
             maxWidth: "980px",
@@ -67,7 +67,7 @@ export default function PublicidadePage() {
           style={{
             display: "flex",
             justifyContent: "center",
-            gap: "14px",
+            gap: "12px",
             flexWrap: "wrap",
           }}
         >
@@ -90,50 +90,19 @@ export default function PublicidadePage() {
           maxWidth: "1150px",
           margin: "0 auto 28px auto",
           display: "grid",
-          gap: "22px",
+          gap: "18px",
         }}
       >
-        <article
-          style={{
-            border: "1px solid #8a5d31",
-            background:
-              "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-            padding: "32px 30px",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
-          }}
-        >
-          <h2
-            style={{
-              fontFamily: "Cinzel, serif",
-              fontSize: "clamp(28px, 4vw, 40px)",
-              margin: "0 0 16px 0",
-              color: "#e6c27a",
-            }}
-          >
-            Como funciona
-          </h2>
+        <article style={bloco}>
+          <h2 style={tituloBloco}>Como funciona</h2>
 
-          <p
-            style={{
-              fontSize: "22px",
-              lineHeight: "1.8",
-              color: "#d7b06c",
-              margin: "0 0 16px 0",
-            }}
-          >
+          <p style={textoBloco}>
             O Regnum Noctis pode receber publicidade e parcerias selecionadas,
             desde que compatíveis com a identidade da plataforma, com o público
             e com a linha editorial do projeto.
           </p>
 
-          <p
-            style={{
-              fontSize: "22px",
-              lineHeight: "1.8",
-              color: "#d7b06c",
-              margin: "0 0 16px 0",
-            }}
-          >
+          <p style={textoBloco}>
             Consoante o plano, a tua presença poderá ficar:
           </p>
 
@@ -143,14 +112,7 @@ export default function PublicidadePage() {
             <li>ou diretamente na Home, com visibilidade premium.</li>
           </ul>
 
-          <p
-            style={{
-              fontSize: "22px",
-              lineHeight: "1.8",
-              color: "#d7b06c",
-              margin: "16px 0 18px 0",
-            }}
-          >
+          <p style={{ ...textoBloco, margin: "16px 0 18px 0" }}>
             Todos os pedidos ficam sujeitos a validação prévia. O Regnum Noctis
             reserva-se o direito de recusar conteúdos, marcas ou serviços que
             não estejam alinhados com a plataforma.
@@ -175,38 +137,11 @@ export default function PublicidadePage() {
             marginBottom: "24px",
           }}
         >
-          <p
-            style={{
-              letterSpacing: "2px",
-              textTransform: "uppercase",
-              color: "#caa15a",
-              fontSize: "14px",
-              margin: "0 0 10px 0",
-            }}
-          >
-            Planos de divulgação
-          </p>
+          <p style={kicker}>Planos de divulgação</p>
 
-          <h2
-            style={{
-              fontFamily: "Cinzel, serif",
-              fontSize: "clamp(30px, 4vw, 44px)",
-              margin: "0 0 12px 0",
-              color: "#e6c27a",
-            }}
-          >
-            Escolhe o nível de visibilidade
-          </h2>
+          <h2 style={tituloSecao}>Escolhe o nível de visibilidade</h2>
 
-          <p
-            style={{
-              fontSize: "21px",
-              lineHeight: "1.75",
-              color: "#d7b06c",
-              maxWidth: "860px",
-              margin: "0 auto",
-            }}
-          >
+          <p style={textoSecao}>
             Estrutura simples, clara e ajustada ao valor real da montra da
             plataforma.
           </p>
@@ -215,8 +150,8 @@ export default function PublicidadePage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-            gap: "24px",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))",
+            gap: "20px",
           }}
         >
           <PlanoCard
@@ -265,28 +200,11 @@ export default function PublicidadePage() {
           maxWidth: "1150px",
           margin: "0 auto 30px auto",
           display: "grid",
-          gap: "22px",
+          gap: "18px",
         }}
       >
-        <article
-          style={{
-            border: "1px solid #8a5d31",
-            background:
-              "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-            padding: "32px 30px",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
-          }}
-        >
-          <h2
-            style={{
-              fontFamily: "Cinzel, serif",
-              fontSize: "clamp(28px, 4vw, 40px)",
-              margin: "0 0 16px 0",
-              color: "#e6c27a",
-            }}
-          >
-            O que pode ser divulgado
-          </h2>
+        <article style={bloco}>
+          <h2 style={tituloBloco}>O que pode ser divulgado</h2>
 
           <ul style={lista}>
             <li>marcas e projetos compatíveis com a linha da plataforma;</li>
@@ -296,34 +214,10 @@ export default function PublicidadePage() {
           </ul>
         </article>
 
-        <article
-          style={{
-            border: "1px solid #8a5d31",
-            background:
-              "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-            padding: "32px 30px",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
-          }}
-        >
-          <h2
-            style={{
-              fontFamily: "Cinzel, serif",
-              fontSize: "clamp(28px, 4vw, 40px)",
-              margin: "0 0 16px 0",
-              color: "#e6c27a",
-            }}
-          >
-            Regras de aceitação
-          </h2>
+        <article style={bloco}>
+          <h2 style={tituloBloco}>Regras de aceitação</h2>
 
-          <p
-            style={{
-              fontSize: "22px",
-              lineHeight: "1.8",
-              color: "#d7b06c",
-              margin: "0 0 16px 0",
-            }}
-          >
+          <p style={textoBloco}>
             A presença publicitária não é automática. Antes de qualquer
             publicação, a administração valida o conteúdo, a identidade visual,
             o destino do link e a compatibilidade geral com o Regnum Noctis.
@@ -358,40 +252,17 @@ export default function PublicidadePage() {
       >
         <article
           style={{
-            border: "1px solid #8a5d31",
-            background:
-              "linear-gradient(180deg, rgba(20,13,9,1) 0%, rgba(16,10,8,1) 100%)",
-            padding: "34px 30px",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
+            ...bloco,
             textAlign: "center",
           }}
         >
-          <p
-            style={{
-              letterSpacing: "2px",
-              textTransform: "uppercase",
-              color: "#caa15a",
-              fontSize: "14px",
-              margin: "0 0 12px 0",
-            }}
-          >
-            Contacto comercial
-          </p>
+          <p style={kicker}>Contacto comercial</p>
 
-          <h2
-            style={{
-              fontFamily: "Cinzel, serif",
-              fontSize: "clamp(30px, 4vw, 44px)",
-              margin: "0 0 16px 0",
-              color: "#e6c27a",
-            }}
-          >
-            Pede informações sobre publicidade
-          </h2>
+          <h2 style={tituloSecao}>Pede informações sobre publicidade</h2>
 
           <p
             style={{
-              fontSize: "22px",
+              fontSize: "clamp(18px, 2.6vw, 22px)",
               lineHeight: "1.8",
               color: "#d7b06c",
               maxWidth: "860px",
@@ -399,15 +270,15 @@ export default function PublicidadePage() {
             }}
           >
             Se queres divulgar a tua marca, projeto ou serviço no Regnum
-            Noctis, entra em contacto para receberes condições, disponibilidade
-            e validação da proposta.
+            Noctis, entra em contacto para receberes condições, disponibilidade e
+            validação da proposta.
           </p>
 
           <div
             style={{
               display: "flex",
               justifyContent: "center",
-              gap: "16px",
+              gap: "12px",
               flexWrap: "wrap",
             }}
           >
@@ -457,7 +328,7 @@ function PlanoCard({
         background: destaque
           ? "linear-gradient(180deg, rgba(34,20,15,1) 0%, rgba(18,10,8,1) 100%)"
           : "linear-gradient(180deg, rgba(20,13,9,1) 0%, rgba(16,10,8,1) 100%)",
-        padding: "28px 24px",
+        padding: "24px 22px",
         boxShadow: destaque
           ? "0 0 24px rgba(230,194,122,0.10), 0 10px 30px rgba(0,0,0,0.22)"
           : "0 10px 30px rgba(0,0,0,0.22)",
@@ -466,22 +337,14 @@ function PlanoCard({
         minHeight: "100%",
       }}
     >
-      <p
-        style={{
-          letterSpacing: "1.5px",
-          textTransform: "uppercase",
-          color: "#caa15a",
-          fontSize: "13px",
-          margin: "0 0 8px 0",
-        }}
-      >
+      <p style={miniMeta}>
         {destaque ? "Mais procurado" : "Plano disponível"}
       </p>
 
       <h3
         style={{
           fontFamily: "Cinzel, serif",
-          fontSize: "30px",
+          fontSize: "clamp(24px, 3vw, 30px)",
           margin: "0 0 10px 0",
           color: "#e6c27a",
         }}
@@ -491,7 +354,7 @@ function PlanoCard({
 
       <p
         style={{
-          fontSize: "42px",
+          fontSize: "clamp(34px, 4vw, 42px)",
           lineHeight: 1,
           color: "#f0d79a",
           margin: "0 0 14px 0",
@@ -503,7 +366,7 @@ function PlanoCard({
 
       <p
         style={{
-          fontSize: "20px",
+          fontSize: "clamp(18px, 2.3vw, 20px)",
           lineHeight: "1.7",
           color: "#d7b06c",
           margin: "0 0 18px 0",
@@ -527,6 +390,59 @@ function PlanoCard({
   );
 }
 
+const bloco: React.CSSProperties = {
+  border: "1px solid #8a5d31",
+  background:
+    "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
+  padding: "clamp(20px, 4vw, 32px) clamp(18px, 4vw, 30px)",
+  boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
+};
+
+const tituloBloco: React.CSSProperties = {
+  fontFamily: "Cinzel, serif",
+  fontSize: "clamp(24px, 4vw, 40px)",
+  margin: "0 0 16px 0",
+  color: "#e6c27a",
+};
+
+const textoBloco: React.CSSProperties = {
+  fontSize: "clamp(18px, 2.5vw, 22px)",
+  lineHeight: "1.8",
+  color: "#d7b06c",
+  margin: "0 0 16px 0",
+};
+
+const kicker: React.CSSProperties = {
+  letterSpacing: "2px",
+  textTransform: "uppercase",
+  color: "#caa15a",
+  fontSize: "14px",
+  margin: "0 0 10px 0",
+};
+
+const tituloSecao: React.CSSProperties = {
+  fontFamily: "Cinzel, serif",
+  fontSize: "clamp(26px, 4vw, 44px)",
+  margin: "0 0 12px 0",
+  color: "#e6c27a",
+};
+
+const textoSecao: React.CSSProperties = {
+  fontSize: "clamp(18px, 2.5vw, 21px)",
+  lineHeight: "1.75",
+  color: "#d7b06c",
+  maxWidth: "860px",
+  margin: "0 auto",
+};
+
+const miniMeta: React.CSSProperties = {
+  letterSpacing: "1.5px",
+  textTransform: "uppercase",
+  color: "#caa15a",
+  fontSize: "13px",
+  margin: "0 0 8px 0",
+};
+
 const lista: React.CSSProperties = {
   marginTop: 0,
   marginRight: 0,
@@ -534,7 +450,7 @@ const lista: React.CSSProperties = {
   marginLeft: "22px",
   padding: 0,
   color: "#d7b06c",
-  fontSize: "21px",
+  fontSize: "clamp(18px, 2.4vw, 21px)",
   lineHeight: "1.8",
 };
 
@@ -542,50 +458,46 @@ const botaoPrincipal: React.CSSProperties = {
   textDecoration: "none",
   border: "1px solid #a6783d",
   color: "#140d09",
-  paddingTop: "12px",
-  paddingRight: "18px",
-  paddingBottom: "12px",
-  paddingLeft: "18px",
-  fontSize: "18px",
+  padding: "12px 18px",
+  fontSize: "clamp(16px, 2vw, 18px)",
   display: "inline-block",
   background: "#a6783d",
+  width: "min(100%, 260px)",
+  textAlign: "center",
 };
 
 const botaoSecundario: React.CSSProperties = {
   textDecoration: "none",
   border: "1px solid #a6783d",
   color: "#e6c27a",
-  paddingTop: "12px",
-  paddingRight: "18px",
-  paddingBottom: "12px",
-  paddingLeft: "18px",
-  fontSize: "18px",
+  padding: "12px 18px",
+  fontSize: "clamp(16px, 2vw, 18px)",
   display: "inline-block",
   background: "transparent",
+  width: "min(100%, 260px)",
+  textAlign: "center",
 };
 
 const botaoPlano: React.CSSProperties = {
   textDecoration: "none",
   border: "1px solid #a6783d",
   color: "#e6c27a",
-  paddingTop: "12px",
-  paddingRight: "18px",
-  paddingBottom: "12px",
-  paddingLeft: "18px",
-  fontSize: "18px",
+  padding: "12px 18px",
+  fontSize: "clamp(16px, 2vw, 18px)",
   display: "inline-block",
   background: "transparent",
+  width: "min(100%, 260px)",
+  textAlign: "center",
 };
 
 const botaoContacto: React.CSSProperties = {
   textDecoration: "none",
   border: "1px solid #a6783d",
   color: "#e6c27a",
-  paddingTop: "12px",
-  paddingRight: "18px",
-  paddingBottom: "12px",
-  paddingLeft: "18px",
-  fontSize: "18px",
+  padding: "12px 18px",
+  fontSize: "clamp(16px, 2vw, 18px)",
   display: "inline-block",
   background: "transparent",
+  width: "min(100%, 260px)",
+  textAlign: "center",
 };

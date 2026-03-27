@@ -1,3 +1,5 @@
+"use client";
+
 export default function AlunoPage() {
   return (
     <main className="aluno-page">
@@ -12,9 +14,7 @@ export default function AlunoPage() {
         >
           <p className="home-kicker"></p>
 
-          <h1 className="home-title aluno-title">
-            Entrar no teu percurso
-          </h1>
+          <h1 className="home-title aluno-title">Entrar no teu percurso</h1>
 
           <div
             className="home-ornament"
@@ -41,7 +41,13 @@ export default function AlunoPage() {
 
       <section className="home-section">
         <div className="home-container">
-          <div className="aluno-grid">
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+              gap: "20px",
+            }}
+          >
             <article className="home-card home-card-premium aluno-entry-card">
               <p className="home-card-kicker">Já tens conta?</p>
               <h2 className="home-section-title">Entrar</h2>

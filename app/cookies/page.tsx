@@ -6,10 +6,10 @@ export default function CookiesPage() {
         background: "#2b160f",
         color: "#e6c27a",
         fontFamily: "Cormorant Garamond, serif",
-        paddingTop: "60px",
-        paddingRight: "20px",
-        paddingBottom: "90px",
-        paddingLeft: "20px",
+        paddingTop: "clamp(40px, 6vw, 60px)",
+        paddingRight: "clamp(14px, 4vw, 20px)",
+        paddingBottom: "clamp(70px, 8vw, 90px)",
+        paddingLeft: "clamp(14px, 4vw, 20px)",
       }}
     >
       <section
@@ -17,7 +17,7 @@ export default function CookiesPage() {
           maxWidth: "1100px",
           margin: "0 auto 36px auto",
           textAlign: "center",
-          padding: "10px 20px 40px 20px",
+          padding: "10px clamp(10px, 3vw, 20px) 40px",
           background:
             "radial-gradient(circle at center, rgba(106,58,27,0.24) 0%, rgba(43,22,15,0) 68%)",
         }}
@@ -27,7 +27,7 @@ export default function CookiesPage() {
             letterSpacing: "3px",
             textTransform: "uppercase",
             color: "#caa15a",
-            fontSize: "16px",
+            fontSize: "clamp(13px, 2vw, 16px)",
             margin: "0 0 16px 0",
           }}
         >
@@ -37,7 +37,7 @@ export default function CookiesPage() {
         <h1
           style={{
             fontFamily: "Cinzel, serif",
-            fontSize: "clamp(38px, 5vw, 60px)",
+            fontSize: "clamp(32px, 6vw, 60px)",
             fontWeight: 500,
             margin: "0 0 18px 0",
             color: "#e6c27a",
@@ -49,7 +49,7 @@ export default function CookiesPage() {
 
         <p
           style={{
-            fontSize: "clamp(21px, 2.3vw, 27px)",
+            fontSize: "clamp(18px, 2.8vw, 27px)",
             lineHeight: "1.75",
             color: "#d7b06c",
             maxWidth: "920px",
@@ -67,7 +67,7 @@ export default function CookiesPage() {
           maxWidth: "1100px",
           margin: "0 auto",
           display: "grid",
-          gap: "22px",
+          gap: "18px",
         }}
       >
         <Bloco
@@ -118,37 +118,35 @@ export default function CookiesPage() {
           titulo="3. Tipos de cookies que podem ser utilizados"
           referenciaLegal="Lei n.º 41/2004, de 18 de agosto, na redação em vigor; Regulamento (UE) 2016/679."
           conteudo={
-            <>
-              <ul style={lista}>
-                <li>
-                  <strong>Cookies estritamente necessários:</strong> essenciais
-                  ao funcionamento da plataforma, navegação, autenticação,
-                  segurança e utilização das funcionalidades base.
-                </li>
-                <li>
-                  <strong>Cookies de preferência:</strong> permitem recordar
-                  definições como idioma, escolhas de interface ou outras
-                  preferências do utilizador.
-                </li>
-                <li>
-                  <strong>Cookies analíticos ou estatísticos:</strong> ajudam a
-                  compreender como o website é utilizado, medindo visitas,
-                  páginas consultadas, tempos médios de navegação e padrões
-                  gerais de utilização.
-                </li>
-                <li>
-                  <strong>Cookies funcionais:</strong> servem para otimizar a
-                  experiência de utilização e o comportamento de determinadas
-                  áreas do website.
-                </li>
-                <li>
-                  <strong>Cookies publicitários ou de personalização:</strong>{" "}
-                  quando aplicável, podem ser usados para gerir conteúdos
-                  promocionais, campanhas, publicidade interna ou integrações com
-                  serviços de terceiros.
-                </li>
-              </ul>
-            </>
+            <ul style={lista}>
+              <li>
+                <strong>Cookies estritamente necessários:</strong> essenciais ao
+                funcionamento da plataforma, navegação, autenticação, segurança e
+                utilização das funcionalidades base.
+              </li>
+              <li>
+                <strong>Cookies de preferência:</strong> permitem recordar
+                definições como idioma, escolhas de interface ou outras
+                preferências do utilizador.
+              </li>
+              <li>
+                <strong>Cookies analíticos ou estatísticos:</strong> ajudam a
+                compreender como o website é utilizado, medindo visitas, páginas
+                consultadas, tempos médios de navegação e padrões gerais de
+                utilização.
+              </li>
+              <li>
+                <strong>Cookies funcionais:</strong> servem para otimizar a
+                experiência de utilização e o comportamento de determinadas áreas
+                do website.
+              </li>
+              <li>
+                <strong>Cookies publicitários ou de personalização:</strong>{" "}
+                quando aplicável, podem ser usados para gerir conteúdos
+                promocionais, campanhas, publicidade interna ou integrações com
+                serviços de terceiros.
+              </li>
+            </ul>
           }
         />
 
@@ -328,14 +326,14 @@ function Bloco({
         border: "1px solid #8a5d31",
         background:
           "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-        padding: "30px",
+        padding: "clamp(18px, 4vw, 30px)",
         boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
       }}
     >
       <h2
         style={{
           fontFamily: "Cinzel, serif",
-          fontSize: "clamp(24px, 3vw, 34px)",
+          fontSize: "clamp(22px, 3vw, 34px)",
           margin: "0 0 18px 0",
           color: "#e6c27a",
           lineHeight: 1.2,
@@ -351,7 +349,7 @@ function Bloco({
           marginTop: "18px",
           paddingTop: "14px",
           borderTop: "1px solid rgba(166,120,61,0.32)",
-          fontSize: "16px",
+          fontSize: "clamp(14px, 2vw, 16px)",
           lineHeight: "1.7",
           color: "#caa15a",
         }}
@@ -369,7 +367,7 @@ function BlocoContactos() {
         border: "1px solid #8a5d31",
         background:
           "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-        padding: "30px",
+        padding: "clamp(18px, 4vw, 30px)",
         boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
         textAlign: "center",
       }}
@@ -389,7 +387,7 @@ function BlocoContactos() {
       <h2
         style={{
           fontFamily: "Cinzel, serif",
-          fontSize: "clamp(28px, 4vw, 44px)",
+          fontSize: "clamp(24px, 4vw, 44px)",
           margin: "0 0 16px 0",
           color: "#e6c27a",
         }}
@@ -399,7 +397,7 @@ function BlocoContactos() {
 
       <p
         style={{
-          fontSize: "22px",
+          fontSize: "clamp(18px, 2.5vw, 22px)",
           lineHeight: "1.8",
           color: "#d7b06c",
           maxWidth: "860px",
@@ -415,7 +413,7 @@ function BlocoContactos() {
         style={{
           display: "flex",
           justifyContent: "center",
-          gap: "16px",
+          gap: "12px",
           flexWrap: "wrap",
         }}
       >
@@ -437,7 +435,7 @@ function BlocoContactos() {
 }
 
 const paragrafo: React.CSSProperties = {
-  fontSize: "21px",
+  fontSize: "clamp(18px, 2.4vw, 21px)",
   lineHeight: "1.8",
   color: "#d7b06c",
   marginTop: 0,
@@ -453,7 +451,7 @@ const lista: React.CSSProperties = {
   marginLeft: "22px",
   padding: 0,
   color: "#d7b06c",
-  fontSize: "21px",
+  fontSize: "clamp(18px, 2.4vw, 21px)",
   lineHeight: "1.8",
 };
 
@@ -461,11 +459,9 @@ const botaoContacto: React.CSSProperties = {
   textDecoration: "none",
   border: "1px solid #a6783d",
   color: "#e6c27a",
-  paddingTop: "12px",
-  paddingRight: "18px",
-  paddingBottom: "12px",
-  paddingLeft: "18px",
-  fontSize: "18px",
+  padding: "12px 18px",
+  fontSize: "clamp(16px, 2vw, 18px)",
   display: "inline-block",
   background: "transparent",
+  width: "min(100%, 260px)",
 };

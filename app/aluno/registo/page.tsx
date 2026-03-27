@@ -154,14 +154,17 @@ export default function AlunoRegistoPage() {
             />
           </div>
 
-          <button type="submit" disabled={loading} className="home-action-button auth-submit">
+          <button
+            type="submit"
+            disabled={loading}
+            className="home-action-button auth-submit"
+          >
             {loading ? "A criar conta..." : "Criar conta"}
           </button>
         </form>
 
         <div className="auth-footer-link">
-          Já tens conta?{" "}
-          <a href="/aluno/login">Entrar</a>
+          Já tens conta? <a href="/aluno/login">Entrar</a>
         </div>
       </section>
     </main>

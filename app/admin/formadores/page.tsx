@@ -274,221 +274,73 @@ export default function FormadoresPage() {
   }, [formadores, pesquisa]);
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        color: "#e6c27a",
-        fontFamily: "Cormorant Garamond, serif",
-      }}
-    >
-      <section
-        style={{
-          maxWidth: "1280px",
-          margin: "0 auto",
-          padding: "10px 0 24px 0",
-        }}
-      >
-        <p
-          style={{
-            letterSpacing: "3px",
-            textTransform: "uppercase",
-            color: "#caa15a",
-            fontSize: "16px",
-            marginBottom: "14px",
-          }}
-        >
-          Administração
-        </p>
+    <main style={pagina}>
+      <section style={hero}>
+        <p style={kicker}>Administração</p>
 
-        <h1
-          style={{
-            fontFamily: "Cinzel, serif",
-            fontSize: "48px",
-            fontWeight: 500,
-            margin: "0 0 14px 0",
-            color: "#e6c27a",
-            lineHeight: 1.05,
-          }}
-        >
-          Formadores
-        </h1>
+        <h1 style={titulo}>Formadores</h1>
 
-        <p
-          style={{
-            fontSize: "21px",
-            lineHeight: "1.7",
-            color: "#d7b06c",
-            maxWidth: "980px",
-            margin: 0,
-          }}
-        >
+        <p style={descricao}>
           Edição administrativa dos dados dos formadores aprovados, incluindo a
           fotografia pública de cada perfil.
         </p>
       </section>
 
-      <section
-        style={{
-          maxWidth: "1280px",
-          margin: "0 auto 16px auto",
-        }}
-      >
-        <div
-          style={{
-            border: "1px solid #8a5d31",
-            background:
-              "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-            padding: "14px",
-            display: "grid",
-            gridTemplateColumns: "1fr auto",
-            gap: "12px",
-            alignItems: "end",
-          }}
-        >
-          <div>
-            <label
-              style={{
-                display: "block",
-                marginBottom: "8px",
-                fontSize: "15px",
-                color: "#caa15a",
-              }}
-            >
-              Procurar formador
-            </label>
+      <section style={barraPesquisa}>
+        <div>
+          <label style={labelPesquisa}>Procurar formador</label>
 
-            <input
-              value={pesquisa}
-              onChange={(e) => setPesquisa(e.target.value)}
-              placeholder="Nome, email ou NIF/CPF"
-              style={input}
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={carregarFormadores}
-            style={botaoSecundario}
-          >
-            Atualizar
-          </button>
+          <input
+            value={pesquisa}
+            onChange={(e) => setPesquisa(e.target.value)}
+            placeholder="Nome, email ou NIF/CPF"
+            style={input}
+          />
         </div>
+
+        <button
+          type="button"
+          onClick={carregarFormadores}
+          style={botaoSecundario}
+        >
+          Atualizar
+        </button>
       </section>
 
-      <section
-        style={{
-          maxWidth: "1280px",
-          margin: "0 auto",
-        }}
-      >
-        {erro ? <ErrorBox texto={erro} /> : null}
-        {sucesso ? <SuccessBox texto={sucesso} /> : null}
+      {erro ? <ErrorBox texto={erro} /> : null}
+      {sucesso ? <SuccessBox texto={sucesso} /> : null}
 
+      <section style={conteudo}>
         {loading ? (
           <LoadingBox />
         ) : formadoresFiltrados.length === 0 ? (
-          <div
-            style={{
-              border: "1px solid #8a5d31",
-              background: "#140d09",
-              padding: "28px",
-              textAlign: "center",
-            }}
-          >
-            <h2
-              style={{
-                fontFamily: "Cinzel, serif",
-                fontSize: "30px",
-                marginTop: 0,
-                marginBottom: "12px",
-                color: "#e6c27a",
-                fontWeight: 500,
-              }}
-            >
-              Não foram encontrados formadores
-            </h2>
+          <div style={caixaVazia}>
+            <h2 style={tituloVazio}>Não foram encontrados formadores</h2>
 
-            <p
-              style={{
-                fontSize: "19px",
-                lineHeight: "1.7",
-                color: "#d7b06c",
-                margin: 0,
-              }}
-            >
+            <p style={textoVazio}>
               Ajusta a pesquisa ou aprova novas candidaturas.
             </p>
           </div>
         ) : (
-          <div style={{ display: "grid", gap: "10px" }}>
+          <div style={lista}>
             {formadoresFiltrados.map((formador) => {
               const fotoSrc = obterSrcFoto(formador);
 
               return (
-                <article
-                  key={formador.id}
-                  style={{
-                    border: "1px solid #8a5d31",
-                    background:
-                      "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-                    padding: "14px",
-                    boxShadow:
-                      "0 8px 18px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,225,170,0.03)",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "220px 1fr",
-                      gap: "14px",
-                      alignItems: "start",
-                      marginBottom: "12px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        border: "1px solid #8a5d31",
-                        background: "#120b08",
-                        padding: "12px",
-                      }}
-                    >
+                <article key={formador.id} style={card}>
+                  <div style={topoCard}>
+                    <div style={fotoColuna}>
                       <label style={labelMini}>Fotografia do formador</label>
 
-                      <div
-                        style={{
-                          width: "100%",
-                          aspectRatio: "1 / 1",
-                          border: "1px solid rgba(166,120,61,0.45)",
-                          background:
-                            "linear-gradient(180deg, rgba(36,21,15,0.9) 0%, rgba(22,13,10,0.95) 100%)",
-                          overflow: "hidden",
-                          marginBottom: "10px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
+                      <div style={molduraFoto}>
                         {fotoSrc ? (
                           <img
                             src={fotoSrc}
                             alt={formador.nome || "Formador"}
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
-                              display: "block",
-                            }}
+                            style={imagemFoto}
                           />
                         ) : (
-                          <span
-                            style={{
-                              color: "#b89356",
-                              fontSize: "15px",
-                              textAlign: "center",
-                              padding: "14px",
-                              lineHeight: 1.5,
-                            }}
-                          >
+                          <span style={textoSemFoto}>
                             Sem fotografia carregada
                           </span>
                         )}
@@ -506,29 +358,13 @@ export default function FormadoresPage() {
                         style={inputFicheiro}
                       />
 
-                      <p
-                        style={{
-                          margin: "8px 0 0 0",
-                          fontSize: "13px",
-                          lineHeight: 1.5,
-                          color: "#b89356",
-                        }}
-                      >
+                      <p style={ajudaFoto}>
                         Formatos aceites: JPG, PNG ou WEBP. Máximo: 5 MB.
                       </p>
                     </div>
 
-                    <div>
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns:
-                            "minmax(180px, 220px) minmax(220px, 1fr) minmax(160px, 190px) minmax(260px, 1fr) minmax(180px, 220px) auto",
-                          gap: "10px",
-                          alignItems: "end",
-                          marginBottom: "10px",
-                        }}
-                      >
+                    <div style={dadosColuna}>
+                      <div style={gridCampos}>
                         <CampoCompacto
                           label="Nome"
                           value={formador.nome || ""}
@@ -569,34 +405,9 @@ export default function FormadoresPage() {
                           }
                           placeholder="IBAN, PayPal, Stripe ou outro"
                         />
-
-                        <button
-                          type="button"
-                          onClick={() => guardarFormador(formador)}
-                          disabled={savingId === formador.id}
-                          style={{
-                            ...botao,
-                            opacity: savingId === formador.id ? 0.7 : 1,
-                            cursor:
-                              savingId === formador.id
-                                ? "not-allowed"
-                                : "pointer",
-                          }}
-                        >
-                          {savingId === formador.id ? "Guardar..." : "Guardar"}
-                        </button>
                       </div>
 
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns:
-                            "minmax(220px, 260px) minmax(220px, 260px) minmax(220px, 260px)",
-                          gap: "10px",
-                          alignItems: "end",
-                          marginBottom: "10px",
-                        }}
-                      >
+                      <div style={gridSecundario}>
                         <SelectCompacto
                           label="Método"
                           value={
@@ -634,16 +445,7 @@ export default function FormadoresPage() {
                           />
                         </div>
 
-                        <label
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            fontSize: "15px",
-                            color: "#d7b06c",
-                            paddingBottom: "12px",
-                          }}
-                        >
+                        <label style={checkWrap}>
                           <input
                             type="checkbox"
                             checked={!!formador.comissao_ativa}
@@ -660,13 +462,7 @@ export default function FormadoresPage() {
                         </label>
                       </div>
 
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 1fr",
-                          gap: "10px",
-                        }}
-                      >
+                      <div style={gridAreas}>
                         <CampoArea
                           label="Biografia curta"
                           value={formador.bio_curta || ""}
@@ -686,6 +482,24 @@ export default function FormadoresPage() {
                           placeholder="Biografia completa"
                           rows={3}
                         />
+                      </div>
+
+                      <div style={rodapeAcoes}>
+                        <button
+                          type="button"
+                          onClick={() => guardarFormador(formador)}
+                          disabled={savingId === formador.id}
+                          style={{
+                            ...botao,
+                            opacity: savingId === formador.id ? 0.7 : 1,
+                            cursor:
+                              savingId === formador.id
+                                ? "not-allowed"
+                                : "pointer",
+                          }}
+                        >
+                          {savingId === formador.id ? "Guardar..." : "Guardar"}
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -785,34 +599,10 @@ function SelectCompacto({
 
 function LoadingBox() {
   return (
-    <section
-      style={{
-        border: "1px solid rgba(166,120,61,0.7)",
-        background:
-          "linear-gradient(180deg, rgba(15,9,7,0.96) 0%, rgba(28,16,12,0.98) 100%)",
-        padding: "24px",
-      }}
-    >
-      <h2
-        style={{
-          fontFamily: "Cinzel, serif",
-          fontSize: "30px",
-          margin: "0 0 14px 0",
-          color: "#f0d79a",
-          fontWeight: 500,
-        }}
-      >
-        A carregar formadores
-      </h2>
+    <section style={caixaLoading}>
+      <h2 style={tituloLoading}>A carregar formadores</h2>
 
-      <p
-        style={{
-          margin: 0,
-          fontSize: "20px",
-          lineHeight: "1.7",
-          color: "#dfbe81",
-        }}
-      >
+      <p style={textoLoading}>
         A plataforma está a reunir os dados dos formadores aprovados.
       </p>
     </section>
@@ -820,40 +610,245 @@ function LoadingBox() {
 }
 
 function ErrorBox({ texto }: { texto: string }) {
-  return (
-    <section
-      style={{
-        border: "1px solid rgba(255,107,107,0.35)",
-        background: "rgba(120,20,20,0.12)",
-        padding: "18px 20px",
-        color: "#ffb4b4",
-        fontSize: "18px",
-        lineHeight: 1.7,
-        marginBottom: "16px",
-      }}
-    >
-      {texto}
-    </section>
-  );
+  return <section style={caixaErro}>{texto}</section>;
 }
 
 function SuccessBox({ texto }: { texto: string }) {
-  return (
-    <section
-      style={{
-        border: "1px solid rgba(74,222,128,0.35)",
-        background: "rgba(20,90,40,0.12)",
-        padding: "18px 20px",
-        color: "#bff1bf",
-        fontSize: "18px",
-        lineHeight: 1.7,
-        marginBottom: "16px",
-      }}
-    >
-      {texto}
-    </section>
-  );
+  return <section style={caixaSucesso}>{texto}</section>;
 }
+
+const pagina: CSSProperties = {
+  minHeight: "100vh",
+  color: "#e6c27a",
+  fontFamily: "Cormorant Garamond, serif",
+  display: "grid",
+  gap: "16px",
+};
+
+const hero: CSSProperties = {
+  maxWidth: "1280px",
+  margin: "0 auto",
+  padding: "10px 16px 8px",
+};
+
+const kicker: CSSProperties = {
+  letterSpacing: "3px",
+  textTransform: "uppercase",
+  color: "#caa15a",
+  fontSize: "16px",
+  margin: "0 0 14px 0",
+};
+
+const titulo: CSSProperties = {
+  fontFamily: "Cinzel, serif",
+  fontSize: "clamp(34px, 5vw, 48px)",
+  fontWeight: 500,
+  margin: "0 0 14px 0",
+  color: "#e6c27a",
+  lineHeight: 1.05,
+};
+
+const descricao: CSSProperties = {
+  fontSize: "clamp(18px, 2.2vw, 21px)",
+  lineHeight: 1.7,
+  color: "#d7b06c",
+  maxWidth: "980px",
+  margin: 0,
+};
+
+const barraPesquisa: CSSProperties = {
+  maxWidth: "1280px",
+  margin: "0 auto",
+  width: "100%",
+  padding: "0 16px",
+  border: "1px solid #8a5d31",
+  background:
+    "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
+  paddingTop: "14px",
+  paddingRight: "14px",
+  paddingBottom: "14px",
+  paddingLeft: "14px",
+  display: "grid",
+  gridTemplateColumns: "1fr auto",
+  gap: "12px",
+  alignItems: "end",
+};
+
+const labelPesquisa: CSSProperties = {
+  display: "block",
+  marginBottom: "8px",
+  fontSize: "15px",
+  color: "#caa15a",
+};
+
+const conteudo: CSSProperties = {
+  maxWidth: "1280px",
+  margin: "0 auto",
+  width: "100%",
+  padding: "0 16px",
+};
+
+const lista: CSSProperties = {
+  display: "grid",
+  gap: "12px",
+};
+
+const card: CSSProperties = {
+  border: "1px solid #8a5d31",
+  background:
+    "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
+  padding: "16px",
+  boxShadow:
+    "0 8px 18px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,225,170,0.03)",
+};
+
+const topoCard: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(220px, 260px) minmax(0, 1fr)",
+  gap: "16px",
+  alignItems: "start",
+};
+
+const fotoColuna: CSSProperties = {
+  border: "1px solid #8a5d31",
+  background: "#120b08",
+  padding: "12px",
+};
+
+const molduraFoto: CSSProperties = {
+  width: "100%",
+  aspectRatio: "1 / 1",
+  border: "1px solid rgba(166,120,61,0.45)",
+  background:
+    "linear-gradient(180deg, rgba(36,21,15,0.9) 0%, rgba(22,13,10,0.95) 100%)",
+  overflow: "hidden",
+  marginBottom: "10px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+};
+
+const imagemFoto: CSSProperties = {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+  display: "block",
+};
+
+const textoSemFoto: CSSProperties = {
+  color: "#b89356",
+  fontSize: "15px",
+  textAlign: "center",
+  padding: "14px",
+  lineHeight: 1.5,
+};
+
+const ajudaFoto: CSSProperties = {
+  margin: "8px 0 0 0",
+  fontSize: "13px",
+  lineHeight: 1.5,
+  color: "#b89356",
+};
+
+const dadosColuna: CSSProperties = {
+  display: "grid",
+  gap: "12px",
+};
+
+const gridCampos: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: "10px",
+};
+
+const gridSecundario: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: "10px",
+  alignItems: "end",
+};
+
+const gridAreas: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+  gap: "10px",
+};
+
+const rodapeAcoes: CSSProperties = {
+  display: "flex",
+  justifyContent: "flex-end",
+  flexWrap: "wrap",
+  gap: "10px",
+};
+
+const caixaVazia: CSSProperties = {
+  border: "1px solid #8a5d31",
+  background: "#140d09",
+  padding: "28px",
+  textAlign: "center",
+};
+
+const tituloVazio: CSSProperties = {
+  fontFamily: "Cinzel, serif",
+  fontSize: "30px",
+  marginTop: 0,
+  marginBottom: "12px",
+  color: "#e6c27a",
+  fontWeight: 500,
+};
+
+const textoVazio: CSSProperties = {
+  fontSize: "19px",
+  lineHeight: 1.7,
+  color: "#d7b06c",
+  margin: 0,
+};
+
+const caixaLoading: CSSProperties = {
+  border: "1px solid rgba(166,120,61,0.7)",
+  background:
+    "linear-gradient(180deg, rgba(15,9,7,0.96) 0%, rgba(28,16,12,0.98) 100%)",
+  padding: "24px",
+};
+
+const tituloLoading: CSSProperties = {
+  fontFamily: "Cinzel, serif",
+  fontSize: "30px",
+  margin: "0 0 14px 0",
+  color: "#f0d79a",
+  fontWeight: 500,
+};
+
+const textoLoading: CSSProperties = {
+  margin: 0,
+  fontSize: "20px",
+  lineHeight: 1.7,
+  color: "#dfbe81",
+};
+
+const caixaErro: CSSProperties = {
+  maxWidth: "1280px",
+  width: "100%",
+  margin: "0 auto",
+  border: "1px solid rgba(255,107,107,0.35)",
+  background: "rgba(120,20,20,0.12)",
+  padding: "18px 20px",
+  color: "#ffb4b4",
+  fontSize: "18px",
+  lineHeight: 1.7,
+};
+
+const caixaSucesso: CSSProperties = {
+  maxWidth: "1280px",
+  width: "100%",
+  margin: "0 auto",
+  border: "1px solid rgba(74,222,128,0.35)",
+  background: "rgba(20,90,40,0.12)",
+  padding: "18px 20px",
+  color: "#bff1bf",
+  fontSize: "18px",
+  lineHeight: 1.7,
+};
 
 const labelMini: CSSProperties = {
   display: "block",
@@ -906,6 +901,15 @@ const inputFicheiro: CSSProperties = {
   outline: "none",
 };
 
+const checkWrap: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  fontSize: "15px",
+  color: "#d7b06c",
+  minHeight: "44px",
+};
+
 const botao: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -916,6 +920,7 @@ const botao: CSSProperties = {
   padding: "10px 14px",
   fontSize: "15px",
   background: "transparent",
+  minHeight: "44px",
 };
 
 const botaoSecundario: CSSProperties = {
@@ -929,4 +934,5 @@ const botaoSecundario: CSSProperties = {
   fontSize: "16px",
   background: "rgba(32,18,13,0.55)",
   cursor: "pointer",
+  minHeight: "46px",
 };

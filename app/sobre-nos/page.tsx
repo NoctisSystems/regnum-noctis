@@ -9,10 +9,10 @@ export default function SobreNosPage() {
           "radial-gradient(circle at top, rgba(128,72,38,0.18) 0%, rgba(43,22,15,1) 28%, rgba(18,10,8,1) 100%)",
         color: "#e6c27a",
         fontFamily: "Cormorant Garamond, serif",
-        paddingTop: "64px",
-        paddingRight: "20px",
-        paddingBottom: "110px",
-        paddingLeft: "20px",
+        paddingTop: "clamp(42px, 6vw, 64px)",
+        paddingRight: "clamp(14px, 4vw, 20px)",
+        paddingBottom: "clamp(80px, 9vw, 110px)",
+        paddingLeft: "clamp(14px, 4vw, 20px)",
         overflow: "hidden",
       }}
     >
@@ -49,9 +49,9 @@ export default function SobreNosPage() {
 
         .hero {
           max-width: 1080px;
-          margin: 0 auto 44px auto;
+          margin: 0 auto 36px auto;
           text-align: center;
-          padding: 22px 20px 8px 20px;
+          padding: 18px 12px 8px 12px;
           position: relative;
         }
 
@@ -80,14 +80,14 @@ export default function SobreNosPage() {
           letter-spacing: 0.16em;
           text-transform: uppercase;
           color: #ddb56f;
-          font-size: clamp(19px, 2vw, 28px);
+          font-size: clamp(14px, 2vw, 28px);
           font-weight: 600;
           text-align: center;
         }
 
         .hero-title {
           font-family: "Cinzel, serif";
-          font-size: clamp(46px, 6vw, 76px);
+          font-size: clamp(34px, 7vw, 76px);
           line-height: 1.06;
           font-weight: 500;
           margin: 0 0 20px 0;
@@ -100,8 +100,8 @@ export default function SobreNosPage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 16px;
-          margin: 0 0 28px 0;
+          gap: 12px;
+          margin: 0 0 24px 0;
         }
 
         .hero-line {
@@ -124,11 +124,11 @@ export default function SobreNosPage() {
 
         .hero-symbol {
           color: #ddb56f;
-          font-size: 26px;
+          font-size: 22px;
         }
 
         .hero-text {
-          font-size: clamp(24px, 2.7vw, 33px);
+          font-size: clamp(18px, 3vw, 33px);
           line-height: 1.7;
           color: #f0d9ab;
           max-width: 980px;
@@ -138,39 +138,38 @@ export default function SobreNosPage() {
 
         .main-card {
           max-width: 1080px;
-          margin: 0 auto 40px auto;
+          margin: 0 auto 32px auto;
           border: 1px solid rgba(166, 120, 61, 0.78);
           background: linear-gradient(
             180deg,
             rgba(15, 9, 7, 0.96) 0%,
             rgba(28, 16, 12, 0.98) 100%
           );
-          padding: 46px 44px;
-          box-shadow:
-            0 18px 50px rgba(0, 0, 0, 0.34),
+          padding: 34px 24px;
+          box-shadow: 0 18px 50px rgba(0, 0, 0, 0.34),
             inset 0 1px 0 rgba(255, 225, 170, 0.05);
           position: relative;
           text-align: center;
         }
 
         .main-title {
-          margin: 0 0 28px 0;
+          margin: 0 0 24px 0;
           font-family: "Cinzel, serif";
-          font-size: clamp(32px, 4vw, 48px);
+          font-size: clamp(24px, 4vw, 48px);
           color: #f2dbab;
           text-align: center;
         }
 
         .main-paragraph {
-          margin: 0 0 24px 0;
-          font-size: clamp(23px, 2.25vw, 29px);
+          margin: 0 0 20px 0;
+          font-size: clamp(18px, 2.5vw, 29px);
           line-height: 1.75;
           color: #e4be7f;
           text-align: center;
         }
 
         .highlight-panel {
-          margin: 34px auto;
+          margin: 28px auto;
           max-width: 860px;
           border: 1px solid rgba(166, 120, 61, 0.52);
           background: linear-gradient(
@@ -178,19 +177,19 @@ export default function SobreNosPage() {
             rgba(113, 59, 32, 0.12) 0%,
             rgba(65, 34, 20, 0.12) 100%
           );
-          padding: 28px 24px;
+          padding: 24px 18px;
           text-align: center;
         }
 
         .highlight-title {
-          margin: 0 0 16px 0;
+          margin: 0 0 14px 0;
           font-family: "Cinzel, serif";
-          font-size: clamp(27px, 3vw, 36px);
+          font-size: clamp(22px, 3vw, 36px);
           color: #f0d79a;
         }
 
         .highlight-text {
-          font-size: clamp(22px, 2.15vw, 27px);
+          font-size: clamp(18px, 2.3vw, 27px);
           line-height: 1.7;
           color: #e7c684;
         }
@@ -204,19 +203,36 @@ export default function SobreNosPage() {
         .closing-title {
           margin: 0 0 16px 0;
           font-family: "Cinzel, serif";
-          font-size: clamp(36px, 4.8vw, 56px);
+          font-size: clamp(28px, 5vw, 56px);
           color: #f4dfb3;
         }
 
         .closing-text {
-          font-size: clamp(24px, 2.4vw, 31px);
+          font-size: clamp(18px, 2.5vw, 31px);
           line-height: 1.7;
           color: #deb976;
+        }
+
+        @media (max-width: 640px) {
+          .hero-divider {
+            gap: 10px;
+          }
+
+          .hero-line {
+            width: 22vw;
+          }
+
+          .main-card {
+            padding: 24px 16px;
+          }
+
+          .highlight-panel {
+            padding: 18px 14px;
+          }
         }
       `}</style>
 
       <section className="about-shell">
-        {/* HERO */}
         <div className="hero fade-up">
           <p className="eyebrow">A identidade do Regnum Noctis</p>
 
@@ -236,7 +252,6 @@ export default function SobreNosPage() {
           </p>
         </div>
 
-        {/* BLOCO PRINCIPAL */}
         <section className="fade-up delay-2">
           <div className="main-card">
             <h2 className="main-title">
@@ -287,7 +302,6 @@ export default function SobreNosPage() {
           </div>
         </section>
 
-        {/* FECHO */}
         <section className="closing fade-up delay-3">
           <h2 className="closing-title">
             Conhecimento. Estrutura. Autonomia.

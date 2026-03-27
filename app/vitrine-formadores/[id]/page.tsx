@@ -28,7 +28,10 @@ function construirFotoSrc(fotoUrl: string | null, supabaseUrl: string) {
     return valor;
   }
 
-  return `${supabaseUrl}/storage/v1/object/public/formadores-fotos/${valor}`;
+  return `${supabaseUrl}/storage/v1/object/public/formadores-fotos/${valor.replace(
+    /^\/+/,
+    ""
+  )}`;
 }
 
 export default async function FormadorDetalhePage({ params }: PageProps) {
@@ -63,21 +66,19 @@ export default async function FormadorDetalhePage({ params }: PageProps) {
         background: "#2b160f",
         color: "#e6c27a",
         fontFamily: "Cormorant Garamond, serif",
-        paddingTop: "60px",
-        paddingRight: "16px",
-        paddingBottom: "90px",
-        paddingLeft: "16px",
+        paddingTop: "clamp(40px, 6vw, 60px)",
+        paddingRight: "clamp(14px, 4vw, 16px)",
+        paddingBottom: "clamp(70px, 8vw, 90px)",
+        paddingLeft: "clamp(14px, 4vw, 16px)",
       }}
     >
       <section
         style={{
           maxWidth: "1150px",
-          marginTop: 0,
-          marginRight: "auto",
-          marginBottom: 0,
-          marginLeft: "auto",
+          margin: "0 auto",
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gridTemplateColumns:
+            "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
           gap: "24px",
           alignItems: "start",
         }}
@@ -93,7 +94,7 @@ export default async function FormadorDetalhePage({ params }: PageProps) {
           <div
             style={{
               width: "100%",
-              height: "clamp(340px, 55vw, 500px)",
+              height: "clamp(320px, 55vw, 500px)",
               background:
                 "radial-gradient(circle at top, rgba(212,175,55,0.08), transparent 45%), #1a100c",
               display: "flex",
@@ -124,10 +125,7 @@ export default async function FormadorDetalhePage({ params }: PageProps) {
             border: "1px solid #8a5d31",
             background: "#140d09",
             boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
-            paddingTop: "28px",
-            paddingRight: "22px",
-            paddingBottom: "28px",
-            paddingLeft: "22px",
+            padding: "clamp(20px, 4vw, 28px) clamp(18px, 4vw, 22px)",
           }}
         >
           <p
@@ -136,10 +134,7 @@ export default async function FormadorDetalhePage({ params }: PageProps) {
               textTransform: "uppercase",
               color: "#caa15a",
               fontSize: "14px",
-              marginTop: 0,
-              marginRight: 0,
-              marginBottom: "10px",
-              marginLeft: 0,
+              margin: "0 0 10px 0",
             }}
           >
             Formador
@@ -148,11 +143,8 @@ export default async function FormadorDetalhePage({ params }: PageProps) {
           <h1
             style={{
               fontFamily: "Cinzel, serif",
-              fontSize: "clamp(32px, 5vw, 56px)",
-              marginTop: 0,
-              marginRight: 0,
-              marginBottom: "14px",
-              marginLeft: 0,
+              fontSize: "clamp(28px, 5vw, 56px)",
+              margin: "0 0 14px 0",
               color: "#e6c27a",
               lineHeight: 1.1,
             }}
@@ -166,10 +158,7 @@ export default async function FormadorDetalhePage({ params }: PageProps) {
               textTransform: "uppercase",
               color: "#caa15a",
               fontSize: "14px",
-              marginTop: 0,
-              marginRight: 0,
-              marginBottom: "16px",
-              marginLeft: 0,
+              margin: "0 0 16px 0",
             }}
           >
             {formador.area_ensino || "Área em atualização"}
@@ -178,13 +167,10 @@ export default async function FormadorDetalhePage({ params }: PageProps) {
           {formador.bio_curta && (
             <p
               style={{
-                fontSize: "clamp(19px, 2.5vw, 23px)",
+                fontSize: "clamp(18px, 2.5vw, 23px)",
                 lineHeight: "1.7",
                 color: "#d7b06c",
-                marginTop: 0,
-                marginRight: 0,
-                marginBottom: "24px",
-                marginLeft: 0,
+                margin: "0 0 24px 0",
               }}
             >
               {formador.bio_curta}
@@ -203,10 +189,7 @@ export default async function FormadorDetalhePage({ params }: PageProps) {
                 textTransform: "uppercase",
                 color: "#caa15a",
                 fontSize: "14px",
-                marginTop: 0,
-                marginRight: 0,
-                marginBottom: "12px",
-                marginLeft: 0,
+                margin: "0 0 12px 0",
               }}
             >
               Sobre o formador
@@ -217,10 +200,7 @@ export default async function FormadorDetalhePage({ params }: PageProps) {
                 fontSize: "clamp(18px, 2.4vw, 22px)",
                 lineHeight: "1.85",
                 color: "#d7b06c",
-                marginTop: 0,
-                marginRight: 0,
-                marginBottom: 0,
-                marginLeft: 0,
+                margin: 0,
                 whiteSpace: "pre-line",
               }}
             >

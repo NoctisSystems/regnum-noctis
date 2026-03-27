@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { CSSProperties } from "react";
 
 export default function AreaFormadorPage() {
   return (
@@ -14,7 +15,7 @@ export default function AreaFormadorPage() {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        padding: "40px 20px",
+        padding: "40px 16px",
       }}
     >
       <section
@@ -24,7 +25,7 @@ export default function AreaFormadorPage() {
           border: "1px solid #a6783d",
           background:
             "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-          padding: "56px 42px",
+          padding: "clamp(24px, 4vw, 56px) clamp(18px, 4vw, 42px)",
           textAlign: "center",
           boxShadow:
             "0 18px 42px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,225,170,0.03)",
@@ -36,7 +37,7 @@ export default function AreaFormadorPage() {
             letterSpacing: "0.16em",
             textTransform: "uppercase",
             color: "#caa15a",
-            fontSize: "15px",
+            fontSize: "14px",
           }}
         >
           Regnum Noctis
@@ -45,11 +46,12 @@ export default function AreaFormadorPage() {
         <h1
           style={{
             fontFamily: "Cinzel, serif",
-            fontSize: "clamp(42px, 6vw, 60px)",
+            fontSize: "clamp(34px, 6vw, 60px)",
             marginTop: 0,
             marginBottom: "18px",
             color: "#f0d79a",
             fontWeight: 500,
+            lineHeight: 1.1,
           }}
         >
           Área do Formador
@@ -57,7 +59,7 @@ export default function AreaFormadorPage() {
 
         <p
           style={{
-            fontSize: "24px",
+            fontSize: "clamp(18px, 2.4vw, 24px)",
             lineHeight: "1.75",
             color: "#d7b06c",
             margin: "0 auto 34px auto",
@@ -72,7 +74,7 @@ export default function AreaFormadorPage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
             gap: "18px",
             marginBottom: "28px",
           }}
@@ -111,7 +113,7 @@ export default function AreaFormadorPage() {
             style={{
               margin: "0 0 12px 0",
               fontFamily: "Cinzel, serif",
-              fontSize: "30px",
+              fontSize: "clamp(24px, 3vw, 30px)",
               color: "#e6c27a",
               fontWeight: 500,
             }}
@@ -122,7 +124,7 @@ export default function AreaFormadorPage() {
           <p
             style={{
               margin: 0,
-              fontSize: "20px",
+              fontSize: "clamp(18px, 2.1vw, 20px)",
               lineHeight: "1.75",
               color: "#d7b06c",
             }}
@@ -163,7 +165,7 @@ function InfoCard({
         style={{
           margin: "0 0 12px 0",
           fontFamily: "Cinzel, serif",
-          fontSize: "28px",
+          fontSize: "clamp(24px, 3vw, 28px)",
           color: "#e6c27a",
           fontWeight: 500,
         }}
@@ -174,7 +176,7 @@ function InfoCard({
       <p
         style={{
           margin: "0 0 20px 0",
-          fontSize: "20px",
+          fontSize: "clamp(18px, 2vw, 20px)",
           color: "#d7b06c",
           lineHeight: 1.7,
           flex: 1,
@@ -190,14 +192,15 @@ function InfoCard({
   );
 }
 
-const botaoLink: React.CSSProperties = {
+const botaoLink: CSSProperties = {
   textDecoration: "none",
   border: "1px solid #a6783d",
   color: "#e6c27a",
   padding: "14px 20px",
-  fontSize: "18px",
+  fontSize: "16px",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   background: "transparent",
+  textAlign: "center",
 };

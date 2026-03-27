@@ -204,7 +204,7 @@ export default function AlunosFormadorPage() {
           "radial-gradient(circle at top, rgba(166,120,61,0.08), transparent 20%), #2b160f",
         color: "#e6c27a",
         fontFamily: "Cormorant Garamond, serif",
-        padding: "50px 20px 90px",
+        padding: "50px 16px 90px",
       }}
     >
       <section
@@ -234,7 +234,7 @@ export default function AlunosFormadorPage() {
             style={{
               margin: "0 0 14px 0",
               fontFamily: "Cinzel, serif",
-              fontSize: "clamp(42px, 6vw, 64px)",
+              fontSize: "clamp(34px, 6vw, 64px)",
               lineHeight: 1.1,
               color: "#f0d79a",
               fontWeight: 500,
@@ -246,7 +246,7 @@ export default function AlunosFormadorPage() {
           <p
             style={{
               margin: 0,
-              fontSize: "24px",
+              fontSize: "clamp(18px, 2.4vw, 24px)",
               lineHeight: 1.7,
               color: "#d7b06c",
               maxWidth: "980px",
@@ -293,7 +293,7 @@ export default function AlunosFormadorPage() {
             border: "1px solid #8a5d31",
             background:
               "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-            padding: "28px",
+            padding: "clamp(20px, 3vw, 28px)",
             boxShadow:
               "0 18px 42px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,225,170,0.03)",
             marginBottom: "28px",
@@ -326,7 +326,7 @@ export default function AlunosFormadorPage() {
                 style={{
                   margin: 0,
                   fontFamily: "Cinzel, serif",
-                  fontSize: "clamp(28px, 4vw, 40px)",
+                  fontSize: "clamp(26px, 4vw, 40px)",
                   color: "#f0d79a",
                   fontWeight: 500,
                 }}
@@ -355,7 +355,7 @@ export default function AlunosFormadorPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 1fr",
+              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
               gap: "18px",
             }}
           >
@@ -436,12 +436,12 @@ export default function AlunosFormadorPage() {
                       marginBottom: "18px",
                     }}
                   >
-                    <div>
+                    <div style={{ flex: "1 1 520px", minWidth: "260px" }}>
                       <h2
                         style={{
                           margin: "0 0 10px 0",
                           fontFamily: "Cinzel, serif",
-                          fontSize: "32px",
+                          fontSize: "clamp(26px, 4vw, 32px)",
                           color: "#e6c27a",
                           fontWeight: 500,
                         }}
@@ -452,8 +452,9 @@ export default function AlunosFormadorPage() {
                       <p
                         style={{
                           margin: "0 0 8px 0",
-                          fontSize: "20px",
+                          fontSize: "clamp(18px, 2vw, 20px)",
                           color: "#d7b06c",
+                          wordBreak: "break-word",
                         }}
                       >
                         {aluno?.email || "Email indisponível"}
@@ -462,7 +463,7 @@ export default function AlunosFormadorPage() {
                       <p
                         style={{
                           margin: 0,
-                          fontSize: "19px",
+                          fontSize: "18px",
                           color: "#caa15a",
                         }}
                       >
@@ -475,6 +476,7 @@ export default function AlunosFormadorPage() {
                         display: "grid",
                         gap: "10px",
                         minWidth: "220px",
+                        flex: "0 1 250px",
                       }}
                     >
                       <StatusBox
@@ -754,6 +756,7 @@ function InfoMini({
           color: "#d7b06c",
           lineHeight: 1.6,
           whiteSpace: "pre-line",
+          wordBreak: "break-word",
         }}
       >
         {valor}
@@ -796,6 +799,7 @@ function InfoBloco({
           color: "#d7b06c",
           lineHeight: 1.7,
           whiteSpace: "pre-line",
+          wordBreak: "break-word",
         }}
       >
         {valor}
@@ -919,9 +923,10 @@ const botao: React.CSSProperties = {
   border: "1px solid #a6783d",
   color: "#e6c27a",
   padding: "14px 18px",
-  fontSize: "18px",
+  fontSize: "16px",
   background: "transparent",
   cursor: "pointer",
+  textAlign: "center",
 };
 
 const botaoSecundario: React.CSSProperties = {
@@ -932,7 +937,8 @@ const botaoSecundario: React.CSSProperties = {
   border: "1px solid rgba(166,120,61,0.6)",
   color: "#e6c27a",
   padding: "12px 16px",
-  fontSize: "16px",
+  fontSize: "15px",
   background: "rgba(32,18,13,0.55)",
   cursor: "pointer",
+  textAlign: "center",
 };

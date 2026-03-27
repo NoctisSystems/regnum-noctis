@@ -160,7 +160,7 @@ const main: React.CSSProperties = {
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
-  padding: "40px 20px",
+  padding: "40px 16px",
   fontFamily: "Cormorant Garamond, serif",
 };
 
@@ -169,14 +169,14 @@ const card: React.CSSProperties = {
   maxWidth: "720px",
   border: "1px solid #a6783d",
   background: "#140d09",
-  padding: "56px 50px",
+  padding: "clamp(24px, 5vw, 56px) clamp(18px, 5vw, 50px)",
   boxShadow:
     "0 18px 42px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,225,170,0.03)",
 };
 
 const title: React.CSSProperties = {
   fontFamily: "Cinzel, serif",
-  fontSize: "56px",
+  fontSize: "clamp(34px, 6vw, 56px)",
   textAlign: "center",
   color: "#e6c27a",
   marginTop: 0,
@@ -185,7 +185,7 @@ const title: React.CSSProperties = {
 
 const subtitle: React.CSSProperties = {
   textAlign: "center",
-  fontSize: "24px",
+  fontSize: "clamp(18px, 2.4vw, 24px)",
   color: "#caa15a",
   marginTop: 0,
   marginBottom: "32px",
