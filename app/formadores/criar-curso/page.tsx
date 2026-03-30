@@ -16,9 +16,12 @@ type FormData = {
   preco: string;
   capa_url: string;
   tem_certificado: boolean;
-  modo_certificado: string;
+  certificado_tipo: string;
+  certificado_titulo: string;
   texto_certificado: string;
   horas_certificado: string;
+  certificado_pronto_path: string;
+  certificado_modelo_path: string;
   tem_manual_geral: boolean;
 };
 
@@ -29,9 +32,12 @@ const initialForm: FormData = {
   preco: "",
   capa_url: "",
   tem_certificado: false,
-  modo_certificado: "automatico",
+  certificado_tipo: "padrao_plataforma",
+  certificado_titulo: "",
   texto_certificado: "",
   horas_certificado: "",
+  certificado_pronto_path: "",
+  certificado_modelo_path: "",
   tem_manual_geral: false,
 };
 
@@ -39,6 +45,10 @@ export default function CriarCursoPage() {
   const [form, setForm] = useState<FormData>(initialForm);
   const [loading, setLoading] = useState(false);
   const [uploadingCapa, setUploadingCapa] = useState(false);
+  const [uploadingCertificadoPronto, setUploadingCertificadoPronto] =
+    useState(false);
+  const [uploadingModeloCertificado, setUploadingModeloCertificado] =
+    useState(false);
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
 
@@ -50,6 +60,21 @@ export default function CriarCursoPage() {
   const isPdfDigital = useMemo(
     () => form.tipo_produto === "pdf_digital",
     [form.tipo_produto]
+  );
+
+  const usaPadraoPlataforma = useMemo(
+    () => form.certificado_tipo === "padrao_plataforma",
+    [form.certificado_tipo]
+  );
+
+  const usaUploadPronto = useMemo(
+    () => form.certificado_tipo === "upload_pronto",
+    [form.certificado_tipo]
+  );
+
+  const usaModeloPersonalizado = useMemo(
+    () => form.certificado_tipo === "modelo_personalizado",
+    [form.certificado_tipo]
   );
 
   function update<K extends keyof FormData>(field: K, value: FormData[K]) {
@@ -67,11 +92,40 @@ export default function CriarCursoPage() {
       return "Indica um preço válido.";
     }
 
-    if (form.tem_certificado && !form.modo_certificado.trim()) {
-      return "Indica o modo do certificado.";
+    if (form.tem_certificado) {
+      if (!form.certificado_tipo.trim()) {
+        return "Indica a forma como o certificado será tratado.";
+      }
+
+      if (usaUploadPronto && !form.certificado_pronto_path.trim()) {
+        return "Faz o upload do certificado já pronto.";
+      }
+
+      if (usaModeloPersonalizado) {
+        if (!form.certificado_modelo_path.trim()) {
+          return "Faz o upload do modelo base do certificado.";
+        }
+
+        if (!form.texto_certificado.trim()) {
+          return "Indica o texto do certificado.";
+        }
+      }
     }
 
     return "";
+  }
+
+  async function obterUtilizadorAutenticado() {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+
+    if (error || !user) {
+      throw new Error("Não foi possível validar a sessão do formador.");
+    }
+
+    return user;
   }
 
   async function handleUploadCapa(file: File | null) {
@@ -95,8 +149,10 @@ export default function CriarCursoPage() {
         return;
       }
 
+      const user = await obterUtilizadorAutenticado();
+
       const extensao = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const nomeFicheiro = `curso-${Date.now()}-${Math.random()
+      const nomeFicheiro = `formadores/${user.id}/capas/curso-${Date.now()}-${Math.random()
         .toString(36)
         .slice(2)}.${extensao}`;
 
@@ -112,16 +168,87 @@ export default function CriarCursoPage() {
         return;
       }
 
-      const { data } = supabase.storage
-        .from("curso_capas")
-        .getPublicUrl(nomeFicheiro);
+      const { data } = supabase.storage.from("curso_capas").getPublicUrl(nomeFicheiro);
 
       update("capa_url", data.publicUrl);
       setSucesso("Capa carregada com sucesso.");
-    } catch {
-      setErro("Ocorreu um erro inesperado ao carregar a capa.");
+    } catch (error: any) {
+      setErro(error?.message || "Ocorreu um erro inesperado ao carregar a capa.");
     } finally {
       setUploadingCapa(false);
+    }
+  }
+
+  async function handleUploadCertificado(
+    file: File | null,
+    tipo: "pronto" | "modelo"
+  ) {
+    if (!file) return;
+
+    setErro("");
+    setSucesso("");
+
+    try {
+      if (tipo === "pronto") {
+        setUploadingCertificadoPronto(true);
+      } else {
+        setUploadingModeloCertificado(true);
+      }
+
+      const tiposPermitidos = [
+        "application/pdf",
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+      ];
+
+      if (!tiposPermitidos.includes(file.type)) {
+        setErro("O certificado tem de estar em PDF, JPG, PNG ou WEBP.");
+        return;
+      }
+
+      const maxBytes = 10 * 1024 * 1024;
+      if (file.size > maxBytes) {
+        setErro("O ficheiro do certificado não pode ultrapassar 10 MB.");
+        return;
+      }
+
+      const user = await obterUtilizadorAutenticado();
+
+      const extensao = file.name.split(".").pop()?.toLowerCase() || "pdf";
+      const prefixo = tipo === "pronto" ? "certificado-pronto" : "modelo-certificado";
+
+      const nomeFicheiro = `formadores/${user.id}/certificados/${prefixo}-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}.${extensao}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("certificados")
+        .upload(nomeFicheiro, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        setErro(uploadError.message || "Não foi possível carregar o certificado.");
+        return;
+      }
+
+      if (tipo === "pronto") {
+        update("certificado_pronto_path", nomeFicheiro);
+        setSucesso("Certificado pronto carregado com sucesso.");
+      } else {
+        update("certificado_modelo_path", nomeFicheiro);
+        setSucesso("Modelo base do certificado carregado com sucesso.");
+      }
+    } catch (error: any) {
+      setErro(error?.message || "Ocorreu um erro inesperado ao carregar o certificado.");
+    } finally {
+      if (tipo === "pronto") {
+        setUploadingCertificadoPronto(false);
+      } else {
+        setUploadingModeloCertificado(false);
+      }
     }
   }
 
@@ -177,12 +304,28 @@ export default function CriarCursoPage() {
         preco: precoNumero,
         publicado: false,
         tem_certificado: form.tem_certificado,
-        modo_certificado: form.tem_certificado ? form.modo_certificado : null,
+        modo_certificado: form.tem_certificado
+          ? usaPadraoPlataforma
+            ? "automatico"
+            : "manual"
+          : null,
+        certificado_tipo: form.tem_certificado ? form.certificado_tipo : null,
+        certificado_titulo: form.tem_certificado
+          ? form.certificado_titulo.trim() || form.titulo.trim()
+          : null,
         texto_certificado: form.tem_certificado
-          ? form.texto_certificado.trim() || null
+          ? !usaUploadPronto
+            ? form.texto_certificado.trim() || null
+            : null
           : null,
         horas_certificado: form.tem_certificado
           ? form.horas_certificado.trim() || null
+          : null,
+        certificado_pronto_path: form.tem_certificado
+          ? form.certificado_pronto_path.trim() || null
+          : null,
+        certificado_modelo_path: form.tem_certificado
+          ? form.certificado_modelo_path.trim() || null
           : null,
         tem_manual_geral: isCursoVideo ? form.tem_manual_geral : false,
         capa_url: form.capa_url.trim() || null,
@@ -224,6 +367,9 @@ export default function CriarCursoPage() {
     }
   }
 
+  const algumUploadAtivo =
+    uploadingCapa || uploadingCertificadoPronto || uploadingModeloCertificado;
+
   return (
     <main
       style={{
@@ -231,7 +377,7 @@ export default function CriarCursoPage() {
         background:
           "radial-gradient(circle at top, rgba(166,120,61,0.08), transparent 22%), #2b160f",
         color: "#e6c27a",
-        padding: "50px 16px 90px",
+        padding: "clamp(28px, 4vw, 50px) 16px 90px",
         fontFamily: "Cormorant Garamond, serif",
       }}
     >
@@ -333,27 +479,12 @@ export default function CriarCursoPage() {
               placeholder="Descreve o conteúdo, o seu objetivo, o público e a sua proposta."
             />
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: "18px",
-              }}
-            >
-              <Input
-                label="Preço"
-                value={form.preco}
-                onChange={(v) => update("preco", v)}
-                placeholder="Ex.: 297"
-              />
-
-              <Input
-                label="URL da capa"
-                value={form.capa_url}
-                onChange={(v) => update("capa_url", v)}
-                placeholder="Opcional"
-              />
-            </div>
+            <Input
+              label="Preço"
+              value={form.preco}
+              onChange={(v) => update("preco", v)}
+              placeholder="Ex.: 297"
+            />
 
             <div style={caixaInterna}>
               <h2 style={subTitulo}>Capa</h2>
@@ -464,12 +595,22 @@ export default function CriarCursoPage() {
                   }}
                 >
                   <SelectField
-                    label="Modo do certificado"
-                    value={form.modo_certificado}
-                    onChange={(v) => update("modo_certificado", v)}
+                    label="Como queres tratar o certificado?"
+                    value={form.certificado_tipo}
+                    onChange={(v) => update("certificado_tipo", v)}
                     options={[
-                      { value: "automatico", label: "Automático" },
-                      { value: "manual", label: "Manual" },
+                      {
+                        value: "padrao_plataforma",
+                        label: "Usar padrão da plataforma",
+                      },
+                      {
+                        value: "upload_pronto",
+                        label: "Enviar certificado já pronto",
+                      },
+                      {
+                        value: "modelo_personalizado",
+                        label: "Enviar modelo e personalizar texto",
+                      },
                     ]}
                   />
 
@@ -480,13 +621,125 @@ export default function CriarCursoPage() {
                     placeholder="Opcional"
                   />
 
-                  <Textarea
-                    label="Texto do certificado"
-                    value={form.texto_certificado}
-                    onChange={(v) => update("texto_certificado", v)}
-                    rows={4}
-                    placeholder="Texto opcional para personalizar o certificado."
-                  />
+                  {usaPadraoPlataforma ? (
+                    <>
+                      <Input
+                        label="Título do certificado"
+                        value={form.certificado_titulo}
+                        onChange={(v) => update("certificado_titulo", v)}
+                        placeholder="Se deixares vazio, será usado o título do curso"
+                      />
+
+                      <Textarea
+                        label="Texto do certificado"
+                        value={form.texto_certificado}
+                        onChange={(v) => update("texto_certificado", v)}
+                        rows={4}
+                        placeholder="Texto opcional do certificado."
+                      />
+                    </>
+                  ) : null}
+
+                  {usaUploadPronto ? (
+                    <div style={caixaUploadSecundaria}>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "19px",
+                          marginBottom: "10px",
+                          color: "#e6c27a",
+                        }}
+                      >
+                        Upload do certificado já pronto
+                      </label>
+
+                      <input
+                        type="file"
+                        accept="application/pdf,image/png,image/jpeg,image/webp"
+                        onChange={(e) =>
+                          handleUploadCertificado(
+                            e.target.files?.[0] || null,
+                            "pronto"
+                          )
+                        }
+                        style={{
+                          ...campoBase,
+                          padding: "12px",
+                        }}
+                      />
+
+                      <p style={{ ...textoAjuda, marginTop: "12px" }}>
+                        Usa esta opção se o certificado já estiver totalmente
+                        preenchido e pronto a usar.
+                      </p>
+
+                      {form.certificado_pronto_path ? (
+                        <p style={{ ...textoAjuda, marginTop: "12px" }}>
+                          Ficheiro carregado:{" "}
+                          <strong>{form.certificado_pronto_path}</strong>
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {usaModeloPersonalizado ? (
+                    <>
+                      <div style={caixaUploadSecundaria}>
+                        <label
+                          style={{
+                            display: "block",
+                            fontSize: "19px",
+                            marginBottom: "10px",
+                            color: "#e6c27a",
+                          }}
+                        >
+                          Upload do modelo base do certificado
+                        </label>
+
+                        <input
+                          type="file"
+                          accept="application/pdf,image/png,image/jpeg,image/webp"
+                          onChange={(e) =>
+                            handleUploadCertificado(
+                              e.target.files?.[0] || null,
+                              "modelo"
+                            )
+                          }
+                          style={{
+                            ...campoBase,
+                            padding: "12px",
+                          }}
+                        />
+
+                        <p style={{ ...textoAjuda, marginTop: "12px" }}>
+                          Envia aqui o modelo base que queres reutilizar para os
+                          teus cursos.
+                        </p>
+
+                        {form.certificado_modelo_path ? (
+                          <p style={{ ...textoAjuda, marginTop: "12px" }}>
+                            Ficheiro carregado:{" "}
+                            <strong>{form.certificado_modelo_path}</strong>
+                          </p>
+                        ) : null}
+                      </div>
+
+                      <Input
+                        label="Título do certificado"
+                        value={form.certificado_titulo}
+                        onChange={(v) => update("certificado_titulo", v)}
+                        placeholder="Se deixares vazio, será usado o título do curso"
+                      />
+
+                      <Textarea
+                        label="Texto do certificado"
+                        value={form.texto_certificado}
+                        onChange={(v) => update("texto_certificado", v)}
+                        rows={5}
+                        placeholder="Texto principal do certificado, em tamanho mais pequeno do que o título."
+                      />
+                    </>
+                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -502,25 +755,29 @@ export default function CriarCursoPage() {
 
             <button
               type="submit"
-              disabled={loading || uploadingCapa}
+              disabled={loading || algumUploadAtivo}
               style={{
                 border: "1px solid #c4914d",
                 padding: "16px 22px",
                 background:
                   "linear-gradient(180deg, #c4914d 0%, #a6783d 100%)",
                 color: "#140d09",
-                cursor: loading || uploadingCapa ? "not-allowed" : "pointer",
+                cursor: loading || algumUploadAtivo ? "not-allowed" : "pointer",
                 fontSize: "18px",
                 fontWeight: 700,
                 letterSpacing: "0.08em",
                 textTransform: "uppercase",
                 boxShadow:
                   "0 0 24px rgba(230, 194, 122, 0.18), inset 0 1px 0 rgba(255,255,255,0.18)",
-                opacity: loading || uploadingCapa ? 0.7 : 1,
+                opacity: loading || algumUploadAtivo ? 0.7 : 1,
               }}
             >
               {uploadingCapa
                 ? "A carregar capa..."
+                : uploadingCertificadoPronto
+                ? "A carregar certificado..."
+                : uploadingModeloCertificado
+                ? "A carregar modelo..."
                 : loading
                 ? "A criar..."
                 : isCursoVideo
@@ -571,16 +828,44 @@ export default function CriarCursoPage() {
               style={{
                 borderTop: "1px solid rgba(166,120,61,0.35)",
                 paddingTop: "22px",
+                display: "grid",
+                gap: "14px",
               }}
             >
               <p
                 style={{
-                  margin: "0 0 12px 0",
+                  margin: 0,
                   fontSize: "19px",
                   color: "#caa15a",
                 }}
               >
-                Próxima fase
+                Certificados
+              </p>
+
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "19px",
+                  lineHeight: 1.8,
+                  color: "#d7b06c",
+                }}
+              >
+                Podes escolher entre usar o padrão da plataforma, enviar um
+                certificado já pronto, ou carregar um modelo base para depois
+                usar título e texto personalizados.
+              </p>
+
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "19px",
+                  lineHeight: 1.8,
+                  color: "#d7b06c",
+                }}
+              >
+                No modo personalizado, o título do certificado pode ficar
+                separado do texto principal, permitindo uma hierarquia visual
+                mais clara.
               </p>
 
               <p
@@ -775,6 +1060,12 @@ const caixaInterna: React.CSSProperties = {
   padding: "18px 18px",
 };
 
+const caixaUploadSecundaria: React.CSSProperties = {
+  border: "1px solid rgba(166,120,61,0.18)",
+  background: "rgba(20,13,9,0.35)",
+  padding: "16px",
+};
+
 const subTitulo: React.CSSProperties = {
   margin: "0 0 14px 0",
   fontFamily: "Cinzel, serif",
@@ -796,6 +1087,7 @@ const checkboxLinha: React.CSSProperties = {
   gap: "10px",
   fontSize: "19px",
   color: "#e6c27a",
+  flexWrap: "wrap",
 };
 
 const textoEstado: React.CSSProperties = {
