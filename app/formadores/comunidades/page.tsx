@@ -187,7 +187,7 @@ export default function ComunidadesFormadorPage() {
       >
         <header
           style={{
-            marginBottom: "34px",
+            marginBottom: "28px",
           }}
         >
           <p
@@ -202,32 +202,59 @@ export default function ComunidadesFormadorPage() {
             Área do Formador
           </p>
 
-          <h1
+          <div
             style={{
-              margin: "0 0 14px 0",
-              fontFamily: "Cinzel, serif",
-              fontSize: "clamp(34px, 6vw, 64px)",
-              lineHeight: 1.1,
-              color: "#f0d79a",
-              fontWeight: 500,
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "18px",
+              alignItems: "flex-end",
+              flexWrap: "wrap",
             }}
           >
-            Comunidades
-          </h1>
+            <div>
+              <h1
+                style={{
+                  margin: "0 0 12px 0",
+                  fontFamily: "Cinzel, serif",
+                  fontSize: "clamp(34px, 6vw, 64px)",
+                  lineHeight: 1.1,
+                  color: "#f0d79a",
+                  fontWeight: 500,
+                }}
+              >
+                Comunidades
+              </h1>
 
-          <p
-            style={{
-              margin: 0,
-              fontSize: "clamp(18px, 2.4vw, 24px)",
-              lineHeight: 1.7,
-              color: "#d7b06c",
-              maxWidth: "980px",
-            }}
-          >
-            Gere as comunidades internas associadas aos teus cursos, acompanha
-            os tópicos publicados pelos alunos e mantém o apoio pedagógico
-            dentro da plataforma.
-          </p>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "clamp(18px, 2.2vw, 22px)",
+                  lineHeight: 1.7,
+                  color: "#d7b06c",
+                  maxWidth: "920px",
+                }}
+              >
+                Consulta as comunidades associadas aos teus cursos e acompanha os
+                tópicos publicados pelos alunos.
+              </p>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              <Link href="/formadores/dashboard" style={botaoSecundario}>
+                Voltar à dashboard
+              </Link>
+
+              <button type="button" onClick={carregarDados} style={botao}>
+                Atualizar
+              </button>
+            </div>
+          </div>
         </header>
 
         <section
@@ -235,7 +262,7 @@ export default function ComunidadesFormadorPage() {
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
             gap: "18px",
-            marginBottom: "34px",
+            marginBottom: "30px",
           }}
         >
           <MetricCard
@@ -253,79 +280,6 @@ export default function ComunidadesFormadorPage() {
             valor={String(totalTopicos)}
             subtitulo="Tópicos registados"
           />
-          <MetricCard
-            titulo="Formador"
-            valor={formador?.nome ? "1" : "0"}
-            subtitulo={formador?.nome || "Conta não carregada"}
-          />
-        </section>
-
-        <section
-          style={{
-            border: "1px solid #8a5d31",
-            background:
-              "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-            padding: "clamp(20px, 3vw, 28px)",
-            boxShadow:
-              "0 18px 42px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,225,170,0.03)",
-            marginBottom: "28px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: "18px",
-              alignItems: "flex-end",
-              flexWrap: "wrap",
-            }}
-          >
-            <div>
-              <p
-                style={{
-                  margin: "0 0 8px 0",
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  color: "#caa15a",
-                  fontSize: "14px",
-                }}
-              >
-                Gestão interna
-              </p>
-
-              <h2
-                style={{
-                  margin: 0,
-                  fontFamily: "Cinzel, serif",
-                  fontSize: "clamp(26px, 4vw, 40px)",
-                  color: "#f0d79a",
-                  fontWeight: 500,
-                }}
-              >
-                Apoio pedagógico por curso
-              </h2>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                gap: "12px",
-                flexWrap: "wrap",
-              }}
-            >
-              <Link href="/formadores/dashboard" style={botaoSecundario}>
-                Voltar à dashboard
-              </Link>
-
-              <button
-                type="button"
-                onClick={carregarDados}
-                style={botao}
-              >
-                Atualizar
-              </button>
-            </div>
-          </div>
         </section>
 
         {loading ? (
@@ -335,14 +289,14 @@ export default function ComunidadesFormadorPage() {
         ) : cursos.length === 0 ? (
           <EmptyState
             titulo="Ainda não tens cursos com estrutura criada"
-            descricao="As comunidades surgem associadas aos cursos. Quando começares a criar os teus cursos, esta área ficará pronta para acompanhar as turmas."
+            descricao="As comunidades surgem associadas aos cursos. Quando começares a criar os teus cursos, esta área ficará pronta para acompanhar os alunos."
             botaoHref="/formadores/criar-curso"
             botaoTexto="Criar curso"
           />
         ) : comunidades.length === 0 ? (
           <EmptyState
             titulo="Ainda não existem comunidades para os teus cursos"
-            descricao="Os teus cursos já existem, mas ainda não têm comunidades associadas. A seguir podemos tratar da criação automática de uma comunidade por curso."
+            descricao="Os teus cursos já existem, mas ainda não têm comunidades associadas. A seguir podes continuar a organizar os conteúdos e a estrutura interna."
             botaoHref="/formadores/cursos"
             botaoTexto="Ver cursos"
           />
@@ -444,7 +398,7 @@ export default function ComunidadesFormadorPage() {
                         valor={String(totalTopicosComunidade)}
                       />
                       <StatusBox
-                        label="Publicação do curso"
+                        label="Curso"
                         valor={curso?.publicado ? "Publicado" : "Rascunho"}
                       />
                     </div>
@@ -464,11 +418,8 @@ export default function ComunidadesFormadorPage() {
                       Abrir comunidade
                     </Link>
 
-                    <Link
-                      href="/formadores/cursos"
-                      style={botaoSecundario}
-                    >
-                      Ver curso
+                    <Link href="/formadores/cursos" style={botaoSecundario}>
+                      Ver cursos
                     </Link>
                   </div>
                 </article>

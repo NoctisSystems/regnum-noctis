@@ -36,6 +36,32 @@ type Topico = {
   fechado: boolean | null;
 };
 
+type ConversaSuporte = {
+  id: number;
+  estado: string;
+};
+
+type TicketFormador = {
+  id: number;
+  estado: string;
+};
+
+type ResumoFinanceiroFormador = {
+  saldo_disponivel: number | null;
+  saldo_retido: number | null;
+  saldo_em_analise: number | null;
+  saldo_chargeback: number | null;
+  total_pago: number | null;
+};
+
+const resumoFinanceiroInicial: ResumoFinanceiroFormador = {
+  saldo_disponivel: 0,
+  saldo_retido: 0,
+  saldo_em_analise: 0,
+  saldo_chargeback: 0,
+  total_pago: 0,
+};
+
 export default function DashboardFormadorPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
@@ -44,6 +70,13 @@ export default function DashboardFormadorPage() {
   const [inscricoes, setInscricoes] = useState<Inscricao[]>([]);
   const [comunidades, setComunidades] = useState<Comunidade[]>([]);
   const [topicos, setTopicos] = useState<Topico[]>([]);
+  const [conversasSuporte, setConversasSuporte] = useState<ConversaSuporte[]>(
+    []
+  );
+  const [ticketsFormador, setTicketsFormador] = useState<TicketFormador[]>([]);
+  const [resumoFinanceiro, setResumoFinanceiro] = useState<ResumoFinanceiroFormador>(
+    resumoFinanceiroInicial
+  );
 
   useEffect(() => {
     carregarDados();
@@ -94,6 +127,55 @@ export default function DashboardFormadorPage() {
     return porEmail as Formador;
   }
 
+  async function carregarResumoFinanceiro(formadorId: number) {
+    try {
+      const tentativas = [
+        supabase
+          .from("formadores_resumo_financeiro")
+          .select(
+            "saldo_disponivel, saldo_retido, saldo_em_analise, saldo_chargeback, total_pago"
+          )
+          .eq("formador_id", formadorId)
+          .maybeSingle(),
+
+        supabase
+          .from("formador_resumo_financeiro")
+          .select(
+            "saldo_disponivel, saldo_retido, saldo_em_analise, saldo_chargeback, total_pago"
+          )
+          .eq("formador_id", formadorId)
+          .maybeSingle(),
+
+        supabase
+          .from("vw_formador_resumo_financeiro")
+          .select(
+            "saldo_disponivel, saldo_retido, saldo_em_analise, saldo_chargeback, total_pago"
+          )
+          .eq("formador_id", formadorId)
+          .maybeSingle(),
+      ];
+
+      for (const tentativa of tentativas) {
+        const { data, error } = await tentativa;
+
+        if (!error && data) {
+          setResumoFinanceiro({
+            saldo_disponivel: normalizarNumero(data.saldo_disponivel),
+            saldo_retido: normalizarNumero(data.saldo_retido),
+            saldo_em_analise: normalizarNumero(data.saldo_em_analise),
+            saldo_chargeback: normalizarNumero(data.saldo_chargeback),
+            total_pago: normalizarNumero(data.total_pago),
+          });
+          return;
+        }
+      }
+
+      setResumoFinanceiro(resumoFinanceiroInicial);
+    } catch {
+      setResumoFinanceiro(resumoFinanceiroInicial);
+    }
+  }
+
   async function carregarDados() {
     setLoading(true);
     setErro("");
@@ -131,6 +213,8 @@ export default function DashboardFormadorPage() {
 
       setFormador(formadorData);
 
+      await carregarResumoFinanceiro(formadorData.id);
+
       const { data: cursosData, error: cursosError } = await supabase
         .from("cursos")
         .select("id, titulo, publicado")
@@ -146,43 +230,68 @@ export default function DashboardFormadorPage() {
       const cursosLista = (cursosData || []) as Curso[];
       setCursos(cursosLista);
 
-      if (cursosLista.length === 0) {
+      if (cursosLista.length > 0) {
+        const cursoIds = cursosLista.map((curso) => curso.id);
+
+        const { data: inscricoesData } = await supabase
+          .from("inscricoes")
+          .select("id, curso_id, aluno_id, concluido")
+          .in("curso_id", cursoIds);
+
+        setInscricoes((inscricoesData || []) as Inscricao[]);
+
+        const { data: comunidadesData } = await supabase
+          .from("comunidades")
+          .select("id, curso_id")
+          .in("curso_id", cursoIds);
+
+        const comunidadesLista = (comunidadesData || []) as Comunidade[];
+        setComunidades(comunidadesLista);
+
+        if (comunidadesLista.length > 0) {
+          const comunidadeIds = comunidadesLista.map(
+            (comunidade) => comunidade.id
+          );
+
+          const { data: topicosData } = await supabase
+            .from("comunidade_topicos")
+            .select("id, comunidade_id, fechado")
+            .in("comunidade_id", comunidadeIds);
+
+          setTopicos((topicosData || []) as Topico[]);
+        } else {
+          setTopicos([]);
+        }
+      } else {
         setInscricoes([]);
         setComunidades([]);
         setTopicos([]);
-        setLoading(false);
-        return;
       }
 
-      const cursoIds = cursosLista.map((curso) => curso.id);
+      const { data: conversasData, error: conversasError } = await supabase
+        .from("chat_admin_formador_conversas")
+        .select("id, estado")
+        .eq("formador_id", formadorData.id)
+        .order("updated_at", { ascending: false });
 
-      const { data: inscricoesData } = await supabase
-        .from("inscricoes")
-        .select("id, curso_id, aluno_id, concluido")
-        .in("curso_id", cursoIds);
-
-      setInscricoes((inscricoesData || []) as Inscricao[]);
-
-      const { data: comunidadesData } = await supabase
-        .from("comunidades")
-        .select("id, curso_id")
-        .in("curso_id", cursoIds);
-
-      const comunidadesLista = (comunidadesData || []) as Comunidade[];
-      setComunidades(comunidadesLista);
-
-      if (comunidadesLista.length > 0) {
-        const comunidadeIds = comunidadesLista.map((comunidade) => comunidade.id);
-
-        const { data: topicosData } = await supabase
-          .from("comunidade_topicos")
-          .select("id, comunidade_id, fechado")
-          .in("comunidade_id", comunidadeIds);
-
-        setTopicos((topicosData || []) as Topico[]);
-      } else {
-        setTopicos([]);
+      if (conversasError) {
+        throw conversasError;
       }
+
+      setConversasSuporte((conversasData || []) as ConversaSuporte[]);
+
+      const { data: ticketsData, error: ticketsError } = await supabase
+        .from("suporte_tickets")
+        .select("id, estado")
+        .eq("formador_id", formadorData.id)
+        .eq("formador_envolvido", true)
+        .order("updated_at", { ascending: false });
+
+      if (ticketsError) {
+        throw ticketsError;
+      }
+
+      setTicketsFormador((ticketsData || []) as TicketFormador[]);
     } catch {
       setErro("Ocorreu um erro inesperado ao carregar a dashboard.");
     } finally {
@@ -196,8 +305,22 @@ export default function DashboardFormadorPage() {
     [inscricoes]
   );
   const totalComunidades = comunidades.length;
-  const totalDuvidasPendentes = topicos.filter((topico) => !topico.fechado).length;
-  const cursoMaisRecente = cursos[0] || null;
+  const totalDuvidasPendentes = topicos.filter((topico) => !topico.fechado)
+    .length;
+  const totalConversasAbertas = conversasSuporte.filter((item) =>
+    ["aberto", "em_analise", "aguarda_formador", "aguarda_admin"].includes(
+      item.estado
+    )
+  ).length;
+  const totalTicketsPendentes = ticketsFormador.filter((item) =>
+    [
+      "aberto",
+      "em_analise",
+      "aguarda_resposta_formador",
+      "aguarda_resposta_admin",
+      "aguarda_resposta_aluno",
+    ].includes(item.estado)
+  ).length;
 
   return (
     <main
@@ -216,7 +339,7 @@ export default function DashboardFormadorPage() {
           margin: "0 auto",
         }}
       >
-        <header style={{ marginBottom: "34px" }}>
+        <header style={{ marginBottom: "28px" }}>
           <p
             style={{
               margin: "0 0 10px 0",
@@ -229,32 +352,36 @@ export default function DashboardFormadorPage() {
             Área do Formador
           </p>
 
-          <h1
+          <div
             style={{
-              margin: "0 0 14px 0",
-              fontFamily: "Cinzel, serif",
-              fontSize: "clamp(34px, 6vw, 64px)",
-              lineHeight: 1.1,
-              color: "#f0d79a",
-              fontWeight: 500,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-end",
+              gap: "18px",
+              flexWrap: "wrap",
             }}
           >
-            Dashboard do Formador
-          </h1>
+            <h1
+              style={{
+                margin: 0,
+                fontFamily: "Cinzel, serif",
+                fontSize: "clamp(34px, 6vw, 64px)",
+                lineHeight: 1.1,
+                color: "#f0d79a",
+                fontWeight: 500,
+              }}
+            >
+              Dashboard do Formador
+            </h1>
 
-          <p
-            style={{
-              margin: 0,
-              fontSize: "clamp(18px, 2.4vw, 24px)",
-              lineHeight: 1.7,
-              color: "#d7b06c",
-              maxWidth: "980px",
-            }}
-          >
-            {formador?.nome
-              ? `Bem-vinda à tua área, ${formador.nome}. Gere os teus cursos, acompanha os alunos inscritos e responde às dúvidas das tuas turmas através das comunidades internas da plataforma.`
-              : "Gere os teus cursos, acompanha os alunos inscritos e responde às dúvidas das tuas turmas através das comunidades internas da plataforma."}
-          </p>
+            <button
+              type="button"
+              onClick={carregarDados}
+              style={botaoSecundario}
+            >
+              Atualizar dashboard
+            </button>
+          </div>
         </header>
 
         {loading ? (
@@ -265,70 +392,15 @@ export default function DashboardFormadorPage() {
           <>
             <section
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: "18px",
-                marginBottom: "36px",
-              }}
-            >
-              <MetricCard titulo="Cursos" valor={String(totalCursos)} subtitulo="Cursos criados" />
-              <MetricCard titulo="Alunos" valor={String(totalAlunos)} subtitulo="Inscritos ativos" />
-              <MetricCard titulo="Comunidades" valor={String(totalComunidades)} subtitulo="Por curso" />
-              <MetricCard titulo="Dúvidas" valor={String(totalDuvidasPendentes)} subtitulo="Tópicos abertos" />
-            </section>
-
-            <section
-              style={{
                 border: "1px solid #8a5d31",
                 background:
                   "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
                 padding: "clamp(20px, 3vw, 30px)",
                 boxShadow:
                   "0 18px 42px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,225,170,0.03)",
-                marginBottom: "34px",
+                marginBottom: "30px",
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-end",
-                  gap: "20px",
-                  flexWrap: "wrap",
-                  marginBottom: "22px",
-                }}
-              >
-                <div>
-                  <p
-                    style={{
-                      margin: "0 0 8px 0",
-                      letterSpacing: "0.12em",
-                      textTransform: "uppercase",
-                      color: "#caa15a",
-                      fontSize: "14px",
-                    }}
-                  >
-                    Atalhos principais
-                  </p>
-
-                  <h2
-                    style={{
-                      margin: 0,
-                      fontFamily: "Cinzel, serif",
-                      fontSize: "clamp(26px, 4vw, 40px)",
-                      color: "#f0d79a",
-                      fontWeight: 500,
-                    }}
-                  >
-                    Gestão rápida
-                  </h2>
-                </div>
-
-                <button type="button" onClick={carregarDados} style={botaoSecundario}>
-                  Atualizar dashboard
-                </button>
-              </div>
-
               <div
                 style={{
                   display: "grid",
@@ -360,114 +432,238 @@ export default function DashboardFormadorPage() {
                   href="/formadores/comunidades"
                   textoBotao="Abrir comunidades"
                 />
+                <ShortcutCard
+                  titulo="Suporte interno"
+                  descricao="Fala diretamente com a administração para ausências, problemas técnicos, pagamentos ou apoio operacional."
+                  href="/formadores/suporte"
+                  textoBotao="Abrir suporte"
+                />
+                <ShortcutCard
+                  titulo="Tickets"
+                  descricao="Consulta os tickets em que foste envolvido pela administração para esclarecer o aluno."
+                  href="/formadores/tickets"
+                  textoBotao="Ver tickets"
+                />
+                <ShortcutCard
+                  titulo="Levantamentos"
+                  descricao="Consulta saldos, acompanha pedidos enviados e trata do envio de documentação para levantamento."
+                  href="/formadores/levantamentos"
+                  textoBotao="Abrir levantamentos"
+                />
               </div>
             </section>
 
-            <section
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-                gap: "24px",
-                alignItems: "start",
-              }}
-            >
-              <div style={{ display: "grid", gap: "24px" }}>
-                <Panel>
-                  <SectionHeader
-                    subtitulo="Cursos"
-                    titulo="Os teus cursos"
-                    acaoTexto="Gerir cursos"
-                    acaoHref="/formadores/cursos"
-                  />
+            <section style={{ marginBottom: "32px" }}>
+              <SectionTitle
+                titulo="Resumo operacional"
+                subtitulo="Visão rápida da atividade do formador"
+              />
 
-                  {cursoMaisRecente ? (
-                    <InfoBox
-                      titulo={cursoMaisRecente.titulo || "Curso sem título"}
-                      descricao={
-                        cursoMaisRecente.publicado
-                          ? "Este é o curso mais recente já publicado na tua área."
-                          : "Este é o curso mais recente e ainda está em rascunho."
-                      }
-                    />
-                  ) : (
-                    <EmptyState
-                      titulo="Ainda não tens cursos criados"
-                      descricao="Quando criares o teu primeiro curso, ele será apresentado aqui com acesso direto à edição, módulos, aulas e alunos inscritos."
-                      botaoTexto="Criar primeiro curso"
-                      botaoHref="/formadores/criar-curso"
-                    />
-                  )}
-                </Panel>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: "18px",
+                }}
+              >
+                <MetricCard
+                  titulo="Cursos"
+                  valor={String(totalCursos)}
+                  subtitulo="Cursos criados"
+                />
+                <MetricCard
+                  titulo="Alunos"
+                  valor={String(totalAlunos)}
+                  subtitulo="Inscritos ativos"
+                />
+                <MetricCard
+                  titulo="Comunidades"
+                  valor={String(totalComunidades)}
+                  subtitulo="Por curso"
+                />
+                <MetricCard
+                  titulo="Dúvidas"
+                  valor={String(totalDuvidasPendentes)}
+                  subtitulo="Tópicos abertos"
+                />
+                <MetricCard
+                  titulo="Suporte"
+                  valor={String(totalConversasAbertas)}
+                  subtitulo="Conversas abertas"
+                />
+                <MetricCard
+                  titulo="Tickets"
+                  valor={String(totalTicketsPendentes)}
+                  subtitulo="A aguardar resposta"
+                />
+              </div>
+            </section>
 
-                <Panel>
-                  <SectionHeader
-                    subtitulo="Comunidades"
-                    titulo="Comunidades dos cursos"
-                    acaoTexto="Ver todas"
-                    acaoHref="/formadores/comunidades"
-                  />
+            <section>
+              <SectionTitle
+                titulo="Resumo financeiro"
+                subtitulo="Valores do formador e estado dos saldos"
+              />
 
-                  <div
-                    style={{
-                      border: "1px solid rgba(166,120,61,0.22)",
-                      background: "rgba(32,18,13,0.45)",
-                      padding: "22px",
-                    }}
-                  >
-                    <p
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: "18px",
+                  marginBottom: "20px",
+                }}
+              >
+                <MoneyCard
+                  titulo="Saldo disponível"
+                  valor={formatarEuro(resumoFinanceiro.saldo_disponivel)}
+                  subtitulo="Pode seguir para levantamento"
+                />
+                <MoneyCard
+                  titulo="Saldo retido"
+                  valor={formatarEuro(resumoFinanceiro.saldo_retido)}
+                  subtitulo="Valor ainda cativo"
+                />
+                <MoneyCard
+                  titulo="Em análise"
+                  valor={formatarEuro(resumoFinanceiro.saldo_em_analise)}
+                  subtitulo="Aguarda validação"
+                />
+                <MoneyCard
+                  titulo="Chargeback / bloqueios"
+                  valor={formatarEuro(resumoFinanceiro.saldo_chargeback)}
+                  subtitulo="Valor sob retenção"
+                />
+                <MoneyCard
+                  titulo="Total já pago"
+                  valor={formatarEuro(resumoFinanceiro.total_pago)}
+                  subtitulo="Histórico liquidado"
+                />
+              </div>
+
+              <section
+                style={{
+                  border: "1px solid #8a5d31",
+                  background:
+                    "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
+                  padding: "24px",
+                  boxShadow:
+                    "0 12px 26px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,225,170,0.03)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    gap: "18px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div style={{ maxWidth: "840px" }}>
+                    <h2
                       style={{
-                        margin: "0 0 14px 0",
-                        fontSize: "clamp(18px, 2.2vw, 22px)",
-                        color: "#e6c27a",
-                        lineHeight: 1.6,
+                        margin: "0 0 10px 0",
+                        fontFamily: "Cinzel, serif",
+                        fontSize: "clamp(26px, 4vw, 36px)",
+                        color: "#f0d79a",
+                        fontWeight: 500,
                       }}
                     >
-                      Cada curso pode ter uma comunidade própria, acessível automaticamente aos alunos inscritos.
-                    </p>
+                      Levantamentos e documentação
+                    </h2>
 
                     <p
                       style={{
                         margin: 0,
-                        fontSize: "clamp(18px, 2vw, 20px)",
+                        fontSize: "19px",
                         color: "#d7b06c",
-                        lineHeight: 1.7,
+                        lineHeight: 1.75,
                       }}
                     >
-                      Isto permite responder a dúvidas, publicar avisos, orientar exercícios e manter a turma organizada dentro da própria plataforma, sem depender de aplicações externas.
+                      Nenhum valor é libertado sem a documentação exigida pela
+                      plataforma. O pedido de levantamento deve seguir com o
+                      comprovativo ou fatura correspondente para validação pela
+                      administração.
                     </p>
                   </div>
-                </Panel>
-              </div>
 
-              <div style={{ display: "grid", gap: "24px" }}>
-                <Panel>
-                  <SectionHeader
-                    subtitulo="Alunos"
-                    titulo="Inscritos e progresso"
-                    acaoTexto="Abrir área"
-                    acaoHref="/formadores/alunos"
-                  />
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "12px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Link href="/formadores/levantamentos" style={botao}>
+                      Pedir levantamento
+                    </Link>
 
-                  <InfoBox
-                    titulo="Acompanhamento da turma"
-                    descricao="Aqui podes acompanhar os alunos inscritos em cada curso, verificar progresso, acessos e participação nas comunidades."
-                  />
-                </Panel>
-
-                <Panel>
-                  <SectionHeader subtitulo="Planeamento" titulo="Próximos passos" />
-
-                  <ChecklistItem texto="Criar ou atualizar cursos" />
-                  <ChecklistItem texto="Publicar módulos e aulas" />
-                  <ChecklistItem texto="Acompanhar alunos inscritos" />
-                  <ChecklistItem texto="Responder dúvidas por comunidade de curso" />
-                </Panel>
-              </div>
+                    <Link
+                      href="/formadores/levantamentos"
+                      style={botaoSecundario}
+                    >
+                      Ver histórico
+                    </Link>
+                  </div>
+                </div>
+              </section>
             </section>
           </>
         )}
       </section>
     </main>
+  );
+}
+
+function normalizarNumero(valor: unknown) {
+  if (typeof valor === "number" && !Number.isNaN(valor)) return valor;
+  if (typeof valor === "string") {
+    const convertido = Number(valor);
+    if (!Number.isNaN(convertido)) return convertido;
+  }
+  return 0;
+}
+
+function formatarEuro(valor: number | null | undefined) {
+  return new Intl.NumberFormat("pt-PT", {
+    style: "currency",
+    currency: "EUR",
+  }).format(normalizarNumero(valor));
+}
+
+function SectionTitle({
+  titulo,
+  subtitulo,
+}: {
+  titulo: string;
+  subtitulo: string;
+}) {
+  return (
+    <div style={{ marginBottom: "18px" }}>
+      <p
+        style={{
+          margin: "0 0 8px 0",
+          fontSize: "14px",
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: "#caa15a",
+        }}
+      >
+        {subtitulo}
+      </p>
+
+      <h2
+        style={{
+          margin: 0,
+          fontFamily: "Cinzel, serif",
+          fontSize: "clamp(28px, 4vw, 40px)",
+          color: "#f0d79a",
+          fontWeight: 500,
+        }}
+      >
+        {titulo}
+      </h2>
+    </div>
   );
 }
 
@@ -519,6 +715,65 @@ function MetricCard({
         style={{
           margin: 0,
           fontSize: "19px",
+          color: "#d7b06c",
+          lineHeight: 1.6,
+        }}
+      >
+        {subtitulo}
+      </p>
+    </article>
+  );
+}
+
+function MoneyCard({
+  titulo,
+  valor,
+  subtitulo,
+}: {
+  titulo: string;
+  valor: string;
+  subtitulo: string;
+}) {
+  return (
+    <article
+      style={{
+        border: "1px solid #8a5d31",
+        background:
+          "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
+        padding: "22px",
+        boxShadow:
+          "0 12px 26px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,225,170,0.03)",
+      }}
+    >
+      <p
+        style={{
+          margin: "0 0 10px 0",
+          fontSize: "15px",
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: "#caa15a",
+        }}
+      >
+        {titulo}
+      </p>
+
+      <p
+        style={{
+          margin: "0 0 8px 0",
+          fontFamily: "Cinzel, serif",
+          fontSize: "30px",
+          color: "#f0d79a",
+          lineHeight: 1.2,
+          wordBreak: "break-word",
+        }}
+      >
+        {valor}
+      </p>
+
+      <p
+        style={{
+          margin: 0,
+          fontSize: "18px",
           color: "#d7b06c",
           lineHeight: 1.6,
         }}
@@ -582,194 +837,6 @@ function ShortcutCard({
   );
 }
 
-function Panel({ children }: { children: React.ReactNode }) {
-  return (
-    <section
-      style={{
-        border: "1px solid #8a5d31",
-        background:
-          "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-        padding: "28px",
-        boxShadow:
-          "0 12px 26px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,225,170,0.03)",
-      }}
-    >
-      {children}
-    </section>
-  );
-}
-
-function SectionHeader({
-  subtitulo,
-  titulo,
-  acaoTexto,
-  acaoHref,
-}: {
-  subtitulo: string;
-  titulo: string;
-  acaoTexto?: string;
-  acaoHref?: string;
-}) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "flex-end",
-        gap: "18px",
-        flexWrap: "wrap",
-        marginBottom: "20px",
-      }}
-    >
-      <div>
-        <p
-          style={{
-            margin: "0 0 8px 0",
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: "#caa15a",
-            fontSize: "14px",
-          }}
-        >
-          {subtitulo}
-        </p>
-
-        <h2
-          style={{
-            margin: 0,
-            fontFamily: "Cinzel, serif",
-            fontSize: "clamp(26px, 4vw, 36px)",
-            color: "#f0d79a",
-            fontWeight: 500,
-          }}
-        >
-          {titulo}
-        </h2>
-      </div>
-
-      {acaoTexto && acaoHref ? (
-        <Link href={acaoHref} style={botaoSecundario}>
-          {acaoTexto}
-        </Link>
-      ) : null}
-    </div>
-  );
-}
-
-function EmptyState({
-  titulo,
-  descricao,
-  botaoTexto,
-  botaoHref,
-}: {
-  titulo: string;
-  descricao: string;
-  botaoTexto: string;
-  botaoHref: string;
-}) {
-  return (
-    <div
-      style={{
-        border: "1px solid rgba(166,120,61,0.22)",
-        background: "rgba(32,18,13,0.45)",
-        padding: "24px",
-      }}
-    >
-      <h3
-        style={{
-          margin: "0 0 12px 0",
-          fontFamily: "Cinzel, serif",
-          fontSize: "clamp(24px, 3vw, 30px)",
-          color: "#e6c27a",
-          fontWeight: 500,
-        }}
-      >
-        {titulo}
-      </h3>
-
-      <p
-        style={{
-          margin: "0 0 18px 0",
-          fontSize: "clamp(18px, 2.2vw, 21px)",
-          color: "#d7b06c",
-          lineHeight: 1.7,
-        }}
-      >
-        {descricao}
-      </p>
-
-      <Link href={botaoHref} style={botao}>
-        {botaoTexto}
-      </Link>
-    </div>
-  );
-}
-
-function InfoBox({
-  titulo,
-  descricao,
-}: {
-  titulo: string;
-  descricao: string;
-}) {
-  return (
-    <div
-      style={{
-        border: "1px solid rgba(166,120,61,0.22)",
-        background: "rgba(32,18,13,0.45)",
-        padding: "22px",
-      }}
-    >
-      <h3
-        style={{
-          margin: "0 0 12px 0",
-          fontFamily: "Cinzel, serif",
-          fontSize: "clamp(24px, 3vw, 28px)",
-          color: "#e6c27a",
-          fontWeight: 500,
-        }}
-      >
-        {titulo}
-      </h3>
-
-      <p
-        style={{
-          margin: 0,
-          fontSize: "clamp(18px, 2vw, 20px)",
-          color: "#d7b06c",
-          lineHeight: 1.7,
-        }}
-      >
-        {descricao}
-      </p>
-    </div>
-  );
-}
-
-function ChecklistItem({ texto }: { texto: string }) {
-  return (
-    <div
-      style={{
-        border: "1px solid rgba(166,120,61,0.18)",
-        background: "rgba(32,18,13,0.35)",
-        padding: "16px 18px",
-        marginBottom: "12px",
-      }}
-    >
-      <p
-        style={{
-          margin: 0,
-          fontSize: "clamp(18px, 2vw, 20px)",
-          color: "#d7b06c",
-          lineHeight: 1.6,
-        }}
-      >
-        {texto}
-      </p>
-    </div>
-  );
-}
-
 function LoadingBox() {
   return (
     <section
@@ -802,7 +869,8 @@ function LoadingBox() {
           color: "#dfbe81",
         }}
       >
-        A plataforma está a reunir cursos, alunos e comunidades do formador.
+        A plataforma está a reunir cursos, alunos, comunidades, suporte e
+        resumo financeiro do formador.
       </p>
     </section>
   );

@@ -421,7 +421,7 @@ export default function ComunidadeDetalhePage({
           margin: "0 auto",
         }}
       >
-        <header style={{ marginBottom: "34px" }}>
+        <header style={{ marginBottom: "28px" }}>
           <p
             style={{
               margin: "0 0 10px 0",
@@ -434,31 +434,63 @@ export default function ComunidadeDetalhePage({
             Área do Formador
           </p>
 
-          <h1
+          <div
             style={{
-              margin: "0 0 14px 0",
-              fontFamily: "Cinzel, serif",
-              fontSize: "clamp(34px, 6vw, 64px)",
-              lineHeight: 1.1,
-              color: "#f0d79a",
-              fontWeight: 500,
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "18px",
+              alignItems: "flex-end",
+              flexWrap: "wrap",
             }}
           >
-            Comunidade do Curso
-          </h1>
+            <div>
+              <h1
+                style={{
+                  margin: "0 0 12px 0",
+                  fontFamily: "Cinzel, serif",
+                  fontSize: "clamp(34px, 6vw, 64px)",
+                  lineHeight: 1.1,
+                  color: "#f0d79a",
+                  fontWeight: 500,
+                }}
+              >
+                Comunidade do Curso
+              </h1>
 
-          <p
-            style={{
-              margin: 0,
-              fontSize: "clamp(18px, 2.4vw, 24px)",
-              lineHeight: 1.7,
-              color: "#d7b06c",
-              maxWidth: "980px",
-            }}
-          >
-            Acompanha dúvidas, cria tópicos de esclarecimento e mantém o apoio
-            pedagógico organizado dentro da plataforma.
-          </p>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "clamp(18px, 2.2vw, 22px)",
+                  lineHeight: 1.7,
+                  color: "#d7b06c",
+                  maxWidth: "900px",
+                }}
+              >
+                Acompanha dúvidas, cria tópicos de esclarecimento e responde
+                dentro da própria comunidade do curso.
+              </p>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              <Link href="/formadores/comunidades" style={botaoSecundario}>
+                Voltar às comunidades
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => comunidadeId && carregarDados(comunidadeId)}
+                style={botao}
+              >
+                Atualizar
+              </button>
+            </div>
+          </div>
         </header>
 
         {loading ? (
@@ -539,25 +571,23 @@ export default function ComunidadeDetalhePage({
 
                 <div
                   style={{
-                    display: "flex",
-                    gap: "12px",
-                    flexWrap: "wrap",
+                    display: "grid",
+                    gap: "10px",
+                    minWidth: "200px",
                   }}
                 >
-                  <Link
-                    href="/formadores/comunidades"
-                    style={botaoSecundario}
-                  >
-                    Voltar às comunidades
-                  </Link>
-
-                  <button
-                    type="button"
-                    onClick={() => comunidadeId && carregarDados(comunidadeId)}
-                    style={botao}
-                  >
-                    Atualizar
-                  </button>
+                  <StatusLine
+                    label="Estado da comunidade"
+                    valor={comunidade.ativa ? "Ativa" : "Inativa"}
+                  />
+                  <StatusLine
+                    label="Publicação do curso"
+                    valor={curso.publicado ? "Publicado" : "Rascunho"}
+                  />
+                  <StatusLine
+                    label="Tópicos"
+                    valor={String(topicos.length)}
+                  />
                 </div>
               </div>
             </section>
@@ -565,7 +595,7 @@ export default function ComunidadeDetalhePage({
             <section
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                gridTemplateColumns: "minmax(0, 1.15fr) minmax(320px, 0.85fr)",
                 gap: "24px",
                 alignItems: "start",
               }}
@@ -605,10 +635,7 @@ export default function ComunidadeDetalhePage({
                 </Panel>
 
                 <Panel>
-                  <SectionHeader
-                    subtitulo="Tópicos"
-                    titulo="Discussões da comunidade"
-                  />
+                  <SectionHeader subtitulo="Tópicos" titulo="Discussões da comunidade" />
 
                   {topicos.length === 0 ? (
                     <p
@@ -626,6 +653,7 @@ export default function ComunidadeDetalhePage({
                       {topicos.map((topico) => {
                         const respostasDoTopico =
                           respostasPorTopico[topico.id] || [];
+
                         const nomeAluno =
                           typeof topico.autor_aluno_id === "number"
                             ? alunosMap[topico.autor_aluno_id]?.nome ||
@@ -674,7 +702,7 @@ export default function ComunidadeDetalhePage({
                                 >
                                   Autor:{" "}
                                   {topico.autor_formador_id
-                                    ? "Formador"
+                                    ? formador?.nome || "Formador"
                                     : nomeAluno || "Aluno"}
                                 </p>
                               </div>
@@ -687,9 +715,7 @@ export default function ComunidadeDetalhePage({
                                 }}
                               >
                                 <Tag texto={topico.fixado ? "Fixado" : "Normal"} />
-                                <Tag
-                                  texto={topico.fechado ? "Fechado" : "Aberto"}
-                                />
+                                <Tag texto={topico.fechado ? "Fechado" : "Aberto"} />
                               </div>
                             </div>
 
@@ -758,8 +784,8 @@ export default function ComunidadeDetalhePage({
                                       }}
                                     >
                                       {resposta.autor_formador_id
-                                        ? "Resposta do formador"
-                                        : nomeAlunoResposta || "Resposta do aluno"}
+                                        ? formador?.nome || "Formador"
+                                        : nomeAlunoResposta || "Aluno"}
                                     </p>
 
                                     <p
@@ -836,18 +862,6 @@ export default function ComunidadeDetalhePage({
                     label="Tópicos"
                     valor={String(topicos.length)}
                   />
-                </Panel>
-
-                <Panel>
-                  <SectionHeader
-                    subtitulo="Utilização"
-                    titulo="Sugestões de uso"
-                  />
-
-                  <ChecklistItem texto="Criar tópicos de esclarecimento para dúvidas recorrentes." />
-                  <ChecklistItem texto="Fixar anúncios importantes para a turma." />
-                  <ChecklistItem texto="Responder no próprio tópico para manter o histórico organizado." />
-                  <ChecklistItem texto="Criar módulos extra no curso quando as dúvidas exigirem aprofundamento." />
                 </Panel>
               </div>
             </section>
@@ -1037,30 +1051,6 @@ function StatusLine({
         }}
       >
         {valor}
-      </p>
-    </div>
-  );
-}
-
-function ChecklistItem({ texto }: { texto: string }) {
-  return (
-    <div
-      style={{
-        border: "1px solid rgba(166,120,61,0.18)",
-        background: "rgba(32,18,13,0.35)",
-        padding: "16px 18px",
-        marginBottom: "12px",
-      }}
-    >
-      <p
-        style={{
-          margin: 0,
-          fontSize: "20px",
-          color: "#d7b06c",
-          lineHeight: 1.6,
-        }}
-      >
-        {texto}
       </p>
     </div>
   );

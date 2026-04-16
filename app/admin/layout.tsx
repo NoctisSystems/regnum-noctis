@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { CSSProperties } from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 type AdminRegisto = {
@@ -17,27 +15,8 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
   const router = useRouter();
-
   const [aValidarAcesso, setAValidarAcesso] = useState(true);
-  const [menuAbertoMobile, setMenuAbertoMobile] = useState(false);
-
-  const menuItems = useMemo(
-    () => [
-      { href: "/admin", label: "Dashboard" },
-      { href: "/admin/cursos", label: "Cursos" },
-      { href: "/admin/candidaturas-formador", label: "Candidaturas" },
-      { href: "/admin/formadores", label: "Formadores" },
-      { href: "/admin/alunos", label: "Alunos" },
-      { href: "/admin/inscricoes", label: "Inscrições" },
-      { href: "/admin/publicidade", label: "Publicidade" },
-      { href: "/admin/publicidade-candidaturas", label: "Pedidos publicidade" },
-      { href: "/admin/vendas", label: "Vendas" },
-      { href: "/admin/levantamentos", label: "Levantamentos" },
-    ],
-    []
-  );
 
   useEffect(() => {
     let ativo = true;
@@ -89,10 +68,6 @@ export default function AdminLayout({
       ativo = false;
     };
   }, [router]);
-
-  useEffect(() => {
-    setMenuAbertoMobile(false);
-  }, [pathname]);
 
   if (aValidarAcesso) {
     return (
@@ -162,64 +137,8 @@ export default function AdminLayout({
   }
 
   return (
-    <main className="admin-shell">
-      <aside className={`admin-sidebar ${menuAbertoMobile ? "open" : ""}`}>
-        <div className="admin-sidebar-top">
-          <p className="admin-sidebar-kicker">Regnum Noctis</p>
-
-          <h2 className="admin-sidebar-title">Administração</h2>
-
-          <p className="admin-sidebar-text">
-            Gestão central da plataforma, finanças, formadores, alunos,
-            inscrições, publicidade, candidaturas e vendas.
-          </p>
-        </div>
-
-        <nav className="admin-sidebar-nav">
-          {menuItems.map((item) => {
-            const isActive = pathname === item.href;
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`admin-sidebar-link ${isActive ? "active" : ""}`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="admin-sidebar-bottom">
-          <Link href="/" className="admin-sidebar-secondary-link">
-            Voltar ao site
-          </Link>
-
-          <Link
-            href="/admin-login"
-            className="admin-sidebar-secondary-link"
-          >
-            Área de login admin
-          </Link>
-        </div>
-      </aside>
-
-      <section className="admin-content">
-        <div className="admin-mobile-topbar">
-          <button
-            type="button"
-            onClick={() => setMenuAbertoMobile((prev) => !prev)}
-            className="admin-mobile-menu-button"
-            aria-label="Abrir menu da administração"
-            aria-expanded={menuAbertoMobile}
-          >
-            {menuAbertoMobile ? "Fechar menu" : "Menu admin"}
-          </button>
-        </div>
-
-        {children}
-      </section>
+    <main className="admin-layout-clean">
+      <section className="admin-layout-inner">{children}</section>
     </main>
   );
 }

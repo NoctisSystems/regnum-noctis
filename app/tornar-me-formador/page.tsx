@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -15,6 +16,8 @@ type FormData = {
   cursos_pretendidos: string;
   aceitou_termos: boolean;
 };
+
+const TERMOS_VERSAO = "2026-04-16";
 
 const initialForm: FormData = {
   nome: "",
@@ -102,7 +105,7 @@ export default function TornaTeFormadorPage() {
       return "Tens de enviar o comprovativo em ficheiro.";
     }
     if (!form.aceitou_termos) {
-      return "Tens de confirmar que os dados enviados são verdadeiros.";
+      return "Tens de ler e aceitar os Termos e Condições da plataforma antes de enviar a candidatura.";
     }
     return "";
   }
@@ -177,6 +180,11 @@ export default function TornaTeFormadorPage() {
             biografia_curta: form.biografia_curta.trim(),
             biografia_pagina_formador: form.biografia_pagina_formador.trim(),
             cursos_pretendidos: form.cursos_pretendidos.trim(),
+            aceitou_termos: form.aceitou_termos,
+            aceitou_termos_em: form.aceitou_termos
+              ? new Date().toISOString()
+              : null,
+            versao_termos: TERMOS_VERSAO,
             estado: "pendente",
           },
         ]);
@@ -397,8 +405,91 @@ export default function TornaTeFormadorPage() {
               label="Comprovativo"
               accept=".pdf,image/png,image/jpeg,image/jpg,image/webp"
               onChange={handleComprovativoChange}
-              helper="Envia o comprovativo em ficheiro. Não é por URL."
+              helper="Envia um comprovativo da tua atividade profissional em ficheiro. Exemplos: em Portugal, comprovativo de início de atividade ou documento equivalente; no Brasil, comprovativo de MEI ou documento equivalente. Não é aceite por URL."
             />
+
+            <div
+              style={{
+                border: "1px solid rgba(166,120,61,0.35)",
+                background: "rgba(166,120,61,0.06)",
+                padding: "16px 16px",
+                color: "#d7b06c",
+                lineHeight: 1.7,
+              }}
+            >
+              <p
+                style={{
+                  margin: "0 0 10px 0",
+                  fontSize: "18px",
+                  color: "#f0d79a",
+                  fontFamily: "Cinzel, serif",
+                }}
+              >
+                Antes de submeter
+              </p>
+
+              <p
+                style={{
+                  margin: "0 0 10px 0",
+                  fontSize: "17px",
+                }}
+              >
+                A Regnum Noctis aplica, por defeito, uma comissão de{" "}
+                <strong style={{ color: "#f0d79a" }}>30%</strong> sobre as vendas
+                dos cursos de formadores externos, salvo acordo escrito em
+                contrário ou configuração específica definida pela
+                administração.
+              </p>
+
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "17px",
+                }}
+              >
+                A tua candidatura só será analisada após o envio completo dos
+                dados e da aceitação dos Termos e Condições da plataforma.
+              </p>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "12px",
+                alignItems: "center",
+              }}
+            >
+              <Link
+                href="/tornar-me-formador/termos-e-condicoes"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "1px solid #a6783d",
+                  background:
+                    "linear-gradient(180deg, #24140f 0%, #1a100c 100%)",
+                  color: "#e6c27a",
+                  padding: "12px 18px",
+                  fontSize: "16px",
+                  textDecoration: "none",
+                  boxShadow: "0 0 14px rgba(166, 120, 61, 0.1)",
+                }}
+              >
+                Ler Termos e Condições
+              </Link>
+
+              <span
+                style={{
+                  fontSize: "16px",
+                  color: "#caa15a",
+                  lineHeight: 1.6,
+                }}
+              >
+                A leitura dos termos é obrigatória antes da submissão da
+                candidatura.
+              </span>
+            </div>
 
             <label
               style={{
@@ -420,7 +511,11 @@ export default function TornaTeFormadorPage() {
                   accentColor: "#a6783d",
                 }}
               />
-              <span>Confirmo que os dados enviados são verdadeiros.</span>
+              <span>
+                Declaro que li e aceito os Termos e Condições da plataforma,
+                compreendo a comissão aplicável e confirmo que os dados enviados
+                são verdadeiros.
+              </span>
             </label>
 
             {error && (
@@ -506,11 +601,64 @@ export default function TornaTeFormadorPage() {
               }}
             >
               <li>As candidaturas são analisadas manualmente.</li>
-              <li>O comprovativo deve ser enviado em ficheiro.</li>
+              <li>
+                A Regnum Noctis aplica, por defeito, uma comissão de 30% sobre
+                as vendas dos cursos de formadores externos, salvo acordo
+                escrito em contrário ou configuração específica definida pela
+                administração.
+              </li>
+              <li>
+                O comprovativo deve ser enviado em ficheiro e deve demonstrar a
+                tua atividade profissional.
+              </li>
               <li>A foto será usada no perfil público após aprovação.</li>
               <li>Os dados privados ficam reservados à administração.</li>
               <li>A aprovação não é automática.</li>
             </ul>
+
+            <div
+              style={{
+                borderTop: "1px solid rgba(166,120,61,0.35)",
+                paddingTop: "22px",
+                marginBottom: "22px",
+              }}
+            >
+              <p
+                style={{
+                  margin: "0 0 12px 0",
+                  fontSize: "19px",
+                  color: "#caa15a",
+                }}
+              >
+                O que conta como comprovativo
+              </p>
+
+              <p
+                style={{
+                  margin: "0 0 10px 0",
+                  fontSize: "clamp(18px, 2.3vw, 19px)",
+                  lineHeight: 1.8,
+                  color: "#d7b06c",
+                }}
+              >
+                O comprovativo serve para demonstrar que exerces atividade de
+                forma regular. Pode ser, por exemplo, comprovativo de atividade
+                aberta, documento equivalente ou comprovativo de MEI, conforme o
+                teu país e situação.
+              </p>
+
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "clamp(18px, 2.3vw, 19px)",
+                  lineHeight: 1.8,
+                  color: "#d7b06c",
+                }}
+              >
+                O ficheiro deve ser enviado diretamente no formulário, em PDF ou
+                imagem.
+              </p>
+            </div>
 
             <div
               style={{

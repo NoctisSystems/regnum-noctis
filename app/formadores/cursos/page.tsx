@@ -20,6 +20,7 @@ type Curso = {
   publicado: boolean | null;
   tem_certificado: boolean | null;
   modo_certificado: string | null;
+  certificado_tipo: string | null;
   tem_manual_geral: boolean | null;
   created_at: string | null;
 };
@@ -93,7 +94,7 @@ export default function CursosFormadorPage() {
       const { data: cursosData, error: cursosError } = await supabase
         .from("cursos")
         .select(
-          "id, titulo, descricao, tipo_produto, preco, publicado, tem_certificado, modo_certificado, tem_manual_geral, created_at"
+          "id, titulo, descricao, tipo_produto, preco, publicado, tem_certificado, modo_certificado, certificado_tipo, tem_manual_geral, created_at"
         )
         .eq("formador_id", formadorData.id)
         .order("id", { ascending: false });
@@ -105,7 +106,7 @@ export default function CursosFormadorPage() {
       }
 
       const cursosLista = (cursosData || []) as Curso[];
-      setCursorsSafe(cursosLista, setCursos);
+      setCursos(cursosLista);
 
       if (cursosLista.length === 0) {
         setComunidadesMap({});
@@ -331,7 +332,7 @@ export default function CursosFormadorPage() {
         ) : cursos.length === 0 ? (
           <EmptyState
             titulo="Ainda não tens cursos criados"
-            descricao="Quando criares o teu primeiro curso, ele aparecerá aqui com acesso à estrutura, comunidade e restantes áreas internas."
+            descricao="Quando criares o teu primeiro curso, ele aparecerá aqui com acesso à gestão principal, estrutura e restantes áreas internas."
             botaoHref="/formadores/criar-curso"
             botaoTexto="Criar primeiro curso"
           />
@@ -452,15 +453,11 @@ export default function CursosFormadorPage() {
                   />
                   <InfoMini
                     label="Certificado"
-                    valor={
-                      curso.tem_certificado
-                        ? `Sim${
-                            curso.modo_certificado
-                              ? ` (${curso.modo_certificado})`
-                              : ""
-                          }`
-                        : "Não"
-                    }
+                    valor={traduzirCertificado(
+                      curso.tem_certificado,
+                      curso.modo_certificado,
+                      curso.certificado_tipo
+                    )}
                   />
                   <InfoMini
                     label="Manual geral"
@@ -475,16 +472,23 @@ export default function CursosFormadorPage() {
                     flexWrap: "wrap",
                   }}
                 >
-                  <Link href="/formadores/comunidades" style={botao}>
+                  <Link href={`/formadores/cursos/${curso.id}`} style={botao}>
+                    Gerir curso
+                  </Link>
+
+                  <Link
+                    href={`/formadores/cursos/${curso.id}/estrutura`}
+                    style={botaoSecundario}
+                  >
+                    Gerir estrutura
+                  </Link>
+
+                  <Link href="/formadores/comunidades" style={botaoSecundario}>
                     Comunidades
                   </Link>
 
                   <Link href="/formadores/alunos" style={botaoSecundario}>
                     Ver alunos
-                  </Link>
-
-                  <Link href="/formadores/criar-curso" style={botaoSecundario}>
-                    Criar novo curso
                   </Link>
                 </div>
               </article>
@@ -496,18 +500,37 @@ export default function CursosFormadorPage() {
   );
 }
 
-function setCursorsSafe(
-  cursosLista: Curso[],
-  setCursos: React.Dispatch<React.SetStateAction<Curso[]>>
-) {
-  setCursos(cursosLista);
-}
-
 function traduzirTipoProduto(tipo: string | null) {
   if (tipo === "curso_video") return "Curso em vídeo";
   if (tipo === "pdf_digital") return "PDF digital";
   if (tipo === "produto_fisico") return "Produto físico";
   return "Não definido";
+}
+
+function traduzirCertificado(
+  temCertificado: boolean | null,
+  modoCertificado: string | null,
+  certificadoTipo: string | null
+) {
+  if (!temCertificado) return "Não";
+
+  if (modoCertificado === "manual") {
+    if (certificadoTipo === "upload_pronto") {
+      return "Certificado próprio manual";
+    }
+
+    if (certificadoTipo === "modelo_personalizado") {
+      return "Modelo próprio manual";
+    }
+
+    return "Certificado manual";
+  }
+
+  if (modoCertificado === "automatico") {
+    return "Certificado automático";
+  }
+
+  return "Sim";
 }
 
 function MetricCard({

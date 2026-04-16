@@ -1,9 +1,5 @@
-"use client";
-
-import type { CSSProperties } from "react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 type AdminResumoFinanceiro = {
   total_vendido: number | null;
@@ -23,141 +19,151 @@ const resumoFinanceiroVazio: AdminResumoFinanceiro = {
   total_pago_formadores: 0,
 };
 
-export default function AdminDashboard() {
-  const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState("");
-  const [avisoFinanceiro, setAvisoFinanceiro] = useState("");
+const menuAdmin = [
+  { href: "/admin/cursos", label: "Cursos" },
+  { href: "/admin/candidaturas-formador", label: "Candidaturas" },
+  { href: "/admin/formadores", label: "Formadores" },
+  { href: "/admin/alunos", label: "Alunos" },
+  { href: "/admin/inscricoes", label: "Inscrições" },
+  { href: "/admin/publicidade", label: "Publicidade" },
+  { href: "/admin/publicidade-candidaturas", label: "Pedidos publicidade" },
+  { href: "/admin/vendas", label: "Vendas" },
+  { href: "/admin/levantamentos", label: "Levantamentos" },
+  { href: "/admin/tickets", label: "Tickets" },
+  { href: "/admin/chat-formadores", label: "Chat formadores" },
+];
 
-  const [totalCursos, setTotalCursos] = useState(0);
-  const [totalCandidaturasPendentes, setTotalCandidaturasPendentes] =
-    useState(0);
-  const [totalFormadores, setTotalFormadores] = useState(0);
-  const [totalAlunos, setTotalAlunos] = useState(0);
-  const [totalInscricoes, setTotalInscricoes] = useState(0);
-  const [totalLevantamentosPendentes, setTotalLevantamentosPendentes] =
-    useState(0);
-  const [totalPublicidade, setTotalPublicidade] = useState(0);
-  const [totalPublicidadeHome, setTotalPublicidadeHome] = useState(0);
-  const [totalPublicidadeCandidaturas, setTotalPublicidadeCandidaturas] =
-    useState(0);
-  const [
-    totalPublicidadeCandidaturasPendentes,
-    setTotalPublicidadeCandidaturasPendentes,
-  ] = useState(0);
+export const dynamic = "force-dynamic";
 
-  const [financeiro, setFinanceiro] =
-    useState<AdminResumoFinanceiro>(resumoFinanceiroVazio);
+export default async function AdminDashboardPage() {
+  const supabaseAdmin = getSupabaseAdmin();
 
-  useEffect(() => {
-    carregarDashboard();
-  }, []);
+  let erro = "";
+  let avisoFinanceiro = "";
 
-  async function carregarDashboard() {
-    setLoading(true);
-    setErro("");
-    setAvisoFinanceiro("");
+  let totalCursos = 0;
+  let totalCandidaturasPendentes = 0;
+  let totalFormadores = 0;
+  let totalAlunos = 0;
+  let totalInscricoes = 0;
+  let totalLevantamentosPendentes = 0;
+  let totalPublicidade = 0;
+  let totalPublicidadeHome = 0;
+  let totalPublicidadeCandidaturas = 0;
+  let totalPublicidadeCandidaturasPendentes = 0;
+  let financeiro: AdminResumoFinanceiro = resumoFinanceiroVazio;
 
-    try {
-      const [
-        cursosRes,
-        candidaturasRes,
-        formadoresRes,
-        alunosRes,
-        inscricoesRes,
-        levantamentosRes,
-        publicidadeRes,
-        publicidadeHomeRes,
-        publicidadeCandidaturasRes,
-        publicidadeCandidaturasPendentesRes,
-      ] = await Promise.all([
-        supabase.from("cursos").select("id", { count: "exact", head: true }),
-        supabase
-          .from("formador_candidaturas")
-          .select("id", { count: "exact", head: true })
-          .eq("estado", "pendente"),
-        supabase
-          .from("formadores")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "aprovado"),
-        supabase.from("alunos").select("id", { count: "exact", head: true }),
-        supabase.from("inscricoes").select("id", { count: "exact", head: true }),
-        supabase
-          .from("levantamentos_formador")
-          .select("id", { count: "exact", head: true })
-          .in("estado", ["aguarda_fatura", "fatura_enviada", "validado_admin"]),
-        supabase
-          .from("publicidade_parceiros")
-          .select("id", { count: "exact", head: true }),
-        supabase
-          .from("publicidade_parceiros")
-          .select("id", { count: "exact", head: true })
-          .eq("mostrar_na_home", true)
-          .eq("ativo", true),
-        supabase
-          .from("publicidade_candidaturas")
-          .select("id", { count: "exact", head: true }),
-        supabase
-          .from("publicidade_candidaturas")
-          .select("id", { count: "exact", head: true })
-          .eq("estado", "pendente"),
-      ]);
+  try {
+    const [
+      cursosRes,
+      candidaturasRes,
+      formadoresRes,
+      alunosRes,
+      inscricoesRes,
+      levantamentosRes,
+      publicidadeRes,
+      publicidadeHomeRes,
+      publicidadeCandidaturasRes,
+      publicidadeCandidaturasPendentesRes,
+      financeiroRes,
+    ] = await Promise.all([
+      supabaseAdmin.from("cursos").select("id", { count: "exact", head: true }),
 
-      if (cursosRes.error) throw cursosRes.error;
-      if (candidaturasRes.error) throw candidaturasRes.error;
-      if (formadoresRes.error) throw formadoresRes.error;
-      if (alunosRes.error) throw alunosRes.error;
-      if (inscricoesRes.error) throw inscricoesRes.error;
-      if (levantamentosRes.error) throw levantamentosRes.error;
-      if (publicidadeRes.error) throw publicidadeRes.error;
-      if (publicidadeHomeRes.error) throw publicidadeHomeRes.error;
-      if (publicidadeCandidaturasRes.error)
-        throw publicidadeCandidaturasRes.error;
-      if (publicidadeCandidaturasPendentesRes.error)
-        throw publicidadeCandidaturasPendentesRes.error;
+      supabaseAdmin
+        .from("formador_candidaturas")
+        .select("id", { count: "exact", head: true })
+        .eq("estado", "pendente"),
 
-      setTotalCursos(cursosRes.count || 0);
-      setTotalCandidaturasPendentes(candidaturasRes.count || 0);
-      setTotalFormadores(formadoresRes.count || 0);
-      setTotalAlunos(alunosRes.count || 0);
-      setTotalInscricoes(inscricoesRes.count || 0);
-      setTotalLevantamentosPendentes(levantamentosRes.count || 0);
-      setTotalPublicidade(publicidadeRes.count || 0);
-      setTotalPublicidadeHome(publicidadeHomeRes.count || 0);
-      setTotalPublicidadeCandidaturas(publicidadeCandidaturasRes.count || 0);
-      setTotalPublicidadeCandidaturasPendentes(
-        publicidadeCandidaturasPendentesRes.count || 0
-      );
+      supabaseAdmin
+        .from("formadores")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "aprovado"),
 
-      const financeiroRes = await supabase
+      supabaseAdmin.from("alunos").select("id", { count: "exact", head: true }),
+
+      supabaseAdmin
+        .from("inscricoes")
+        .select("id", { count: "exact", head: true }),
+
+      supabaseAdmin
+        .from("levantamentos_formador")
+        .select("id", { count: "exact", head: true })
+        .in("estado", ["aguarda_fatura", "fatura_enviada", "validado_admin"]),
+
+      supabaseAdmin
+        .from("publicidade_parceiros")
+        .select("id", { count: "exact", head: true }),
+
+      supabaseAdmin
+        .from("publicidade_parceiros")
+        .select("id", { count: "exact", head: true })
+        .eq("mostrar_na_home", true)
+        .eq("ativo", true),
+
+      supabaseAdmin
+        .from("publicidade_candidaturas")
+        .select("id", { count: "exact", head: true }),
+
+      supabaseAdmin
+        .from("publicidade_candidaturas")
+        .select("id", { count: "exact", head: true })
+        .eq("estado", "pendente"),
+
+      supabaseAdmin
         .from("admin_resumo_financeiro")
         .select("*")
         .limit(1)
-        .maybeSingle();
+        .maybeSingle(),
+    ]);
 
-      if (financeiroRes.error) {
-        console.error(
-          "Erro ao carregar admin_resumo_financeiro:",
-          financeiroRes.error
-        );
-        setFinanceiro(resumoFinanceiroVazio);
-        setAvisoFinanceiro(
-          `Resumo financeiro temporariamente indisponível: ${financeiroRes.error.message}`
-        );
-      } else {
-        setFinanceiro(financeiroRes.data || resumoFinanceiroVazio);
-      }
-    } catch (err: any) {
-      setErro(
-        err?.message ||
-          "Ocorreu um erro ao carregar a dashboard da administração."
+    if (cursosRes.error) throw cursosRes.error;
+    if (candidaturasRes.error) throw candidaturasRes.error;
+    if (formadoresRes.error) throw formadoresRes.error;
+    if (alunosRes.error) throw alunosRes.error;
+    if (inscricoesRes.error) throw inscricoesRes.error;
+    if (levantamentosRes.error) throw levantamentosRes.error;
+    if (publicidadeRes.error) throw publicidadeRes.error;
+    if (publicidadeHomeRes.error) throw publicidadeHomeRes.error;
+    if (publicidadeCandidaturasRes.error)
+      throw publicidadeCandidaturasRes.error;
+    if (publicidadeCandidaturasPendentesRes.error)
+      throw publicidadeCandidaturasPendentesRes.error;
+
+    totalCursos = cursosRes.count || 0;
+    totalCandidaturasPendentes = candidaturasRes.count || 0;
+    totalFormadores = formadoresRes.count || 0;
+    totalAlunos = alunosRes.count || 0;
+    totalInscricoes = inscricoesRes.count || 0;
+    totalLevantamentosPendentes = levantamentosRes.count || 0;
+    totalPublicidade = publicidadeRes.count || 0;
+    totalPublicidadeHome = publicidadeHomeRes.count || 0;
+    totalPublicidadeCandidaturas = publicidadeCandidaturasRes.count || 0;
+    totalPublicidadeCandidaturasPendentes =
+      publicidadeCandidaturasPendentesRes.count || 0;
+
+    if (financeiroRes.error) {
+      console.error(
+        "Erro ao carregar admin_resumo_financeiro:",
+        financeiroRes.error
       );
-    } finally {
-      setLoading(false);
+      financeiro = resumoFinanceiroVazio;
+      avisoFinanceiro = `Resumo financeiro temporariamente indisponível: ${financeiroRes.error.message}`;
+    } else {
+      financeiro =
+        (financeiroRes.data as AdminResumoFinanceiro | null) ||
+        resumoFinanceiroVazio;
     }
+  } catch (err: any) {
+    erro =
+      err?.message ||
+      "Ocorreu um erro ao carregar a dashboard da administração.";
   }
 
   const totalVendas = Number(financeiro?.total_vendido || 0);
   const totalComissoes = Number(financeiro?.total_comissoes_plataforma || 0);
+  const totalLiquidoFormadores = Number(
+    financeiro?.total_liquido_formadores || 0
+  );
   const totalPendenteFormadores = Number(
     financeiro?.total_pendente_formadores || 0
   );
@@ -168,61 +174,60 @@ export default function AdminDashboard() {
 
   return (
     <>
-      <section
-        style={{
-          marginBottom: "30px",
-          paddingBottom: "22px",
-          borderBottom: "1px solid rgba(166, 120, 61, 0.4)",
-        }}
-      >
-        <p
-          style={{
-            margin: "0 0 10px 0",
-            textTransform: "uppercase",
-            letterSpacing: "0.14em",
-            fontSize: "14px",
-            color: "#caa15a",
-          }}
-        >
-          Painel central
-        </p>
-
-        <h1
-          style={{
-            fontFamily: "Cinzel, serif",
-            fontSize: "clamp(32px, 5vw, 58px)",
-            lineHeight: 1.08,
-            margin: "0 0 16px 0",
-            color: "#f0d79a",
-            fontWeight: 500,
-          }}
-        >
-          Dashboard da Administração
-        </h1>
-
-        <p
-          style={{
-            maxWidth: "980px",
-            margin: 0,
-            fontSize: "clamp(18px, 2.3vw, 25px)",
-            lineHeight: 1.6,
-            color: "#dfbe81",
-          }}
-        >
-          Aqui tens a visão geral da plataforma, o acesso rápido às áreas de
-          gestão e o controlo administrativo principal do Regnum Noctis.
-        </p>
+      <section className="admin-top-nav-card fade-in-up">
+        <div className="admin-top-nav-grid">
+          {menuAdmin.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`admin-top-nav-link ${
+                item.href === "/admin" ? "active" : ""
+              }`}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
       </section>
 
-      {loading ? (
-        <LoadingBox />
-      ) : erro ? (
+      {erro ? (
         <ErrorBox texto={erro} />
       ) : (
         <>
           {avisoFinanceiro ? <WarningBox texto={avisoFinanceiro} /> : null}
 
-          <section className="admin-dashboard-grid">
+          <section className="admin-summary-panel fade-in-up fade-delay-1">
+            <h2 className="admin-summary-title">Resumo financeiro</h2>
+
+            <div className="admin-summary-grid">
+              <ResumoLinha
+                label="Total vendido"
+                value={formatarEuro(totalVendas)}
+              />
+              <ResumoLinha
+                label="Comissões da plataforma"
+                value={formatarEuro(totalComissoes)}
+              />
+              <ResumoLinha
+                label="Líquido formadores"
+                value={formatarEuro(totalLiquidoFormadores)}
+              />
+              <ResumoLinha
+                label="Pendente para formadores"
+                value={formatarEuro(totalPendenteFormadores)}
+              />
+              <ResumoLinha
+                label="Disponível para formadores"
+                value={formatarEuro(totalDisponivelFormadores)}
+              />
+              <ResumoLinha
+                label="Já pago a formadores"
+                value={formatarEuro(totalPagoFormadores)}
+              />
+            </div>
+          </section>
+
+          <section className="admin-dashboard-grid fade-in-up fade-delay-2">
             <DashboardCard
               title="Cursos"
               value={String(totalCursos)}
@@ -286,117 +291,6 @@ export default function AdminDashboard() {
               href="/admin/levantamentos"
             />
           </section>
-
-          <section
-            className="admin-dashboard-grid"
-            style={{ marginTop: "22px" }}
-          >
-            <DashboardCardStatic
-              title="Comissões da plataforma"
-              value={formatarEuro(totalComissoes)}
-              subtitle="Valor acumulado da comissão administrativa"
-            />
-
-            <DashboardCardStatic
-              title="Pendente formadores"
-              value={formatarEuro(totalPendenteFormadores)}
-              subtitle="Saldo ainda dentro do prazo legal"
-            />
-
-            <DashboardCardStatic
-              title="Disponível formadores"
-              value={formatarEuro(totalDisponivelFormadores)}
-              subtitle="Saldo pronto para levantamento"
-            />
-
-            <DashboardCardStatic
-              title="Pago a formadores"
-              value={formatarEuro(totalPagoFormadores)}
-              subtitle="Montante já liquidado"
-            />
-          </section>
-
-          <section className="admin-dashboard-bottom">
-            <article style={painelGrande}>
-              <h2 style={tituloPainel}>Resumo financeiro</h2>
-
-              <div
-                style={{
-                  display: "grid",
-                  gap: "14px",
-                }}
-              >
-                <ResumoLinha
-                  label="Total vendido"
-                  value={formatarEuro(totalVendas)}
-                />
-                <ResumoLinha
-                  label="Comissões da plataforma"
-                  value={formatarEuro(totalComissoes)}
-                />
-                <ResumoLinha
-                  label="Pendente para formadores"
-                  value={formatarEuro(totalPendenteFormadores)}
-                />
-                <ResumoLinha
-                  label="Disponível para formadores"
-                  value={formatarEuro(totalDisponivelFormadores)}
-                />
-                <ResumoLinha
-                  label="Já pago a formadores"
-                  value={formatarEuro(totalPagoFormadores)}
-                />
-              </div>
-            </article>
-
-            <article style={painelGrande}>
-              <h2 style={tituloPainel}>Acesso rápido</h2>
-
-              <div
-                style={{
-                  display: "grid",
-                  gap: "14px",
-                }}
-              >
-                <QuickLink
-                  href="/admin/candidaturas-formador"
-                  label="Analisar candidaturas de formadores"
-                />
-                <QuickLink
-                  href="/admin/cursos"
-                  label="Gerir cursos da plataforma"
-                />
-                <QuickLink
-                  href="/admin/formadores"
-                  label="Ver lista de formadores"
-                />
-                <QuickLink
-                  href="/admin/alunos"
-                  label="Consultar alunos registados"
-                />
-                <QuickLink
-                  href="/admin/inscricoes"
-                  label="Gerir inscrições manuais e estados"
-                />
-                <QuickLink
-                  href="/admin/publicidade"
-                  label="Gerir publicidade e parceiros"
-                />
-                <QuickLink
-                  href="/admin/publicidade-candidaturas"
-                  label="Aprovar ou rejeitar pedidos de publicidade"
-                />
-                <QuickLink
-                  href="/admin/vendas"
-                  label="Aceder ao resumo de vendas"
-                />
-                <QuickLink
-                  href="/admin/levantamentos"
-                  label="Gerir pedidos de levantamento"
-                />
-              </div>
-            </article>
-          </section>
         </>
       )}
     </>
@@ -424,44 +318,8 @@ function DashboardCard({
   return (
     <Link href={href} className="admin-card-link">
       <h3 className="admin-card-title">{title}</h3>
-
       <p className="admin-card-value">{value}</p>
-
       <p className="admin-card-subtitle">{subtitle}</p>
-    </Link>
-  );
-}
-
-function DashboardCardStatic({
-  title,
-  value,
-  subtitle,
-}: {
-  title: string;
-  value: string;
-  subtitle: string;
-}) {
-  return (
-    <article className="admin-card-link">
-      <h3 className="admin-card-title">{title}</h3>
-
-      <p className="admin-card-value">{value}</p>
-
-      <p className="admin-card-subtitle">{subtitle}</p>
-    </article>
-  );
-}
-
-function QuickLink({
-  href,
-  label,
-}: {
-  href: string;
-  label: string;
-}) {
-  return (
-    <Link href={href} className="admin-quick-link">
-      {label}
     </Link>
   );
 }
@@ -474,109 +332,17 @@ function ResumoLinha({
   value: string;
 }) {
   return (
-    <div
-      style={{
-        border: "1px solid rgba(166, 120, 61, 0.35)",
-        background: "rgba(38, 20, 15, 0.35)",
-        padding: "16px 18px",
-      }}
-    >
-      <p
-        style={{
-          margin: "0 0 8px 0",
-          fontSize: "14px",
-          textTransform: "uppercase",
-          letterSpacing: "0.08em",
-          color: "#caa15a",
-        }}
-      >
-        {label}
-      </p>
-
-      <p
-        style={{
-          margin: 0,
-          fontSize: "clamp(20px, 2.4vw, 24px)",
-          lineHeight: 1.4,
-          color: "#f0d79a",
-          fontFamily: "Cinzel, serif",
-          wordBreak: "break-word",
-        }}
-      >
-        {value}
-      </p>
+    <div className="admin-summary-item">
+      <p className="admin-summary-label">{label}</p>
+      <p className="admin-summary-value">{value}</p>
     </div>
   );
 }
 
-function LoadingBox() {
-  return (
-    <section style={painelGrande}>
-      <h2 style={tituloPainel}>A carregar dashboard</h2>
-
-      <p
-        style={{
-          margin: 0,
-          fontSize: "clamp(18px, 2.1vw, 22px)",
-          lineHeight: 1.7,
-          color: "#dfbe81",
-        }}
-      >
-        A plataforma está a reunir dados administrativos, financeiros e
-        operacionais.
-      </p>
-    </section>
-  );
-}
-
 function ErrorBox({ texto }: { texto: string }) {
-  return (
-    <section
-      style={{
-        border: "1px solid rgba(255,107,107,0.35)",
-        background: "rgba(120,20,20,0.12)",
-        padding: "24px",
-        color: "#ffb4b4",
-        fontSize: "18px",
-        lineHeight: 1.7,
-      }}
-    >
-      {texto}
-    </section>
-  );
+  return <section className="admin-error-box fade-in-up">{texto}</section>;
 }
 
 function WarningBox({ texto }: { texto: string }) {
-  return (
-    <section
-      style={{
-        border: "1px solid rgba(230,194,122,0.35)",
-        background: "rgba(120,90,20,0.12)",
-        padding: "18px 20px",
-        color: "#f0d79a",
-        fontSize: "17px",
-        lineHeight: 1.7,
-        marginBottom: "24px",
-      }}
-    >
-      {texto}
-    </section>
-  );
+  return <section className="admin-warning-box fade-in-up">{texto}</section>;
 }
-
-const painelGrande: CSSProperties = {
-  border: "1px solid rgba(166, 120, 61, 0.7)",
-  background:
-    "linear-gradient(180deg, rgba(15,9,7,0.96) 0%, rgba(28,16,12,0.98) 100%)",
-  padding: "clamp(20px, 2.4vw, 30px)",
-  boxShadow:
-    "0 16px 40px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,225,170,0.04)",
-};
-
-const tituloPainel: CSSProperties = {
-  fontFamily: "Cinzel, serif",
-  fontSize: "clamp(26px, 3vw, 34px)",
-  margin: "0 0 18px 0",
-  color: "#f0d79a",
-  fontWeight: 500,
-};
