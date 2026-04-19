@@ -1,7 +1,19 @@
 "use client";
 
-import { CSSProperties, useEffect, useMemo, useState } from "react";
+import { CSSProperties, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+
+type AdminVendasMetricas = {
+  total_vendas: number | null;
+  total_vendido_bruto: number | null;
+  total_recebido_liquido: number | null;
+  total_taxas_stripe: number | null;
+  comissao_plataforma_liquida: number | null;
+  total_formadores: number | null;
+  total_afiliados_bruto: number | null;
+  total_taxa_plataforma_afiliados: number | null;
+  total_afiliados_liquido: number | null;
+};
 
 type Pagamento = {
   id: number;
@@ -18,6 +30,13 @@ type Pagamento = {
   valor_formador: number | null;
   updated_at: string;
   valor_bruto: number | null;
+  valor_taxas_stripe?: number | null;
+  valor_recebido_liquido?: number | null;
+  valor_comissao_plataforma_liquida?: number | null;
+  valor_liquido_formador_final?: number | null;
+  valor_comissao_afiliado_bruta?: number | null;
+  valor_taxa_plataforma_afiliado?: number | null;
+  valor_comissao_afiliado_liquida?: number | null;
 };
 
 type Aluno = {
@@ -44,8 +63,13 @@ type LinhaVenda = {
   cursoTitulo: string;
   formadorNome: string;
   valorBruto: number;
+  valorRecebidoLiquido: number;
+  taxasStripe: number;
   comissaoPlataforma: number;
   valorFormador: number;
+  afiliadoBruto: number;
+  taxaPlataformaAfiliado: number;
+  afiliadoLiquido: number;
   valor: number;
   status: string;
   metodo: string;
@@ -55,31 +79,46 @@ type LinhaVenda = {
   updatedAt: string;
 };
 
+const metricasVazias: AdminVendasMetricas = {
+  total_vendas: 0,
+  total_vendido_bruto: 0,
+  total_recebido_liquido: 0,
+  total_taxas_stripe: 0,
+  comissao_plataforma_liquida: 0,
+  total_formadores: 0,
+  total_afiliados_bruto: 0,
+  total_taxa_plataforma_afiliados: 0,
+  total_afiliados_liquido: 0,
+};
+
 export default function AdminVendasPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
   const [pesquisa, setPesquisa] = useState("");
 
+  const [metricas, setMetricas] = useState<AdminVendasMetricas>(metricasVazias);
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [cursos, setCursos] = useState<Curso[]>([]);
   const [formadores, setFormadores] = useState<Formador[]>([]);
 
-  useEffect(() => {
-    carregarDados();
-  }, []);
-
-  async function carregarDados() {
+  const carregarDados = useCallback(async () => {
     setLoading(true);
     setErro("");
 
     try {
-      const [pagamentosRes, alunosRes, cursosRes, formadoresRes] =
+      const [metricasRes, pagamentosRes, alunosRes, cursosRes, formadoresRes] =
         await Promise.all([
+          supabase
+            .from("admin_vendas_metricas")
+            .select("*")
+            .limit(1)
+            .maybeSingle(),
+
           supabase
             .from("pagamentos")
             .select(
-              "id, aluno_id, curso_id, valor, status, metodo, stripe_paymente_id, created_at, formador_id, moeda, comissao_plataforma, valor_formador, updated_at, valor_bruto"
+              "id, aluno_id, curso_id, valor, status, metodo, stripe_paymente_id, created_at, formador_id, moeda, comissao_plataforma, valor_formador, updated_at, valor_bruto, valor_taxas_stripe, valor_recebido_liquido, valor_comissao_plataforma_liquida, valor_liquido_formador_final, valor_comissao_afiliado_bruta, valor_taxa_plataforma_afiliado, valor_comissao_afiliado_liquida"
             )
             .order("created_at", { ascending: false }),
 
@@ -99,11 +138,13 @@ export default function AdminVendasPage() {
             .order("nome", { ascending: true }),
         ]);
 
+      if (metricasRes.error) throw metricasRes.error;
       if (pagamentosRes.error) throw pagamentosRes.error;
       if (alunosRes.error) throw alunosRes.error;
       if (cursosRes.error) throw cursosRes.error;
       if (formadoresRes.error) throw formadoresRes.error;
 
+      setMetricas((metricasRes.data as AdminVendasMetricas | null) || metricasVazias);
       setPagamentos((pagamentosRes.data || []) as Pagamento[]);
       setAlunos((alunosRes.data || []) as Aluno[]);
       setCursos((cursosRes.data || []) as Curso[]);
@@ -113,7 +154,11 @@ export default function AdminVendasPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    carregarDados();
+  }, [carregarDados]);
 
   const mapaAlunos = useMemo(() => {
     return new Map<number, Aluno>(alunos.map((item) => [item.id, item]));
@@ -144,8 +189,21 @@ export default function AdminVendasPage() {
         cursoTitulo: curso?.titulo || "Sem curso associado",
         formadorNome: formador?.nome || "Sem formador associado",
         valorBruto: Number(pagamento.valor_bruto ?? pagamento.valor ?? 0),
-        comissaoPlataforma: Number(pagamento.comissao_plataforma ?? 0),
-        valorFormador: Number(pagamento.valor_formador ?? 0),
+        valorRecebidoLiquido: Number(pagamento.valor_recebido_liquido ?? 0),
+        taxasStripe: Number(pagamento.valor_taxas_stripe ?? 0),
+        comissaoPlataforma: Number(
+          pagamento.valor_comissao_plataforma_liquida ??
+            pagamento.comissao_plataforma ??
+            0
+        ),
+        valorFormador: Number(
+          pagamento.valor_liquido_formador_final ?? pagamento.valor_formador ?? 0
+        ),
+        afiliadoBruto: Number(pagamento.valor_comissao_afiliado_bruta ?? 0),
+        taxaPlataformaAfiliado: Number(
+          pagamento.valor_taxa_plataforma_afiliado ?? 0
+        ),
+        afiliadoLiquido: Number(pagamento.valor_comissao_afiliado_liquida ?? 0),
         valor: Number(pagamento.valor ?? 0),
         status: pagamento.status || "sem estado",
         metodo: pagamento.metodo || "—",
@@ -176,44 +234,81 @@ export default function AdminVendasPage() {
     });
   }, [linhas, pesquisa]);
 
-  const totalVendas = linhas.length;
-  const totalRecebido = linhas.reduce(
-    (acc, linha) => acc + Number(linha.valorBruto || 0),
-    0
-  );
-  const totalComissoes = linhas.reduce(
-    (acc, linha) => acc + Number(linha.comissaoPlataforma || 0),
-    0
-  );
-  const totalFormadores = linhas.reduce(
-    (acc, linha) => acc + Number(linha.valorFormador || 0),
-    0
-  );
-
   return (
     <main style={main}>
       <section style={topo}>
         <p style={eyebrow}>Administração</p>
         <h1 style={titulo}>Vendas</h1>
         <p style={descricao}>
-          Consulta das vendas registadas, estado dos pagamentos, distribuição
-          financeira por formador e comissão da plataforma.
+          Consulta das vendas registadas, estado dos pagamentos e distribuição
+          financeira real da plataforma.
         </p>
       </section>
 
       <section style={statsGrid}>
-        <StatCard label="Total de vendas" value={loading ? "..." : String(totalVendas)} />
         <StatCard
-          label="Total recebido"
-          value={loading ? "..." : formatarEuro(totalRecebido)}
+          label="Total de vendas"
+          value={loading ? "..." : String(metricas.total_vendas || 0)}
         />
         <StatCard
-          label="Comissão plataforma"
-          value={loading ? "..." : formatarEuro(totalComissoes)}
+          label="Total vendido"
+          value={
+            loading ? "..." : formatarEuro(Number(metricas.total_vendido_bruto || 0))
+          }
+        />
+        <StatCard
+          label="Taxas Stripe"
+          value={
+            loading ? "..." : formatarEuro(Number(metricas.total_taxas_stripe || 0))
+          }
+        />
+        <StatCard
+          label="Total recebido líquido"
+          value={
+            loading
+              ? "..."
+              : formatarEuro(Number(metricas.total_recebido_liquido || 0))
+          }
+        />
+        <StatCard
+          label="Comissão líquida da plataforma"
+          value={
+            loading
+              ? "..."
+              : formatarEuro(Number(metricas.comissao_plataforma_liquida || 0))
+          }
         />
         <StatCard
           label="Total formadores"
-          value={loading ? "..." : formatarEuro(totalFormadores)}
+          value={
+            loading ? "..." : formatarEuro(Number(metricas.total_formadores || 0))
+          }
+        />
+        <StatCard
+          label="Afiliados bruto"
+          value={
+            loading
+              ? "..."
+              : formatarEuro(Number(metricas.total_afiliados_bruto || 0))
+          }
+        />
+        <StatCard
+          label="Taxa plataforma afiliados"
+          value={
+            loading
+              ? "..."
+              : formatarEuro(
+                  Number(metricas.total_taxa_plataforma_afiliados || 0)
+                )
+          }
+        />
+        <StatCard
+          label="Afiliados líquido"
+          value={
+            loading
+              ? "..."
+              : formatarEuro(Number(metricas.total_afiliados_liquido || 0))
+          }
         />
       </section>
 
@@ -254,21 +349,47 @@ export default function AdminVendasPage() {
               </div>
 
               <div style={grid4}>
-                <InfoBox titulo="Aluno" valor={`${linha.alunoNome}\n${linha.alunoEmail}`} />
+                <InfoBox
+                  titulo="Aluno"
+                  valor={`${linha.alunoNome}\n${linha.alunoEmail}`}
+                />
                 <InfoBox titulo="Curso" valor={linha.cursoTitulo} />
                 <InfoBox titulo="Formador" valor={linha.formadorNome} />
                 <InfoBox titulo="Método" valor={`${linha.metodo} • ${linha.moeda}`} />
               </div>
 
-              <div style={grid3}>
+              <div style={grid4}>
                 <InfoBox titulo="Bruto" valor={formatarEuro(linha.valorBruto)} />
+                <InfoBox
+                  titulo="Taxas Stripe"
+                  valor={formatarEuro(linha.taxasStripe)}
+                />
+                <InfoBox
+                  titulo="Recebido líquido"
+                  valor={formatarEuro(linha.valorRecebidoLiquido)}
+                />
                 <InfoBox
                   titulo="Comissão plataforma"
                   valor={formatarEuro(linha.comissaoPlataforma)}
                 />
+              </div>
+
+              <div style={grid4}>
                 <InfoBox
                   titulo="Valor formador"
                   valor={formatarEuro(linha.valorFormador)}
+                />
+                <InfoBox
+                  titulo="Afiliado bruto"
+                  valor={formatarEuro(linha.afiliadoBruto)}
+                />
+                <InfoBox
+                  titulo="Taxa plataforma afiliado"
+                  valor={formatarEuro(linha.taxaPlataformaAfiliado)}
+                />
+                <InfoBox
+                  titulo="Afiliado líquido"
+                  valor={formatarEuro(linha.afiliadoLiquido)}
                 />
               </div>
 
@@ -338,7 +459,9 @@ function formatarDataHora(valor: string | null) {
 function badgeEstado(estado: string): CSSProperties {
   const normalizado = estado.trim().toLowerCase();
 
-  if (["paid", "pago", "concluido", "succeeded", "sucesso"].includes(normalizado)) {
+  if (
+    ["paid", "pago", "concluido", "succeeded", "sucesso"].includes(normalizado)
+  ) {
     return {
       display: "inline-block",
       padding: "8px 12px",
@@ -349,7 +472,9 @@ function badgeEstado(estado: string): CSSProperties {
     };
   }
 
-  if (["pending", "pendente", "processing", "em_processamento"].includes(normalizado)) {
+  if (
+    ["pending", "pendente", "processing", "em_processamento"].includes(normalizado)
+  ) {
     return {
       display: "inline-block",
       padding: "8px 12px",
@@ -421,7 +546,7 @@ const descricao: CSSProperties = {
 
 const statsGrid: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
   gap: "16px",
   marginBottom: "24px",
 };
@@ -526,13 +651,6 @@ const subtextoBloco: CSSProperties = {
 const grid4: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
-  gap: "12px",
-  marginBottom: "12px",
-};
-
-const grid3: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
   gap: "12px",
   marginBottom: "12px",
 };

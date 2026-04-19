@@ -18,6 +18,10 @@ type Curso = {
   descricao: string | null;
   tipo_produto: string | null;
   preco: number | null;
+  preco_eur: number | null;
+  preco_brl: number | null;
+  checkout_eu_ativo: boolean | null;
+  checkout_br_ativo: boolean | null;
   publicado: boolean | null;
   tem_certificado: boolean | null;
   modo_certificado: string | null;
@@ -58,6 +62,10 @@ type CursoForm = {
   descricao: string;
   tipo_produto: string;
   preco: string;
+  preco_eur: string;
+  preco_brl: string;
+  checkout_eu_ativo: boolean;
+  checkout_br_ativo: boolean;
   capa_url: string;
   publicado: boolean;
   tem_certificado: boolean;
@@ -102,6 +110,10 @@ export default function CursoGestaoFormadorPage() {
     descricao: "",
     tipo_produto: "curso_video",
     preco: "",
+    preco_eur: "",
+    preco_brl: "",
+    checkout_eu_ativo: true,
+    checkout_br_ativo: false,
     capa_url: "",
     publicado: false,
     tem_certificado: false,
@@ -197,6 +209,10 @@ export default function CursoGestaoFormadorPage() {
           descricao,
           tipo_produto,
           preco,
+          preco_eur,
+          preco_brl,
+          checkout_eu_ativo,
+          checkout_br_ativo,
           publicado,
           tem_certificado,
           modo_certificado,
@@ -237,9 +253,19 @@ export default function CursoGestaoFormadorPage() {
         descricao: cursoAtual.descricao || "",
         tipo_produto: cursoAtual.tipo_produto || "curso_video",
         preco:
-          typeof cursoAtual.preco === "number"
+          typeof cursoAtual.preco === "number" ? String(cursoAtual.preco) : "",
+        preco_eur:
+          typeof cursoAtual.preco_eur === "number"
+            ? String(cursoAtual.preco_eur)
+            : typeof cursoAtual.preco === "number"
             ? String(cursoAtual.preco)
             : "",
+        preco_brl:
+          typeof cursoAtual.preco_brl === "number"
+            ? String(cursoAtual.preco_brl)
+            : "",
+        checkout_eu_ativo: cursoAtual.checkout_eu_ativo ?? true,
+        checkout_br_ativo: cursoAtual.checkout_br_ativo ?? false,
         capa_url: cursoAtual.capa_url || "",
         publicado: !!cursoAtual.publicado,
         tem_certificado: !!cursoAtual.tem_certificado,
@@ -263,28 +289,33 @@ export default function CursoGestaoFormadorPage() {
             : "",
       });
 
-      const [{ data: comunidadeData }, { count: modulosCount }, { count: aulasCount }] =
-        await Promise.all([
-          supabase
-            .from("comunidades")
-            .select("id, curso_id, titulo, ativa")
-            .eq("curso_id", cursoId)
-            .maybeSingle(),
-          supabase
-            .from("modulos")
-            .select("*", { count: "exact", head: true })
-            .eq("curso_id", cursoId),
-          supabase
-            .from("aulas")
-            .select("*", { count: "exact", head: true })
-            .eq("curso_id", cursoId),
-        ]);
+      const [
+        { data: comunidadeData },
+        { count: modulosCount },
+        { count: aulasCount },
+      ] = await Promise.all([
+        supabase
+          .from("comunidades")
+          .select("id, curso_id, titulo, ativa")
+          .eq("curso_id", cursoId)
+          .maybeSingle(),
+        supabase
+          .from("modulos")
+          .select("*", { count: "exact", head: true })
+          .eq("curso_id", cursoId),
+        supabase
+          .from("aulas")
+          .select("*", { count: "exact", head: true })
+          .eq("curso_id", cursoId),
+      ]);
 
       setComunidade((comunidadeData as Comunidade | null) || null);
       setTotalModulos(modulosCount || 0);
       setTotalAulas(aulasCount || 0);
     } catch (error: any) {
-      setErro(error?.message || "Ocorreu um erro inesperado ao carregar o curso.");
+      setErro(
+        error?.message || "Ocorreu um erro inesperado ao carregar o curso."
+      );
     } finally {
       setLoading(false);
     }
@@ -294,15 +325,46 @@ export default function CursoGestaoFormadorPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
+  function validarPrecoOpcional(valor: string, nome: string) {
+    if (!valor.trim()) return "";
+
+    const numero = Number(valor.replace(",", "."));
+
+    if (Number.isNaN(numero) || numero < 0) {
+      return `Indica um ${nome} válido.`;
+    }
+
+    return "";
+  }
+
   function validar() {
     if (!form.titulo.trim()) return "Indica o título do conteúdo.";
     if (!form.descricao.trim()) return "Indica a descrição do conteúdo.";
     if (!form.tipo_produto.trim()) return "Indica o tipo de conteúdo.";
-    if (!form.preco.trim()) return "Indica o preço.";
 
-    const precoNumero = Number(form.preco.replace(",", "."));
-    if (Number.isNaN(precoNumero) || precoNumero < 0) {
-      return "Indica um preço válido.";
+    const erroPrecoBase = validarPrecoOpcional(form.preco, "preço base");
+    if (erroPrecoBase) return erroPrecoBase;
+
+    const erroPrecoEur = validarPrecoOpcional(form.preco_eur, "preço EUR");
+    if (erroPrecoEur) return erroPrecoEur;
+
+    const erroPrecoBrl = validarPrecoOpcional(form.preco_brl, "preço BRL");
+    if (erroPrecoBrl) return erroPrecoBrl;
+
+    if (!form.preco.trim() && !form.preco_eur.trim() && !form.preco_brl.trim()) {
+      return "Indica pelo menos um preço para o conteúdo.";
+    }
+
+    if (form.checkout_eu_ativo && !form.preco_eur.trim()) {
+      return "Se o checkout EU estiver ativo, tens de indicar o preço EUR.";
+    }
+
+    if (form.checkout_br_ativo && !form.preco_brl.trim()) {
+      return "Se o checkout BR estiver ativo, tens de indicar o preço BRL.";
+    }
+
+    if (!form.checkout_eu_ativo && !form.checkout_br_ativo) {
+      return "Ativa pelo menos um checkout regional.";
     }
 
     if (!form.modo_acesso_14_dias.trim()) {
@@ -328,22 +390,14 @@ export default function CursoGestaoFormadorPage() {
         form.comissao_percentual_override.replace(",", ".")
       );
 
-      if (
-        Number.isNaN(percentagem) ||
-        percentagem < 0 ||
-        percentagem > 100
-      ) {
+      if (Number.isNaN(percentagem) || percentagem < 0 || percentagem > 100) {
         return "A comissão override tem de estar entre 0 e 100.";
       }
     }
 
     if (form.edicao_limitada) {
       const limite = Number(form.limite_vagas);
-      if (
-        Number.isNaN(limite) ||
-        limite < 1 ||
-        !Number.isInteger(limite)
-      ) {
+      if (Number.isNaN(limite) || limite < 1 || !Number.isInteger(limite)) {
         return "O limite de vagas tem de ser um número inteiro válido.";
       }
     }
@@ -512,13 +566,27 @@ export default function CursoGestaoFormadorPage() {
     try {
       setSaving(true);
 
-      const precoNumero = Number(form.preco.replace(",", "."));
+      const precoNumero = form.preco.trim()
+        ? Number(form.preco.replace(",", "."))
+        : null;
+
+      const precoEurNumero = form.preco_eur.trim()
+        ? Number(form.preco_eur.replace(",", "."))
+        : null;
+
+      const precoBrlNumero = form.preco_brl.trim()
+        ? Number(form.preco_brl.replace(",", "."))
+        : null;
 
       const payload = {
         titulo: form.titulo.trim(),
         descricao: form.descricao.trim(),
         tipo_produto: form.tipo_produto,
         preco: precoNumero,
+        preco_eur: precoEurNumero,
+        preco_brl: precoBrlNumero,
+        checkout_eu_ativo: form.checkout_eu_ativo,
+        checkout_br_ativo: form.checkout_br_ativo,
         capa_url: form.capa_url.trim() || null,
         publicado: form.publicado,
         modo_acesso_14_dias: form.modo_acesso_14_dias,
@@ -619,7 +687,8 @@ export default function CursoGestaoFormadorPage() {
                 <h1 style={titulo}>{curso.titulo || "Curso sem título"}</h1>
                 <p style={descricao}>
                   Gestão principal do conteúdo, incluindo dados gerais,
-                  publicação, certificado, capa, comissão e edições limitadas.
+                  publicação, certificado, capa, comissão, edição limitada e
+                  preços regionais.
                 </p>
               </div>
 
@@ -734,14 +803,76 @@ export default function CursoGestaoFormadorPage() {
                     placeholder="Descrição do conteúdo"
                   />
 
-                  <div style={grid2}>
-                    <Input
-                      label="Preço"
-                      value={form.preco}
-                      onChange={(v) => update("preco", v)}
-                      placeholder="Ex.: 297"
-                    />
+                  <div style={caixaInterna}>
+                    <h3 style={subTitulo}>Preços e checkouts por região</h3>
 
+                    <div style={grid2}>
+                      <Input
+                        label="Preço base"
+                        value={form.preco}
+                        onChange={(v) => update("preco", v)}
+                        placeholder="Opcional. Campo legado/base"
+                      />
+
+                      <div style={infoMiniBox}>
+                        <p style={infoMiniLabel}>Lógica regional</p>
+                        <p style={infoMiniValue}>
+                          O checkout EU usa o preço EUR. O checkout BR usa o
+                          preço BRL.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div style={grid2}>
+                      <Input
+                        label="Preço EUR"
+                        value={form.preco_eur}
+                        onChange={(v) => update("preco_eur", v)}
+                        placeholder="Ex.: 97"
+                      />
+
+                      <Input
+                        label="Preço BRL"
+                        value={form.preco_brl}
+                        onChange={(v) => update("preco_brl", v)}
+                        placeholder="Ex.: 497"
+                      />
+                    </div>
+
+                    <div style={grid2}>
+                      <label style={checkboxLinha}>
+                        <input
+                          type="checkbox"
+                          checked={form.checkout_eu_ativo}
+                          onChange={(e) =>
+                            update("checkout_eu_ativo", e.target.checked)
+                          }
+                          style={{ accentColor: "#a6783d" }}
+                        />
+                        <span>Checkout EU ativo</span>
+                      </label>
+
+                      <label style={checkboxLinha}>
+                        <input
+                          type="checkbox"
+                          checked={form.checkout_br_ativo}
+                          onChange={(e) =>
+                            update("checkout_br_ativo", e.target.checked)
+                          }
+                          style={{ accentColor: "#a6783d" }}
+                        />
+                        <span>Checkout BR ativo</span>
+                      </label>
+                    </div>
+
+                    <p style={textoAjuda}>
+                      Se ativares um checkout regional, tens de preencher o preço
+                      correspondente. A validação final do checkout deve ser feita
+                      no backend, com base na região da conta do aluno.
+                    </p>
+                  </div>
+
+                  <div style={grid2}>
                     <SelectField
                       label="Prazo legal de 14 dias"
                       value={form.modo_acesso_14_dias}
@@ -844,7 +975,13 @@ export default function CursoGestaoFormadorPage() {
                     </label>
 
                     {form.tem_certificado ? (
-                      <div style={{ display: "grid", gap: "16px", marginTop: "16px" }}>
+                      <div
+                        style={{
+                          display: "grid",
+                          gap: "16px",
+                          marginTop: "16px",
+                        }}
+                      >
                         <SelectField
                           label="Como queres disponibilizar o certificado?"
                           value={form.certificado_tipo}
@@ -1002,12 +1139,28 @@ export default function CursoGestaoFormadorPage() {
                     valor={traduzirTipoProduto(form.tipo_produto)}
                   />
                   <InfoMini
-                    label="Preço"
+                    label="Preço EUR"
                     valor={
-                      form.preco
-                        ? `${Number(form.preco.replace(",", ".")).toFixed(2)} €`
-                        : "Sem preço"
+                      form.preco_eur
+                        ? `${Number(form.preco_eur.replace(",", ".")).toFixed(2)} €`
+                        : "Sem preço EUR"
                     }
+                  />
+                  <InfoMini
+                    label="Preço BRL"
+                    valor={
+                      form.preco_brl
+                        ? `${Number(form.preco_brl.replace(",", ".")).toFixed(2)} R$`
+                        : "Sem preço BRL"
+                    }
+                  />
+                  <InfoMini
+                    label="Checkout EU"
+                    valor={form.checkout_eu_ativo ? "Ativo" : "Inativo"}
+                  />
+                  <InfoMini
+                    label="Checkout BR"
+                    valor={form.checkout_br_ativo ? "Ativo" : "Inativo"}
                   />
                   <InfoMini
                     label="Publicação"
@@ -1038,7 +1191,14 @@ export default function CursoGestaoFormadorPage() {
                     pré-renúncia passou para uma área própria.
                   </p>
 
-                  <div style={{ marginTop: "14px", display: "flex", flexWrap: "wrap", gap: "12px" }}>
+                  <div
+                    style={{
+                      marginTop: "14px",
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: "12px",
+                    }}
+                  >
                     <Link
                       href={`/formadores/cursos/${curso.id}/estrutura`}
                       style={botao}
@@ -1055,7 +1215,14 @@ export default function CursoGestaoFormadorPage() {
                     conteúdo é irreversível.
                   </p>
 
-                  <div style={{ marginTop: "14px", display: "flex", flexWrap: "wrap", gap: "12px" }}>
+                  <div
+                    style={{
+                      marginTop: "14px",
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: "12px",
+                    }}
+                  >
                     <button
                       type="button"
                       onClick={apagarCurso}
@@ -1456,6 +1623,12 @@ const infoMiniValue: React.CSSProperties = {
   fontSize: "20px",
   color: "#d7b06c",
   lineHeight: 1.6,
+};
+
+const infoMiniBox: React.CSSProperties = {
+  border: "1px solid rgba(166,120,61,0.16)",
+  background: "rgba(20,13,9,0.5)",
+  padding: "16px 18px",
 };
 
 const botao: React.CSSProperties = {

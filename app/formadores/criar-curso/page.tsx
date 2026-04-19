@@ -15,6 +15,10 @@ type FormData = {
   descricao: string;
   tipo_produto: string;
   preco: string;
+  preco_eur: string;
+  preco_brl: string;
+  checkout_eu_ativo: boolean;
+  checkout_br_ativo: boolean;
   capa_url: string;
   pdf_path: string;
   tem_certificado: boolean;
@@ -34,6 +38,10 @@ const initialForm: FormData = {
   descricao: "",
   tipo_produto: "curso_video",
   preco: "",
+  preco_eur: "",
+  preco_brl: "",
+  checkout_eu_ativo: true,
+  checkout_br_ativo: false,
   capa_url: "",
   pdf_path: "",
   tem_certificado: false,
@@ -112,6 +120,17 @@ export default function CriarCursoPage() {
     return user;
   }
 
+  function validarPrecoOpcional(valor: string, nome: string) {
+    if (!valor.trim()) return "";
+
+    const numero = Number(valor.replace(",", "."));
+    if (Number.isNaN(numero) || numero < 0) {
+      return `Indica um ${nome} válido.`;
+    }
+
+    return "";
+  }
+
   function validarParaRascunho() {
     if (!form.titulo.trim()) {
       return "Indica o título.";
@@ -121,11 +140,25 @@ export default function CriarCursoPage() {
       return "Indica o tipo de conteúdo.";
     }
 
-    if (form.preco.trim()) {
-      const precoNumero = Number(form.preco.replace(",", "."));
-      if (Number.isNaN(precoNumero) || precoNumero < 0) {
-        return "Indica um preço válido.";
-      }
+    const erroPrecoBase = validarPrecoOpcional(form.preco, "preço base");
+    if (erroPrecoBase) return erroPrecoBase;
+
+    const erroPrecoEur = validarPrecoOpcional(form.preco_eur, "preço EUR");
+    if (erroPrecoEur) return erroPrecoEur;
+
+    const erroPrecoBrl = validarPrecoOpcional(form.preco_brl, "preço BRL");
+    if (erroPrecoBrl) return erroPrecoBrl;
+
+    if (form.checkout_eu_ativo && !form.preco_eur.trim()) {
+      return "Se o checkout EU estiver ativo, tens de indicar o preço EUR.";
+    }
+
+    if (form.checkout_br_ativo && !form.preco_brl.trim()) {
+      return "Se o checkout BR estiver ativo, tens de indicar o preço BRL.";
+    }
+
+    if (!form.checkout_eu_ativo && !form.checkout_br_ativo) {
+      return "Ativa pelo menos um checkout regional.";
     }
 
     return "";
@@ -362,12 +395,24 @@ export default function CriarCursoPage() {
         ? Number(form.preco.replace(",", "."))
         : null;
 
+      const precoEurNumero = form.preco_eur.trim()
+        ? Number(form.preco_eur.replace(",", "."))
+        : null;
+
+      const precoBrlNumero = form.preco_brl.trim()
+        ? Number(form.preco_brl.replace(",", "."))
+        : null;
+
       const payload = {
         formador_id: formadorAtual.id,
         titulo: form.titulo.trim(),
         descricao: form.descricao.trim() || null,
         tipo_produto: form.tipo_produto,
         preco: precoNumero,
+        preco_eur: precoEurNumero,
+        preco_brl: precoBrlNumero,
+        checkout_eu_ativo: form.checkout_eu_ativo,
+        checkout_br_ativo: form.checkout_br_ativo,
         publicado: false,
         modo_acesso_14_dias: form.modo_acesso_14_dias || null,
         dias_prazo_legal: 14,
@@ -551,12 +596,63 @@ export default function CriarCursoPage() {
             placeholder="Opcional nesta fase"
           />
 
-          <Input
-            label="Preço"
-            value={form.preco}
-            onChange={(v) => update("preco", v)}
-            placeholder="Opcional nesta fase"
-          />
+          <div style={caixaInterna}>
+            <h2 style={subTitulo}>Preços e checkouts por região</h2>
+
+            <Input
+              label="Preço base"
+              value={form.preco}
+              onChange={(v) => update("preco", v)}
+              placeholder="Opcional. Campo legado/base"
+            />
+
+            <div style={grid2}>
+              <Input
+                label="Preço EUR"
+                value={form.preco_eur}
+                onChange={(v) => update("preco_eur", v)}
+                placeholder="Ex.: 97"
+              />
+
+              <Input
+                label="Preço BRL"
+                value={form.preco_brl}
+                onChange={(v) => update("preco_brl", v)}
+                placeholder="Ex.: 497"
+              />
+            </div>
+
+            <div style={grid2}>
+              <label style={checkboxLinha}>
+                <input
+                  type="checkbox"
+                  checked={form.checkout_eu_ativo}
+                  onChange={(e) =>
+                    update("checkout_eu_ativo", e.target.checked)
+                  }
+                  style={{ accentColor: "#a6783d" }}
+                />
+                <span>Checkout EU ativo</span>
+              </label>
+
+              <label style={checkboxLinha}>
+                <input
+                  type="checkbox"
+                  checked={form.checkout_br_ativo}
+                  onChange={(e) =>
+                    update("checkout_br_ativo", e.target.checked)
+                  }
+                  style={{ accentColor: "#a6783d" }}
+                />
+                <span>Checkout BR ativo</span>
+              </label>
+            </div>
+
+            <p style={textoAjuda}>
+              O checkout EU usa o preço EUR. O checkout BR usa o preço BRL. A
+              validação final da região deve ser feita no backend.
+            </p>
+          </div>
 
           <div style={caixaInterna}>
             <h2 style={subTitulo}>Prazo legal de 14 dias</h2>
@@ -772,8 +868,7 @@ export default function CriarCursoPage() {
                     </p>
 
                     <p style={textoAjuda}>
-                      Nesta opção, não precisas de carregar ficheiro nesta
-                      fase.
+                      Nesta opção, não precisas de carregar ficheiro nesta fase.
                     </p>
                   </div>
                 ) : null}
@@ -860,8 +955,8 @@ export default function CriarCursoPage() {
           <div style={caixaInterna}>
             <p style={textoEstado}>
               O conteúdo será criado como <strong>rascunho</strong>. A capa,
-              descrição, preço, PDF, certificado e restantes detalhes podem
-              ser tratados depois.
+              descrição, preços por região, PDF, certificado e restantes
+              detalhes podem ser tratados depois.
             </p>
           </div>
 
@@ -1162,4 +1257,10 @@ const textoEstado: React.CSSProperties = {
   fontSize: "20px",
   lineHeight: 1.7,
   color: "#d7b06c",
+};
+
+const grid2: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+  gap: "16px",
 };

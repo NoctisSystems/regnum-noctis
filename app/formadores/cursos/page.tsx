@@ -1,809 +1,882 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { headers } from "next/headers";
 import { supabase } from "@/lib/supabase";
 
+type Curso = {
+  id: string;
+  titulo: string | null;
+  descricao: string | null;
+  preco: number | null;
+  preco_eur: number | null;
+  preco_brl: number | null;
+  tipo_produto: string | null;
+  publicado: boolean | null;
+  capa_url: string | null;
+  checkout_eu_ativo: boolean | null;
+  checkout_br_ativo: boolean | null;
+};
+
 type Formador = {
-  id: number;
+  id: string;
   nome: string | null;
-  auth_id: string | null;
+  bio_curta: string | null;
+  area_ensino: string | null;
+  foto_url: string | null;
   status: string | null;
 };
 
-type Curso = {
-  id: number;
-  titulo: string | null;
-  descricao: string | null;
-  tipo_produto: string | null;
-  preco: number | null;
-  publicado: boolean | null;
-  tem_certificado: boolean | null;
-  modo_certificado: string | null;
-  certificado_tipo: string | null;
-  tem_manual_geral: boolean | null;
-  created_at: string | null;
-};
+const FORMADOR_FIXO_ID = "1";
+const TOTAL_FORMADORES_EM_DESTAQUE = 4;
 
-type Comunidade = {
-  id: number;
-  curso_id: number;
-};
+type RegiaoCheckout = "EU" | "BR";
 
-type Modulo = {
-  id: number;
-  curso_id: number;
-};
+export default async function CursosPage() {
+  let cursos: Curso[] = [];
+  let formadores: Formador[] = [];
+  let cursosError = "";
+  let formadoresError = "";
 
-type Aula = {
-  id: number;
-  curso_id: number;
-};
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const regiao = await inferirRegiaoCheckout();
 
-export default function CursosFormadorPage() {
-  const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState("");
-  const [formador, setFormador] = useState<Formador | null>(null);
-  const [cursos, setCursos] = useState<Curso[]>([]);
-  const [comunidadesMap, setComunidadesMap] = useState<Record<number, number>>(
-    {}
-  );
-  const [modulosMap, setModulosMap] = useState<Record<number, number>>({});
-  const [aulasMap, setAulasMap] = useState<Record<number, number>>({});
+  try {
+    const { data, error } = await supabase
+      .from("cursos")
+      .select(
+        "id, titulo, descricao, preco, preco_eur, preco_brl, tipo_produto, publicado, capa_url, checkout_eu_ativo, checkout_br_ativo"
+      )
+      .eq("publicado", true)
+      .order("created_at", { ascending: false });
 
-  useEffect(() => {
-    carregarDados();
-  }, []);
-
-  async function carregarDados() {
-    setLoading(true);
-    setErro("");
-
-    try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError || !user) {
-        setErro("Não foi possível validar a sessão do formador.");
-        setLoading(false);
-        return;
-      }
-
-      const { data: formadorData, error: formadorError } = await supabase
-        .from("formadores")
-        .select("id, nome, auth_id, status")
-        .eq("auth_id", user.id)
-        .single();
-
-      if (formadorError || !formadorData) {
-        setErro("Não foi possível encontrar o registo do formador.");
-        setLoading(false);
-        return;
-      }
-
-      if (formadorData.status !== "aprovado") {
-        setErro("A conta de formador ainda não está aprovada.");
-        setLoading(false);
-        return;
-      }
-
-      setFormador(formadorData as Formador);
-
-      const { data: cursosData, error: cursosError } = await supabase
-        .from("cursos")
-        .select(
-          "id, titulo, descricao, tipo_produto, preco, publicado, tem_certificado, modo_certificado, certificado_tipo, tem_manual_geral, created_at"
-        )
-        .eq("formador_id", formadorData.id)
-        .order("id", { ascending: false });
-
-      if (cursosError) {
-        setErro(cursosError.message || "Erro ao carregar cursos.");
-        setLoading(false);
-        return;
-      }
-
-      const cursosLista = (cursosData || []) as Curso[];
-      setCursos(cursosLista);
-
-      if (cursosLista.length === 0) {
-        setComunidadesMap({});
-        setModulosMap({});
-        setAulasMap({});
-        setLoading(false);
-        return;
-      }
-
-      const cursoIds = cursosLista.map((curso) => curso.id);
-
-      const { data: comunidadesData } = await supabase
-        .from("comunidades")
-        .select("id, curso_id")
-        .in("curso_id", cursoIds);
-
-      const comunidadesContagem: Record<number, number> = {};
-      for (const comunidade of (comunidadesData || []) as Comunidade[]) {
-        comunidadesContagem[comunidade.curso_id] =
-          (comunidadesContagem[comunidade.curso_id] || 0) + 1;
-      }
-      setComunidadesMap(comunidadesContagem);
-
-      const { data: modulosData } = await supabase
-        .from("modulos")
-        .select("id, curso_id")
-        .in("curso_id", cursoIds);
-
-      const modulosContagem: Record<number, number> = {};
-      for (const modulo of (modulosData || []) as Modulo[]) {
-        modulosContagem[modulo.curso_id] =
-          (modulosContagem[modulo.curso_id] || 0) + 1;
-      }
-      setModulosMap(modulosContagem);
-
-      const { data: aulasData } = await supabase
-        .from("aulas")
-        .select("id, curso_id")
-        .in("curso_id", cursoIds);
-
-      const aulasContagem: Record<number, number> = {};
-      for (const aula of (aulasData || []) as Aula[]) {
-        aulasContagem[aula.curso_id] = (aulasContagem[aula.curso_id] || 0) + 1;
-      }
-      setAulasMap(aulasContagem);
-    } catch {
-      setErro("Ocorreu um erro inesperado ao carregar os cursos.");
-    } finally {
-      setLoading(false);
+    if (error) {
+      cursosError = error.message;
+    } else {
+      cursos = (data || []) as Curso[];
     }
+  } catch (error: any) {
+    cursosError = error?.message || "Erro ao carregar cursos.";
   }
 
-  const totalCursos = cursos.length;
-  const totalPublicados = cursos.filter((curso) => curso.publicado).length;
-  const totalRascunhos = cursos.filter((curso) => !curso.publicado).length;
-  const totalCertificados = cursos.filter(
-    (curso) => curso.tem_certificado
-  ).length;
+  try {
+    const { data, error } = await supabase
+      .from("formadores")
+      .select("id, nome, bio_curta, area_ensino, foto_url, status")
+      .eq("status", "aprovado")
+      .order("nome", { ascending: true });
+
+    if (error) {
+      formadoresError = error.message;
+    } else {
+      formadores = (data || []) as Formador[];
+    }
+  } catch (error: any) {
+    formadoresError = error?.message || "Erro ao carregar formadores.";
+  }
+
+  const formadorFixo =
+    formadores.find((formador) => formador.id === FORMADOR_FIXO_ID) || null;
+
+  const restantesFormadores = formadores.filter(
+    (formador) => formador.id !== formadorFixo?.id
+  );
+
+  const formadoresDinamicos = baralharArray(restantesFormadores).slice(
+    0,
+    Math.max(TOTAL_FORMADORES_EM_DESTAQUE - (formadorFixo ? 1 : 0), 0)
+  );
+
+  const formadoresEmDestaque = formadorFixo
+    ? [formadorFixo, ...formadoresDinamicos]
+    : formadoresDinamicos;
 
   return (
     <main
       style={{
         minHeight: "100vh",
-        background:
-          "radial-gradient(circle at top, rgba(166,120,61,0.08), transparent 20%), #2b160f",
+        background: "#2b160f",
         color: "#e6c27a",
         fontFamily: "Cormorant Garamond, serif",
-        padding: "50px 16px 90px",
+        paddingTop: "60px",
+        paddingRight: "20px",
+        paddingBottom: "90px",
+        paddingLeft: "20px",
       }}
     >
       <section
         style={{
-          maxWidth: "1280px",
-          margin: "0 auto",
+          maxWidth: "1150px",
+          margin: "0 auto 50px auto",
+          textAlign: "center",
+          padding: "10px 20px 50px 20px",
+          background:
+            "radial-gradient(circle at center, rgba(106,58,27,0.30) 0%, rgba(43,22,15,0) 68%)",
         }}
       >
-        <header
+        <p
           style={{
-            marginBottom: "34px",
+            letterSpacing: "3px",
+            textTransform: "uppercase",
+            color: "#caa15a",
+            fontSize: "16px",
+            margin: "0 0 16px 0",
           }}
         >
-          <p
-            style={{
-              margin: "0 0 10px 0",
-              letterSpacing: "0.16em",
-              textTransform: "uppercase",
-              color: "#caa15a",
-              fontSize: "15px",
-            }}
-          >
-            Área do Formador
-          </p>
+          Catálogo de Aprendizagem
+        </p>
 
-          <h1
-            style={{
-              margin: "0 0 14px 0",
-              fontFamily: "Cinzel, serif",
-              fontSize: "clamp(34px, 6vw, 64px)",
-              lineHeight: 1.1,
-              color: "#f0d79a",
-              fontWeight: 500,
-            }}
-          >
-            Os Meus Cursos
-          </h1>
-
-          <p
-            style={{
-              margin: 0,
-              fontSize: "clamp(18px, 2.4vw, 24px)",
-              lineHeight: 1.7,
-              color: "#d7b06c",
-              maxWidth: "980px",
-            }}
-          >
-            Consulta os cursos criados, acompanha a sua estrutura interna e
-            gere o estado de publicação, comunidade, módulos e aulas.
-          </p>
-        </header>
-
-        <section
+        <h1
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: "18px",
-            marginBottom: "34px",
+            fontFamily: "Cinzel, serif",
+            fontSize: "clamp(42px, 6vw, 64px)",
+            fontWeight: 500,
+            margin: "0 0 18px 0",
+            color: "#e6c27a",
           }}
         >
-          <MetricCard
-            titulo="Cursos"
-            valor={String(totalCursos)}
-            subtitulo="Cursos criados"
-          />
-          <MetricCard
-            titulo="Publicados"
-            valor={String(totalPublicados)}
-            subtitulo="Visíveis ao público"
-          />
-          <MetricCard
-            titulo="Rascunhos"
-            valor={String(totalRascunhos)}
-            subtitulo="Ainda em preparação"
-          />
-          <MetricCard
-            titulo="Certificados"
-            valor={String(totalCertificados)}
-            subtitulo="Cursos com certificado"
-          />
-        </section>
+          Cursos
+        </h1>
 
-        <section
+        <div
           style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "14px",
+            margin: "0 0 28px 0",
+          }}
+        >
+          <div
+            style={{
+              width: "180px",
+              height: "1px",
+              background: "#a6783d",
+            }}
+          />
+          <div
+            style={{
+              width: "10px",
+              height: "10px",
+              borderRadius: "999px",
+              background: "#a6783d",
+            }}
+          />
+          <div
+            style={{
+              width: "180px",
+              height: "1px",
+              background: "#a6783d",
+            }}
+          />
+        </div>
+
+        <p
+          style={{
+            fontSize: "clamp(22px, 2.4vw, 28px)",
+            lineHeight: "1.75",
+            color: "#e6c27a",
+            maxWidth: "980px",
+            margin: "0 auto 18px auto",
+          }}
+        >
+          Explora os percursos disponíveis no Regnum Noctis e encontra formação
+          estruturada nas áreas da espiritualidade, dos sistemas oraculares, das
+          práticas mágicas e dos caminhos iniciáticos.
+        </p>
+
+        <p
+          style={{
+            margin: 0,
+            fontSize: "18px",
+            lineHeight: 1.7,
+            color: "#d7b06c",
+          }}
+        >
+          Região comercial ativa nesta visualização:{" "}
+          <strong style={{ color: "#f0d38b" }}>{regiao}</strong>
+        </p>
+      </section>
+
+      <section
+        style={{
+          padding: "0 20px 26px 20px",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: "1150px",
+            margin: "0 auto",
+          }}
+        >
+          <div
+            style={{
+              border: "1px solid #8a5d31",
+              background: "#140d09",
+              padding: "34px 30px",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
+              marginBottom: "26px",
+            }}
+          >
+            <h2
+              style={{
+                fontFamily: "Cinzel, serif",
+                fontSize: "clamp(28px, 4vw, 40px)",
+                margin: "0 0 14px 0",
+                color: "#e6c27a",
+              }}
+            >
+              Percursos disponíveis
+            </h2>
+
+            <p
+              style={{
+                fontSize: "22px",
+                lineHeight: "1.75",
+                color: "#d7b06c",
+                margin: 0,
+              }}
+            >
+              Aqui encontrarás cursos organizados com base, profundidade e
+              aplicação prática. À medida que a plataforma crescer, esta área
+              passará a reunir o catálogo completo disponível para alunos.
+            </p>
+          </div>
+
+          {cursosError ? (
+            <div
+              style={{
+                border: "1px solid rgba(239,68,68,0.28)",
+                background: "rgba(239,68,68,0.08)",
+                color: "#fecaca",
+                padding: "16px 18px",
+              }}
+            >
+              Erro ao carregar cursos: {cursosError}
+            </div>
+          ) : cursos.length === 0 ? (
+            <div
+              style={{
+                border: "1px solid #8a5d31",
+                background: "#140d09",
+                padding: "38px 30px",
+                textAlign: "center",
+              }}
+            >
+              <h3
+                style={{
+                  fontFamily: "Cinzel, serif",
+                  fontSize: "34px",
+                  margin: "0 0 14px 0",
+                  color: "#e6c27a",
+                }}
+              >
+                Catálogo em expansão
+              </h3>
+
+              <p
+                style={{
+                  fontSize: "22px",
+                  lineHeight: "1.75",
+                  color: "#d7b06c",
+                  margin: 0,
+                }}
+              >
+                Os cursos serão apresentados aqui assim que estiverem publicados
+                na plataforma.
+              </p>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                gap: "24px",
+              }}
+            >
+              {cursos.map((curso) => {
+                const capaSrc = construirUrlStorage({
+                  supabaseUrl,
+                  bucket: "curso_capas",
+                  valor: curso.capa_url,
+                });
+
+                const precoInfo = obterPrecoCurso(curso, regiao);
+
+                return (
+                  <article
+                    key={curso.id}
+                    style={{
+                      background:
+                        "linear-gradient(180deg, rgba(20,13,9,1) 0%, rgba(17,10,8,1) 100%)",
+                      border: "1px solid #8a5d31",
+                      minHeight: "430px",
+                      boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
+                      display: "flex",
+                      flexDirection: "column",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "100%",
+                        height: "220px",
+                        borderBottom: "1px solid #8a5d31",
+                        background:
+                          "radial-gradient(circle at top, rgba(212,175,55,0.08), transparent 45%), #1a100c",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#b9a773",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {capaSrc ? (
+                        <img
+                          src={capaSrc}
+                          alt={curso.titulo || "Curso"}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            display: "block",
+                          }}
+                        />
+                      ) : (
+                        <span
+                          style={{
+                            fontSize: "18px",
+                            color: "#b9a773",
+                          }}
+                        >
+                          Capa do curso
+                        </span>
+                      )}
+                    </div>
+
+                    <div
+                      style={{
+                        padding: "24px",
+                        display: "flex",
+                        flexDirection: "column",
+                        flex: 1,
+                      }}
+                    >
+                      <p
+                        style={{
+                          letterSpacing: "1.5px",
+                          textTransform: "uppercase",
+                          color: "#caa15a",
+                          fontSize: "13px",
+                          margin: "0 0 10px 0",
+                        }}
+                      >
+                        {traduzirTipoProduto(curso.tipo_produto)}
+                      </p>
+
+                      <h3
+                        style={{
+                          fontFamily: "Cinzel, serif",
+                          fontSize: "28px",
+                          margin: "0 0 14px 0",
+                          color: "#e6c27a",
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        {curso.titulo || "Curso sem título"}
+                      </h3>
+
+                      <p
+                        style={{
+                          fontSize: "19px",
+                          lineHeight: "1.7",
+                          color: "#d7b06c",
+                          margin: "0 0 18px 0",
+                          flex: 1,
+                        }}
+                      >
+                        {limitarTexto(
+                          curso.descricao || "Descrição em atualização.",
+                          180
+                        )}
+                      </p>
+
+                      <div
+                        style={{
+                          display: "grid",
+                          gap: "10px",
+                          marginBottom: "18px",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "22px",
+                            color: "#f0d38b",
+                          }}
+                        >
+                          {precoInfo.texto}
+                        </span>
+
+                        <span
+                          style={{
+                            fontSize: "15px",
+                            color: "#caa15a",
+                            lineHeight: 1.6,
+                          }}
+                        >
+                          {precoInfo.subtexto}
+                        </span>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: "12px",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "15px",
+                            color: "#caa15a",
+                          }}
+                        >
+                          Checkout {regiao}:{" "}
+                          <strong
+                            style={{
+                              color: precoInfo.disponivel ? "#bff1bf" : "#ffb4b4",
+                            }}
+                          >
+                            {precoInfo.disponivel ? "ativo" : "indisponível"}
+                          </strong>
+                        </span>
+
+                        <Link
+                          href={`/cursos/${curso.id}?regiao=${regiao}`}
+                          style={botaoCard}
+                        >
+                          Ver curso
+                        </Link>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section
+        style={{
+          padding: "0 20px 34px 20px",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: "1150px",
+            margin: "0 auto",
             border: "1px solid #8a5d31",
-            background:
-              "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-            padding: "clamp(20px, 3vw, 28px)",
-            boxShadow:
-              "0 18px 42px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,225,170,0.03)",
-            marginBottom: "28px",
+            background: "#140d09",
+            padding: "28px 30px",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
           }}
         >
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
-              gap: "18px",
               alignItems: "flex-end",
+              gap: "20px",
               flexWrap: "wrap",
+              marginBottom: "20px",
             }}
           >
             <div>
               <p
                 style={{
-                  margin: "0 0 8px 0",
-                  letterSpacing: "0.12em",
+                  letterSpacing: "2px",
                   textTransform: "uppercase",
                   color: "#caa15a",
                   fontSize: "14px",
+                  margin: "0 0 10px 0",
                 }}
               >
-                Gestão de cursos
+                Formadores da Plataforma
               </p>
 
               <h2
                 style={{
-                  margin: 0,
                   fontFamily: "Cinzel, serif",
-                  fontSize: "clamp(26px, 4vw, 40px)",
-                  color: "#f0d79a",
-                  fontWeight: 500,
+                  fontSize: "clamp(24px, 3vw, 34px)",
+                  margin: "0 0 10px 0",
+                  color: "#e6c27a",
                 }}
               >
-                Catálogo do formador
+                Conhece alguns dos nossos formadores
               </h2>
+
+              <p
+                style={{
+                  fontSize: "19px",
+                  lineHeight: "1.7",
+                  color: "#d7b06c",
+                  maxWidth: "760px",
+                  margin: 0,
+                }}
+              >
+                Descobre quem ensina na plataforma e explora depois a vitrine
+                completa para conheceres melhor cada percurso.
+              </p>
             </div>
 
+            <Link href="/vitrine-formadores" style={botaoSecundario}>
+              Ver vitrine completa
+            </Link>
+          </div>
+
+          {formadoresError ? (
             <div
               style={{
-                display: "flex",
-                gap: "12px",
-                flexWrap: "wrap",
+                border: "1px solid rgba(239,68,68,0.28)",
+                background: "rgba(239,68,68,0.08)",
+                color: "#fecaca",
+                padding: "16px 18px",
               }}
             >
-              <Link href="/formadores/dashboard" style={botaoSecundario}>
-                Voltar à dashboard
-              </Link>
-
-              <button type="button" onClick={carregarDados} style={botao}>
-                Atualizar
-              </button>
-
-              <Link href="/formadores/criar-curso" style={botao}>
-                Criar curso
-              </Link>
+              Erro ao carregar formadores: {formadoresError}
             </div>
-          </div>
-        </section>
-
-        {loading ? (
-          <LoadingBox />
-        ) : erro ? (
-          <ErrorBox texto={erro} />
-        ) : cursos.length === 0 ? (
-          <EmptyState
-            titulo="Ainda não tens cursos criados"
-            descricao="Quando criares o teu primeiro curso, ele aparecerá aqui com acesso à gestão principal, estrutura e restantes áreas internas."
-            botaoHref="/formadores/criar-curso"
-            botaoTexto="Criar primeiro curso"
-          />
-        ) : (
-          <div
-            style={{
-              display: "grid",
-              gap: "20px",
-            }}
-          >
-            {cursos.map((curso) => (
-              <article
-                key={curso.id}
+          ) : formadoresEmDestaque.length === 0 ? (
+            <div
+              style={{
+                border: "1px solid rgba(138,93,49,0.7)",
+                background: "#120b08",
+                padding: "22px 20px",
+              }}
+            >
+              <p
                 style={{
-                  border: "1px solid #8a5d31",
-                  background:
-                    "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-                  padding: "24px",
-                  boxShadow:
-                    "0 12px 26px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,225,170,0.03)",
+                  fontSize: "19px",
+                  lineHeight: "1.7",
+                  color: "#d7b06c",
+                  margin: 0,
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: "18px",
-                    flexWrap: "wrap",
-                    alignItems: "flex-start",
-                    marginBottom: "18px",
-                  }}
-                >
-                  <div style={{ flex: "1 1 520px", minWidth: "260px" }}>
-                    <h2
-                      style={{
-                        margin: "0 0 10px 0",
-                        fontFamily: "Cinzel, serif",
-                        fontSize: "clamp(26px, 4vw, 34px)",
-                        color: "#e6c27a",
-                        fontWeight: 500,
-                      }}
-                    >
-                      {curso.titulo || "Curso sem título"}
-                    </h2>
+                A vitrine de formadores será apresentada aqui à medida que forem
+                aprovados e publicados novos perfis.
+              </p>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+                gap: "16px",
+              }}
+            >
+              {formadoresEmDestaque.map((formador) => {
+                const fotoSrc = construirUrlStorage({
+                  supabaseUrl,
+                  bucket: "formadores-fotos",
+                  valor: formador.foto_url,
+                });
 
-                    <p
-                      style={{
-                        margin: "0 0 10px 0",
-                        fontSize: "clamp(18px, 2vw, 21px)",
-                        color: "#d7b06c",
-                        lineHeight: 1.7,
-                        maxWidth: "850px",
-                      }}
-                    >
-                      {curso.descricao || "Descrição em atualização."}
-                    </p>
-
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: "18px",
-                        color: "#caa15a",
-                      }}
-                    >
-                      Criado em:{" "}
-                      {curso.created_at
-                        ? new Date(curso.created_at).toLocaleDateString("pt-PT")
-                        : "Data indisponível"}
-                    </p>
-                  </div>
-
-                  <div
+                return (
+                  <article
+                    key={formador.id}
                     style={{
-                      display: "grid",
-                      gap: "10px",
-                      minWidth: "210px",
-                      flex: "0 1 260px",
+                      border: "1px solid rgba(138,93,49,0.7)",
+                      background:
+                        "linear-gradient(180deg, rgba(18,11,8,1) 0%, rgba(16,10,8,1) 100%)",
+                      padding: "18px 16px",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      textAlign: "center",
+                      minHeight: "250px",
                     }}
                   >
-                    <StatusBox
-                      label="Tipo"
-                      valor={traduzirTipoProduto(curso.tipo_produto)}
-                    />
-                    <StatusBox
-                      label="Estado"
-                      valor={curso.publicado ? "Publicado" : "Rascunho"}
-                    />
-                    <StatusBox
-                      label="Preço"
-                      valor={
-                        typeof curso.preco === "number"
-                          ? `${curso.preco.toFixed(2)} €`
-                          : "Sem preço"
-                      }
-                    />
-                  </div>
-                </div>
+                    <div
+                      style={{
+                        width: "88px",
+                        height: "88px",
+                        borderRadius: "999px",
+                        border: "1px solid #8a5d31",
+                        background:
+                          "radial-gradient(circle at top, rgba(212,175,55,0.08), transparent 45%), #1a100c",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#b9a773",
+                        overflow: "hidden",
+                        marginBottom: "14px",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {fotoSrc ? (
+                        <img
+                          src={fotoSrc}
+                          alt={formador.nome || "Formador"}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            display: "block",
+                          }}
+                        />
+                      ) : (
+                        <span
+                          style={{
+                            fontSize: "13px",
+                            padding: "8px",
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          Sem foto
+                        </span>
+                      )}
+                    </div>
 
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                    gap: "14px",
-                    marginBottom: "18px",
-                  }}
-                >
-                  <InfoMini
-                    label="Módulos"
-                    valor={String(modulosMap[curso.id] || 0)}
-                  />
-                  <InfoMini
-                    label="Aulas"
-                    valor={String(aulasMap[curso.id] || 0)}
-                  />
-                  <InfoMini
-                    label="Comunidades"
-                    valor={String(comunidadesMap[curso.id] || 0)}
-                  />
-                  <InfoMini
-                    label="Certificado"
-                    valor={traduzirCertificado(
-                      curso.tem_certificado,
-                      curso.modo_certificado,
-                      curso.certificado_tipo
-                    )}
-                  />
-                  <InfoMini
-                    label="Manual geral"
-                    valor={curso.tem_manual_geral ? "Sim" : "Não"}
-                  />
-                </div>
+                    <h3
+                      style={{
+                        fontFamily: "Cinzel, serif",
+                        fontSize: "21px",
+                        margin: "0 0 14px 0",
+                        color: "#e6c27a",
+                        lineHeight: 1.25,
+                      }}
+                    >
+                      {formador.nome || "Formador"}
+                    </h3>
 
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "12px",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <Link href={`/formadores/cursos/${curso.id}`} style={botao}>
-                    Gerir curso
-                  </Link>
+                    <div style={{ marginTop: "auto" }}>
+                      <Link
+                        href={`/vitrine-formadores/${formador.id}`}
+                        style={botaoMiniPerfil}
+                      >
+                        Ver perfil
+                      </Link>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
 
-                  <Link
-                    href={`/formadores/cursos/${curso.id}/estrutura`}
-                    style={botaoSecundario}
-                  >
-                    Gerir estrutura
-                  </Link>
+      <section
+        style={{
+          padding: "0 20px 0 20px",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: "1150px",
+            margin: "0 auto",
+            border: "1px solid #8a5d31",
+            background:
+              "linear-gradient(180deg, rgba(20,13,9,1) 0%, rgba(26,16,12,1) 100%)",
+            padding: "34px 30px",
+            textAlign: "center",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
+          }}
+        >
+          <h2
+            style={{
+              fontFamily: "Cinzel, serif",
+              fontSize: "clamp(28px, 4vw, 40px)",
+              margin: "0 0 16px 0",
+              color: "#e6c27a",
+            }}
+          >
+            Um catálogo pensado para aprofundar
+          </h2>
 
-                  <Link href="/formadores/comunidades" style={botaoSecundario}>
-                    Comunidades
-                  </Link>
-
-                  <Link href="/formadores/alunos" style={botaoSecundario}>
-                    Ver alunos
-                  </Link>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
+          <p
+            style={{
+              fontSize: "22px",
+              lineHeight: "1.8",
+              color: "#d7b06c",
+              maxWidth: "900px",
+              margin: "0 auto",
+            }}
+          >
+            O Regnum Noctis não reúne conteúdos para consumo rápido. Reúne
+            percursos organizados para quem quer estudar com seriedade, prática e
+            sentido de direção.
+          </p>
+        </div>
       </section>
     </main>
   );
 }
 
+async function inferirRegiaoCheckout(): Promise<RegiaoCheckout> {
+  const headerStore = await headers();
+  const acceptLanguage = headerStore.get("accept-language") || "";
+  const normalizado = acceptLanguage.toLowerCase();
+
+  if (normalizado.includes("pt-br") || normalizado.includes("br")) {
+    return "BR";
+  }
+
+  return "EU";
+}
+
+function obterPrecoCurso(curso: Curso, regiao: RegiaoCheckout) {
+  const precoEur =
+    typeof curso.preco_eur === "number"
+      ? curso.preco_eur
+      : typeof curso.preco === "number"
+      ? curso.preco
+      : null;
+
+  const precoBrl =
+    typeof curso.preco_brl === "number" ? curso.preco_brl : null;
+
+  if (regiao === "BR") {
+    if (curso.checkout_br_ativo && precoBrl !== null) {
+      return {
+        texto: formatarMoeda(precoBrl, "BRL"),
+        subtexto: "Preço disponível para checkout do Brasil.",
+        disponivel: true,
+      };
+    }
+
+    if (curso.checkout_eu_ativo && precoEur !== null) {
+      return {
+        texto: formatarMoeda(precoEur, "EUR"),
+        subtexto:
+          "Preço BR ainda indisponível. Este conteúdo está apenas com checkout europeu ativo.",
+        disponivel: false,
+      };
+    }
+
+    return {
+      texto: "Preço em atualização",
+      subtexto: "Este conteúdo ainda não tem checkout ativo para a tua região.",
+      disponivel: false,
+    };
+  }
+
+  if (curso.checkout_eu_ativo && precoEur !== null) {
+    return {
+      texto: formatarMoeda(precoEur, "EUR"),
+      subtexto: "Preço disponível para checkout europeu.",
+      disponivel: true,
+    };
+  }
+
+  if (curso.checkout_br_ativo && precoBrl !== null) {
+    return {
+      texto: formatarMoeda(precoBrl, "BRL"),
+      subtexto:
+        "Este conteúdo está apenas com checkout do Brasil ativo neste momento.",
+        disponivel: false,
+    };
+  }
+
+  return {
+    texto: "Preço em atualização",
+    subtexto: "Este conteúdo ainda não tem checkout ativo.",
+    disponivel: false,
+  };
+}
+
+function formatarMoeda(valor: number, moeda: "EUR" | "BRL") {
+  return new Intl.NumberFormat(moeda === "EUR" ? "pt-PT" : "pt-BR", {
+    style: "currency",
+    currency: moeda,
+  }).format(valor || 0);
+}
+
 function traduzirTipoProduto(tipo: string | null) {
   if (tipo === "curso_video") return "Curso em vídeo";
   if (tipo === "pdf_digital") return "PDF digital";
-  if (tipo === "produto_fisico") return "Produto físico";
-  return "Não definido";
+  return tipo || "Curso";
 }
 
-function traduzirCertificado(
-  temCertificado: boolean | null,
-  modoCertificado: string | null,
-  certificadoTipo: string | null
-) {
-  if (!temCertificado) return "Não";
+function construirUrlStorage({
+  supabaseUrl,
+  bucket,
+  valor,
+}: {
+  supabaseUrl: string;
+  bucket: string;
+  valor: string | null;
+}) {
+  if (!valor) return null;
 
-  if (modoCertificado === "manual") {
-    if (certificadoTipo === "upload_pronto") {
-      return "Certificado próprio manual";
-    }
+  const valorLimpo = valor.trim();
 
-    if (certificadoTipo === "modelo_personalizado") {
-      return "Modelo próprio manual";
-    }
+  if (!valorLimpo) return null;
 
-    return "Certificado manual";
+  if (
+    valorLimpo.startsWith("http://") ||
+    valorLimpo.startsWith("https://")
+  ) {
+    return valorLimpo;
   }
 
-  if (modoCertificado === "automatico") {
-    return "Certificado automático";
+  if (!supabaseUrl) return null;
+
+  const caminho = valorLimpo.replace(/^\/+/, "");
+
+  return `${supabaseUrl}/storage/v1/object/public/${bucket}/${caminho}`;
+}
+
+function limitarTexto(texto: string, max: number) {
+  if (texto.length <= max) return texto;
+  return `${texto.slice(0, max).trim()}...`;
+}
+
+function baralharArray<T>(array: T[]) {
+  const copia = [...array];
+
+  for (let i = copia.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copia[i], copia[j]] = [copia[j], copia[i]];
   }
 
-  return "Sim";
+  return copia;
 }
 
-function MetricCard({
-  titulo,
-  valor,
-  subtitulo,
-}: {
-  titulo: string;
-  valor: string;
-  subtitulo: string;
-}) {
-  return (
-    <article
-      style={{
-        border: "1px solid #8a5d31",
-        background:
-          "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-        padding: "22px",
-        boxShadow:
-          "0 12px 26px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,225,170,0.03)",
-      }}
-    >
-      <p
-        style={{
-          margin: "0 0 10px 0",
-          fontSize: "15px",
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          color: "#caa15a",
-        }}
-      >
-        {titulo}
-      </p>
-
-      <p
-        style={{
-          margin: "0 0 8px 0",
-          fontFamily: "Cinzel, serif",
-          fontSize: "44px",
-          color: "#f0d79a",
-          lineHeight: 1,
-        }}
-      >
-        {valor}
-      </p>
-
-      <p
-        style={{
-          margin: 0,
-          fontSize: "19px",
-          color: "#d7b06c",
-          lineHeight: 1.6,
-        }}
-      >
-        {subtitulo}
-      </p>
-    </article>
-  );
-}
-
-function StatusBox({
-  label,
-  valor,
-}: {
-  label: string;
-  valor: string;
-}) {
-  return (
-    <div
-      style={{
-        border: "1px solid rgba(166,120,61,0.22)",
-        background: "rgba(32,18,13,0.45)",
-        padding: "12px 14px",
-      }}
-    >
-      <p
-        style={{
-          margin: "0 0 6px 0",
-          fontSize: "14px",
-          textTransform: "uppercase",
-          letterSpacing: "1px",
-          color: "#caa15a",
-        }}
-      >
-        {label}
-      </p>
-
-      <p
-        style={{
-          margin: 0,
-          fontSize: "18px",
-          color: "#d7b06c",
-          lineHeight: 1.5,
-        }}
-      >
-        {valor}
-      </p>
-    </div>
-  );
-}
-
-function InfoMini({
-  label,
-  valor,
-}: {
-  label: string;
-  valor: string;
-}) {
-  return (
-    <div
-      style={{
-        border: "1px solid rgba(166,120,61,0.16)",
-        background: "rgba(20,13,9,0.5)",
-        padding: "16px 18px",
-      }}
-    >
-      <p
-        style={{
-          margin: "0 0 8px 0",
-          fontSize: "15px",
-          color: "#caa15a",
-          textTransform: "uppercase",
-          letterSpacing: "1px",
-        }}
-      >
-        {label}
-      </p>
-
-      <p
-        style={{
-          margin: 0,
-          fontSize: "20px",
-          color: "#d7b06c",
-          lineHeight: 1.6,
-        }}
-      >
-        {valor}
-      </p>
-    </div>
-  );
-}
-
-function LoadingBox() {
-  return (
-    <div
-      style={{
-        border: "1px solid #8a5d31",
-        background:
-          "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-        padding: "34px",
-        textAlign: "center",
-      }}
-    >
-      <h2
-        style={{
-          fontFamily: "Cinzel, serif",
-          fontSize: "32px",
-          margin: "0 0 14px 0",
-          color: "#e6c27a",
-          fontWeight: 500,
-        }}
-      >
-        A carregar cursos
-      </h2>
-
-      <p
-        style={{
-          margin: 0,
-          fontSize: "21px",
-          lineHeight: "1.7",
-          color: "#d7b06c",
-        }}
-      >
-        A plataforma está a reunir os cursos, módulos, aulas e comunidades
-        associadas.
-      </p>
-    </div>
-  );
-}
-
-function ErrorBox({ texto }: { texto: string }) {
-  return (
-    <div
-      style={{
-        border: "1px solid rgba(255,107,107,0.35)",
-        background: "rgba(120,20,20,0.12)",
-        padding: "24px",
-        color: "#ffb4b4",
-        fontSize: "20px",
-        lineHeight: 1.7,
-      }}
-    >
-      {texto}
-    </div>
-  );
-}
-
-function EmptyState({
-  titulo,
-  descricao,
-  botaoHref,
-  botaoTexto,
-}: {
-  titulo: string;
-  descricao: string;
-  botaoHref: string;
-  botaoTexto: string;
-}) {
-  return (
-    <div
-      style={{
-        border: "1px solid #8a5d31",
-        background:
-          "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-        padding: "34px",
-        boxShadow:
-          "0 18px 42px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,225,170,0.03)",
-      }}
-    >
-      <h2
-        style={{
-          fontFamily: "Cinzel, serif",
-          fontSize: "34px",
-          margin: "0 0 14px 0",
-          color: "#e6c27a",
-          fontWeight: 500,
-        }}
-      >
-        {titulo}
-      </h2>
-
-      <p
-        style={{
-          margin: "0 0 20px 0",
-          fontSize: "21px",
-          lineHeight: "1.75",
-          color: "#d7b06c",
-        }}
-      >
-        {descricao}
-      </p>
-
-      <Link href={botaoHref} style={botao}>
-        {botaoTexto}
-      </Link>
-    </div>
-  );
-}
-
-const botao: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
+const botaoCard = {
   textDecoration: "none",
   border: "1px solid #a6783d",
   color: "#e6c27a",
-  padding: "14px 18px",
-  fontSize: "16px",
+  paddingTop: "12px",
+  paddingRight: "18px",
+  paddingBottom: "12px",
+  paddingLeft: "18px",
+  fontSize: "18px",
+  display: "inline-block",
   background: "transparent",
-  cursor: "pointer",
-  textAlign: "center",
 };
 
-const botaoSecundario: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
+const botaoSecundario = {
   textDecoration: "none",
-  border: "1px solid rgba(166,120,61,0.6)",
+  border: "1px solid #a6783d",
   color: "#e6c27a",
-  padding: "12px 16px",
-  fontSize: "15px",
-  background: "rgba(32,18,13,0.55)",
-  cursor: "pointer",
-  textAlign: "center",
+  paddingTop: "12px",
+  paddingRight: "18px",
+  paddingBottom: "12px",
+  paddingLeft: "18px",
+  fontSize: "18px",
+  display: "inline-block",
+  background: "transparent",
+};
+
+const botaoMiniPerfil = {
+  textDecoration: "none",
+  border: "1px solid #a6783d",
+  color: "#e6c27a",
+  paddingTop: "10px",
+  paddingRight: "14px",
+  paddingBottom: "10px",
+  paddingLeft: "14px",
+  fontSize: "16px",
+  display: "inline-block",
+  background: "transparent",
 };
