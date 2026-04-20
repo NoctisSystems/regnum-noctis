@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -56,11 +57,18 @@ const initialForm: FormData = {
   modo_acesso_14_dias: "sem_acesso_ate_renuncia",
 };
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 export default function CriarCursoPage() {
   const router = useRouter();
 
   const [form, setForm] = useState<FormData>(initialForm);
-
   const [loading, setLoading] = useState(false);
   const [uploadingCapa, setUploadingCapa] = useState(false);
   const [uploadingPdf, setUploadingPdf] = useState(false);
@@ -68,7 +76,6 @@ export default function CriarCursoPage() {
     useState(false);
   const [uploadingModeloCertificado, setUploadingModeloCertificado] =
     useState(false);
-
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
 
@@ -114,10 +121,56 @@ export default function CriarCursoPage() {
     } = await supabase.auth.getUser();
 
     if (error || !user) {
+      router.replace("/formadores/login");
       throw new Error("Não foi possível validar a sessão do formador.");
     }
 
     return user;
+  }
+
+  async function encontrarFormadorComRecuperacao(
+    userId: string,
+    userEmail: string | null | undefined
+  ) {
+    const { data: porAuthId } = await supabase
+      .from("formadores")
+      .select("id, status, auth_id")
+      .eq("auth_id", userId)
+      .maybeSingle();
+
+    if (porAuthId) {
+      return porAuthId as Formador;
+    }
+
+    if (!userEmail) {
+      return null;
+    }
+
+    const { data: porEmail } = await supabase
+      .from("formadores")
+      .select("id, status, auth_id")
+      .eq("email", userEmail)
+      .maybeSingle();
+
+    if (!porEmail) {
+      return null;
+    }
+
+    if (!porEmail.auth_id) {
+      const { error: updateError } = await supabase
+        .from("formadores")
+        .update({ auth_id: userId })
+        .eq("id", porEmail.id);
+
+      if (!updateError) {
+        return {
+          ...(porEmail as Formador),
+          auth_id: userId,
+        };
+      }
+    }
+
+    return porEmail as Formador;
   }
 
   function validarPrecoOpcional(valor: string, nome: string) {
@@ -216,9 +269,12 @@ export default function CriarCursoPage() {
 
       update("capa_url", data.publicUrl);
       setSucesso("Capa carregada com sucesso.");
-    } catch (error: any) {
+    } catch (error: unknown) {
       setErro(
-        error?.message || "Ocorreu um erro inesperado ao carregar a capa."
+        getErrorMessage(
+          error,
+          "Ocorreu um erro inesperado ao carregar a capa."
+        )
       );
     } finally {
       setUploadingCapa(false);
@@ -265,9 +321,12 @@ export default function CriarCursoPage() {
 
       update("pdf_path", nomeFicheiro);
       setSucesso("PDF carregado com sucesso.");
-    } catch (error: any) {
+    } catch (error: unknown) {
       setErro(
-        error?.message || "Ocorreu um erro inesperado ao carregar o PDF."
+        getErrorMessage(
+          error,
+          "Ocorreu um erro inesperado ao carregar o PDF."
+        )
       );
     } finally {
       setUploadingPdf(false);
@@ -333,10 +392,12 @@ export default function CriarCursoPage() {
         update("certificado_modelo_path", nomeFicheiro);
         setSucesso("Modelo base do certificado carregado com sucesso.");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       setErro(
-        error?.message ||
+        getErrorMessage(
+          error,
           "Ocorreu um erro inesperado ao carregar o certificado."
+        )
       );
     } finally {
       if (tipo === "pronto") {
@@ -367,26 +428,21 @@ export default function CriarCursoPage() {
       } = await supabase.auth.getUser();
 
       if (userError || !user) {
+        router.replace("/formadores/login");
         setErro("Não foi possível validar a sessão do formador.");
         return;
       }
 
-      const { data: formador, error: formadorError } = await supabase
-        .from("formadores")
-        .select("id, status, auth_id")
-        .eq("auth_id", user.id)
-        .single();
+      const formador = await encontrarFormadorComRecuperacao(user.id, user.email);
 
-      if (formadorError || !formador) {
+      if (!formador) {
         setErro(
           "Não foi possível associar este conteúdo ao formador autenticado."
         );
         return;
       }
 
-      const formadorAtual = formador as Formador;
-
-      if (formadorAtual.status !== "aprovado") {
+      if (formador.status !== "aprovado") {
         setErro("A conta de formador não está aprovada.");
         return;
       }
@@ -404,7 +460,7 @@ export default function CriarCursoPage() {
         : null;
 
       const payload = {
-        formador_id: formadorAtual.id,
+        formador_id: formador.id,
         titulo: form.titulo.trim(),
         descricao: form.descricao.trim() || null,
         tipo_produto: form.tipo_produto,
@@ -716,16 +772,24 @@ export default function CriarCursoPage() {
                   Pré-visualização da capa
                 </p>
 
-                <img
-                  src={form.capa_url}
-                  alt="Pré-visualização da capa"
+                <div
                   style={{
+                    position: "relative",
                     width: "100%",
                     maxWidth: "320px",
+                    aspectRatio: "16 / 9",
                     border: "1px solid rgba(166,120,61,0.35)",
-                    display: "block",
                   }}
-                />
+                >
+                  <Image
+                    src={form.capa_url}
+                    alt="Pré-visualização da capa"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 320px"
+                    style={{ objectFit: "cover" }}
+                    unoptimized
+                  />
+                </div>
               </div>
             ) : null}
           </div>

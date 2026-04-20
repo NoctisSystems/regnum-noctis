@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
-type Formador = {
+type FormadorSessao = {
   id: number;
-  nome: string | null;
+  email: string | null;
   auth_id: string | null;
   status: string | null;
 };
@@ -16,23 +16,18 @@ type Curso = {
   id: number;
   titulo: string | null;
   descricao: string | null;
-  tipo_produto: string | null;
-  preco: number | null;
   publicado: boolean | null;
-  tem_certificado: boolean | null;
-  modo_certificado: string | null;
-  certificado_tipo?: string | null;
-  tem_manual_geral: boolean | null;
   created_at: string | null;
-  modo_acesso_14_dias?: string | null;
+  updated_at: string | null;
 };
 
 type Modulo = {
   id: number;
   curso_id: number;
   titulo: string | null;
+  descricao: string | null;
   ordem: number | null;
-  liberado_pre_renuncia: boolean | null;
+  created_at: string | null;
 };
 
 type Aula = {
@@ -40,108 +35,205 @@ type Aula = {
   curso_id: number;
   modulo_id: number | null;
   titulo: string | null;
-  video_url: string | null;
+  descricao: string | null;
   ordem: number | null;
+  gratuito: boolean | null;
   created_at: string | null;
-  publica: boolean | null;
-  liberada_pre_renuncia: boolean | null;
 };
 
-export default function EstruturaCursoFormadorPage() {
+type FormModulo = {
+  titulo: string;
+  descricao: string;
+  ordem: string;
+};
+
+type FormAula = {
+  modulo_id: string;
+  titulo: string;
+  descricao: string;
+  ordem: string;
+  gratuito: boolean;
+};
+
+function formatarData(valor?: string | null) {
+  if (!valor) return "—";
+
+  const data = new Date(valor);
+
+  if (Number.isNaN(data.getTime())) return "—";
+
+  return new Intl.DateTimeFormat("pt-PT", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(data);
+}
+
+function numeroOuNull(valor: string) {
+  const texto = valor.trim();
+  if (!texto) return null;
+
+  const numero = Number(texto);
+  if (Number.isNaN(numero)) return null;
+
+  return numero;
+}
+
+function ordenarModulos(lista: Modulo[]) {
+  return [...lista].sort((a, b) => {
+    const ordemA = a.ordem ?? 999999;
+    const ordemB = b.ordem ?? 999999;
+
+    if (ordemA !== ordemB) return ordemA - ordemB;
+    return a.id - b.id;
+  });
+}
+
+function ordenarAulas(lista: Aula[]) {
+  return [...lista].sort((a, b) => {
+    const ordemA = a.ordem ?? 999999;
+    const ordemB = b.ordem ?? 999999;
+
+    if (ordemA !== ordemB) return ordemA - ordemB;
+    return a.id - b.id;
+  });
+}
+
+export default function EstruturaCursoPage() {
+  const router = useRouter();
   const params = useParams<{ cursoId: string }>();
-  const cursoId = Number(params?.cursoId || 0);
+  const cursoId = Number(params?.cursoId);
 
   const [loading, setLoading] = useState(true);
-  const [savingCurso, setSavingCurso] = useState(false);
-  const [savingModuloId, setSavingModuloId] = useState<number | null>(null);
-  const [savingAulaId, setSavingAulaId] = useState<number | null>(null);
-  const [creatingModulo, setCreatingModulo] = useState(false);
-  const [creatingAula, setCreatingAula] = useState(false);
-  const [uploadingNovaAula, setUploadingNovaAula] = useState(false);
-  const [uploadingVideoAulaId, setUploadingVideoAulaId] = useState<number | null>(null);
-  const [removingVideoAulaId, setRemovingVideoAulaId] = useState<number | null>(null);
-  const [deletingAulaId, setDeletingAulaId] = useState<number | null>(null);
-
+  const [savingModulo, setSavingModulo] = useState(false);
+  const [savingAula, setSavingAula] = useState(false);
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
 
-  const [formador, setFormador] = useState<Formador | null>(null);
   const [curso, setCurso] = useState<Curso | null>(null);
   const [modulos, setModulos] = useState<Modulo[]>([]);
   const [aulas, setAulas] = useState<Aula[]>([]);
 
-  const [tituloNovoModulo, setTituloNovoModulo] = useState("");
+  const [editingModuloId, setEditingModuloId] = useState<number | null>(null);
+  const [editingAulaId, setEditingAulaId] = useState<number | null>(null);
 
-  const [novaAulaTitulo, setNovaAulaTitulo] = useState("");
-  const [novaAulaModuloId, setNovaAulaModuloId] = useState("");
-  const [novaAulaPublica, setNovaAulaPublica] = useState(false);
-  const [novaAulaPreRenuncia, setNovaAulaPreRenuncia] = useState(false);
-  const [novoVideoFicheiro, setNovoVideoFicheiro] = useState<File | null>(null);
+  const [formModulo, setFormModulo] = useState<FormModulo>({
+    titulo: "",
+    descricao: "",
+    ordem: "",
+  });
 
-  const [aulaVideoFiles, setAulaVideoFiles] = useState<Record<number, File | null>>({});
+  const [formAula, setFormAula] = useState<FormAula>({
+    modulo_id: "",
+    titulo: "",
+    descricao: "",
+    ordem: "",
+    gratuito: false,
+  });
 
-  useEffect(() => {
-    carregarDados();
-  }, [cursoId]);
+  const encontrarFormadorSessao = useCallback(
+    async (userId: string, userEmail: string | null | undefined) => {
+      const { data: porAuthId } = await supabase
+        .from("formadores")
+        .select("id, email, auth_id, status")
+        .eq("auth_id", userId)
+        .maybeSingle();
 
-  async function carregarDados() {
+      if (porAuthId) {
+        return porAuthId as FormadorSessao;
+      }
+
+      if (!userEmail) {
+        return null;
+      }
+
+      const { data: porEmail } = await supabase
+        .from("formadores")
+        .select("id, email, auth_id, status")
+        .eq("email", userEmail)
+        .maybeSingle();
+
+      if (!porEmail) {
+        return null;
+      }
+
+      if (!porEmail.auth_id) {
+        const { error: updateError } = await supabase
+          .from("formadores")
+          .update({ auth_id: userId })
+          .eq("id", porEmail.id);
+
+        if (!updateError) {
+          return {
+            ...(porEmail as FormadorSessao),
+            auth_id: userId,
+          };
+        }
+      }
+
+      return porEmail as FormadorSessao;
+    },
+    []
+  );
+
+  const limparFormularioModulo = useCallback(() => {
+    setEditingModuloId(null);
+    setFormModulo({
+      titulo: "",
+      descricao: "",
+      ordem: "",
+    });
+  }, []);
+
+  const limparFormularioAula = useCallback(() => {
+    setEditingAulaId(null);
+    setFormAula({
+      modulo_id: "",
+      titulo: "",
+      descricao: "",
+      ordem: "",
+      gratuito: false,
+    });
+  }, []);
+
+  const carregarDados = useCallback(async () => {
     setLoading(true);
     setErro("");
     setSucesso("");
 
     try {
-      if (!cursoId || Number.isNaN(cursoId)) {
-        setErro("Curso inválido.");
-        setLoading(false);
-        return;
-      }
-
       const {
         data: { user },
         error: userError,
       } = await supabase.auth.getUser();
 
       if (userError || !user) {
-        setErro("Não foi possível validar a sessão do formador.");
+        router.replace("/formadores/login");
+        return;
+      }
+
+      const formadorSessao = await encontrarFormadorSessao(user.id, user.email);
+
+      if (!formadorSessao) {
+        setErro("Não foi possível validar o acesso do formador.");
         setLoading(false);
         return;
       }
 
-      const { data: formadorData, error: formadorError } = await supabase
-        .from("formadores")
-        .select("id, nome, auth_id, status")
-        .eq("auth_id", user.id)
-        .single();
-
-      if (formadorError || !formadorData) {
-        setErro("Não foi possível encontrar o registo do formador.");
-        setLoading(false);
+      if (formadorSessao.status !== "aprovado") {
+        router.replace("/formadores/dashboard");
         return;
       }
-
-      if (formadorData.status !== "aprovado") {
-        setErro("A conta de formador ainda não está aprovada.");
-        setLoading(false);
-        return;
-      }
-
-      setFormador(formadorData as Formador);
 
       const { data: cursoData, error: cursoError } = await supabase
         .from("cursos")
-        .select(
-          "id, titulo, descricao, tipo_produto, preco, publicado, tem_certificado, modo_certificado, certificado_tipo, tem_manual_geral, created_at, modo_acesso_14_dias"
-        )
+        .select("id, titulo, descricao, publicado, created_at, updated_at")
         .eq("id", cursoId)
-        .eq("formador_id", formadorData.id)
+        .eq("formador_id", formadorSessao.id)
         .maybeSingle();
 
-      if (cursoError) {
-        throw cursoError;
-      }
-
-      if (!cursoData) {
-        setErro("Curso não encontrado ou sem acesso para este formador.");
+      if (cursoError || !cursoData) {
+        setErro("Não foi possível carregar este curso.");
         setLoading(false);
         return;
       }
@@ -150,929 +242,862 @@ export default function EstruturaCursoFormadorPage() {
 
       const { data: modulosData, error: modulosError } = await supabase
         .from("modulos")
-        .select("id, curso_id, titulo, ordem, liberado_pre_renuncia")
+        .select("id, curso_id, titulo, descricao, ordem, created_at")
         .eq("curso_id", cursoId)
-        .order("ordem", { ascending: true });
+        .order("ordem", { ascending: true, nullsFirst: false })
+        .order("id", { ascending: true });
 
       if (modulosError) {
-        throw modulosError;
+        setErro(modulosError.message || "Erro ao carregar módulos.");
+        setLoading(false);
+        return;
       }
-
-      setModulos((modulosData || []) as Modulo[]);
 
       const { data: aulasData, error: aulasError } = await supabase
         .from("aulas")
-        .select(
-          "id, curso_id, modulo_id, titulo, video_url, ordem, created_at, publica, liberada_pre_renuncia"
-        )
+        .select("id, curso_id, modulo_id, titulo, descricao, ordem, gratuito, created_at")
         .eq("curso_id", cursoId)
-        .order("ordem", { ascending: true });
+        .order("ordem", { ascending: true, nullsFirst: false })
+        .order("id", { ascending: true });
 
       if (aulasError) {
-        throw aulasError;
+        setErro(aulasError.message || "Erro ao carregar aulas.");
+        setLoading(false);
+        return;
       }
 
-      setAulas((aulasData || []) as Aula[]);
-    } catch (error: any) {
-      setErro(error?.message || "Ocorreu um erro inesperado ao carregar o curso.");
+      setModulos(ordenarModulos((modulosData || []) as Modulo[]));
+      setAulas(ordenarAulas((aulasData || []) as Aula[]));
+    } catch {
+      setErro("Ocorreu um erro inesperado ao carregar a estrutura do curso.");
     } finally {
       setLoading(false);
     }
-  }
+  }, [cursoId, encontrarFormadorSessao, router]);
 
-  async function guardarCurso14Dias() {
+  useEffect(() => {
+    if (!Number.isFinite(cursoId) || cursoId <= 0) {
+      router.replace("/formadores/cursos");
+      return;
+    }
+
+    void carregarDados();
+  }, [carregarDados, cursoId, router]);
+
+  const totalModulos = useMemo(() => modulos.length, [modulos]);
+  const totalAulas = useMemo(() => aulas.length, [aulas]);
+  const totalGratuitas = useMemo(
+    () => aulas.filter((aula) => aula.gratuito).length,
+    [aulas]
+  );
+
+  const aulasSemModulo = useMemo(
+    () => aulas.filter((aula) => !aula.modulo_id),
+    [aulas]
+  );
+
+  async function guardarModulo(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
     if (!curso) return;
 
-    try {
-      setErro("");
-      setSucesso("");
-      setSavingCurso(true);
-
-      const { error } = await supabase
-        .from("cursos")
-        .update({
-          modo_acesso_14_dias:
-            curso.modo_acesso_14_dias || "sem_acesso_ate_renuncia",
-        })
-        .eq("id", curso.id);
-
-      if (error) throw error;
-
-      setSucesso("Configuração dos 14 dias guardada com sucesso.");
-    } catch (error: any) {
-      setErro(error?.message || "Não foi possível guardar a configuração do curso.");
-    } finally {
-      setSavingCurso(false);
-    }
-  }
-
-  async function criarModulo(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setErro("");
-    setSucesso("");
-
-    const titulo = tituloNovoModulo.trim();
-
-    if (!titulo) {
+    if (!formModulo.titulo.trim()) {
       setErro("Indica o título do módulo.");
       return;
     }
 
-    try {
-      setCreatingModulo(true);
-
-      const ordem =
-        modulos.length > 0
-          ? Math.max(...modulos.map((m) => Number(m.ordem || 0))) + 1
-          : 1;
-
-      const { error } = await supabase.from("modulos").insert([
-        {
-          curso_id: cursoId,
-          titulo,
-          ordem,
-          liberado_pre_renuncia: false,
-        },
-      ]);
-
-      if (error) throw error;
-
-      setTituloNovoModulo("");
-      setSucesso("Módulo criado com sucesso.");
-      await carregarDados();
-    } catch (error: any) {
-      setErro(error?.message || "Não foi possível criar o módulo.");
-    } finally {
-      setCreatingModulo(false);
-    }
-  }
-
-  async function uploadParaBunny(aulaTitulo: string, file: File) {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session?.access_token) {
-      throw new Error("Não foi possível validar a sessão do formador.");
-    }
-
-    const body = new FormData();
-    body.append("cursoId", String(cursoId));
-    body.append("aulaTitulo", aulaTitulo);
-    body.append("file", file);
-
-    const response = await fetch("/api/formadores/bunny-upload", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body,
-    });
-
-    const json = await response.json();
-
-    if (!response.ok) {
-      throw new Error(json?.error || "Falha no upload para o Bunny.");
-    }
-
-    return json as { success: boolean; videoId: string; tituloVideo: string };
-  }
-
-  async function apagarVideoNoBunny(aulaId: number, apagarAula: boolean) {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session?.access_token) {
-      throw new Error("Não foi possível validar a sessão do formador.");
-    }
-
-    const response = await fetch("/api/formadores/bunny-delete", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        aulaId,
-        apagarAula,
-      }),
-    });
-
-    const json = await response.json();
-
-    if (!response.ok) {
-      throw new Error(json?.error || "Falha ao apagar no Bunny.");
-    }
-
-    return json as {
-      success: boolean;
-      apagouVideo: boolean;
-      apagouAula: boolean;
-    };
-  }
-
-  async function criarAula(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+    setSavingModulo(true);
     setErro("");
     setSucesso("");
 
-    const titulo = novaAulaTitulo.trim();
+    try {
+      const payload = {
+        curso_id: curso.id,
+        titulo: formModulo.titulo.trim(),
+        descricao: formModulo.descricao.trim() || null,
+        ordem: numeroOuNull(formModulo.ordem),
+      };
 
-    if (!titulo) {
+      if (editingModuloId) {
+        const { error } = await supabase
+          .from("modulos")
+          .update(payload)
+          .eq("id", editingModuloId)
+          .eq("curso_id", curso.id);
+
+        if (error) {
+          setErro(error.message || "Não foi possível atualizar o módulo.");
+          setSavingModulo(false);
+          return;
+        }
+
+        setSucesso("Módulo atualizado com sucesso.");
+      } else {
+        const { error } = await supabase.from("modulos").insert([payload]);
+
+        if (error) {
+          setErro(error.message || "Não foi possível criar o módulo.");
+          setSavingModulo(false);
+          return;
+        }
+
+        setSucesso("Módulo criado com sucesso.");
+      }
+
+      limparFormularioModulo();
+      await carregarDados();
+    } catch {
+      setErro("Ocorreu um erro inesperado ao guardar o módulo.");
+    } finally {
+      setSavingModulo(false);
+    }
+  }
+
+  async function guardarAula(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    if (!curso) return;
+
+    if (!formAula.titulo.trim()) {
       setErro("Indica o título da aula.");
       return;
     }
 
-    if (!novoVideoFicheiro) {
-      setErro("Seleciona o vídeo da aula.");
-      return;
-    }
+    setSavingAula(true);
+    setErro("");
+    setSucesso("");
 
     try {
-      setCreatingAula(true);
-      setUploadingNovaAula(true);
+      const payload = {
+        curso_id: curso.id,
+        modulo_id: numeroOuNull(formAula.modulo_id),
+        titulo: formAula.titulo.trim(),
+        descricao: formAula.descricao.trim() || null,
+        ordem: numeroOuNull(formAula.ordem),
+        gratuito: formAula.gratuito,
+      };
 
-      const bunnyData = await uploadParaBunny(titulo, novoVideoFicheiro);
-
-      const ordem =
-        aulas.length > 0
-          ? Math.max(...aulas.map((a) => Number(a.ordem || 0))) + 1
-          : 1;
-
-      const { error } = await supabase.from("aulas").insert([
-        {
-          curso_id: cursoId,
-          modulo_id: novaAulaModuloId ? Number(novaAulaModuloId) : null,
-          titulo,
-          video_url: bunnyData.videoId,
-          ordem,
-          publica: novaAulaPublica,
-          liberada_pre_renuncia: novaAulaPreRenuncia,
-        },
-      ]);
-
-      if (error) throw error;
-
-      setNovaAulaTitulo("");
-      setNovaAulaModuloId("");
-      setNovaAulaPublica(false);
-      setNovaAulaPreRenuncia(false);
-      setNovoVideoFicheiro(null);
-
-      setSucesso("Aula criada com sucesso e vídeo enviado para o Bunny.");
-      await carregarDados();
-    } catch (error: any) {
-      setErro(error?.message || "Não foi possível criar a aula.");
-    } finally {
-      setCreatingAula(false);
-      setUploadingNovaAula(false);
-    }
-  }
-
-  async function guardarModulo(modulo: Modulo) {
-    try {
-      setErro("");
-      setSucesso("");
-      setSavingModuloId(modulo.id);
-
-      const { error } = await supabase
-        .from("modulos")
-        .update({
-          titulo: modulo.titulo?.trim() || null,
-          ordem: Number(modulo.ordem || 0) || 1,
-          liberado_pre_renuncia: !!modulo.liberado_pre_renuncia,
-        })
-        .eq("id", modulo.id);
-
-      if (error) throw error;
-
-      setSucesso(`Módulo "${modulo.titulo || "sem título"}" guardado com sucesso.`);
-    } catch (error: any) {
-      setErro(error?.message || "Não foi possível guardar o módulo.");
-    } finally {
-      setSavingModuloId(null);
-    }
-  }
-
-  async function guardarAula(aula: Aula) {
-    try {
-      setErro("");
-      setSucesso("");
-      setSavingAulaId(aula.id);
-
-      const { error } = await supabase
-        .from("aulas")
-        .update({
-          titulo: aula.titulo?.trim() || null,
-          ordem: Number(aula.ordem || 0) || 1,
-          modulo_id: aula.modulo_id || null,
-          publica: !!aula.publica,
-          liberada_pre_renuncia: !!aula.liberada_pre_renuncia,
-        })
-        .eq("id", aula.id);
-
-      if (error) throw error;
-
-      setSucesso(`Aula "${aula.titulo || "sem título"}" guardada com sucesso.`);
-    } catch (error: any) {
-      setErro(error?.message || "Não foi possível guardar a aula.");
-    } finally {
-      setSavingAulaId(null);
-    }
-  }
-
-  async function substituirVideoAula(aula: Aula) {
-    const file = aulaVideoFiles[aula.id];
-
-    if (!file) {
-      setErro("Seleciona primeiro o novo vídeo da aula.");
-      return;
-    }
-
-    try {
-      setErro("");
-      setSucesso("");
-      setUploadingVideoAulaId(aula.id);
-
-      const videoAntigo = aula.video_url;
-      const bunnyData = await uploadParaBunny(aula.titulo || "Aula sem título", file);
-
-      const { error } = await supabase
-        .from("aulas")
-        .update({
-          video_url: bunnyData.videoId,
-        })
-        .eq("id", aula.id);
-
-      if (error) throw error;
-
-      if (videoAntigo) {
-        try {
-          await apagarVideoNoBunny(aula.id, false);
-        } catch {
-          // O novo já ficou ligado. Não rebentamos a operação só porque
-          // o vídeo antigo falhou ao apagar.
-        }
-      }
-
-      setAulaVideoFiles((prev) => ({ ...prev, [aula.id]: null }));
-      setSucesso(`Vídeo da aula "${aula.titulo || "sem título"}" substituído com sucesso.`);
-      await carregarDados();
-    } catch (error: any) {
-      setErro(error?.message || "Não foi possível substituir o vídeo.");
-    } finally {
-      setUploadingVideoAulaId(null);
-    }
-  }
-
-  async function removerVideoDaAula(aula: Aula) {
-    if (!aula.video_url) {
-      setErro("Esta aula não tem vídeo associado.");
-      return;
-    }
-
-    try {
-      setErro("");
-      setSucesso("");
-      setRemovingVideoAulaId(aula.id);
-
-      await apagarVideoNoBunny(aula.id, false);
-
-      setSucesso(`Vídeo removido da aula "${aula.titulo || "sem título"}".`);
-      await carregarDados();
-    } catch (error: any) {
-      setErro(error?.message || "Não foi possível remover o vídeo.");
-    } finally {
-      setRemovingVideoAulaId(null);
-    }
-  }
-
-  async function apagarAula(aula: Aula) {
-    try {
-      setErro("");
-      setSucesso("");
-      setDeletingAulaId(aula.id);
-
-      if (aula.video_url) {
-        await apagarVideoNoBunny(aula.id, true);
-      } else {
-        const { error } = await supabase.from("aulas").delete().eq("id", aula.id);
+      if (editingAulaId) {
+        const { error } = await supabase
+          .from("aulas")
+          .update(payload)
+          .eq("id", editingAulaId)
+          .eq("curso_id", curso.id);
 
         if (error) {
-          throw error;
+          setErro(error.message || "Não foi possível atualizar a aula.");
+          setSavingAula(false);
+          return;
         }
+
+        setSucesso("Aula atualizada com sucesso.");
+      } else {
+        const { error } = await supabase.from("aulas").insert([payload]);
+
+        if (error) {
+          setErro(error.message || "Não foi possível criar a aula.");
+          setSavingAula(false);
+          return;
+        }
+
+        setSucesso("Aula criada com sucesso.");
       }
 
-      setSucesso(`A aula "${aula.titulo || "sem título"}" foi apagada com sucesso.`);
+      limparFormularioAula();
       await carregarDados();
-    } catch (error: any) {
-      setErro(error?.message || "Não foi possível apagar a aula.");
+    } catch {
+      setErro("Ocorreu um erro inesperado ao guardar a aula.");
     } finally {
-      setDeletingAulaId(null);
+      setSavingAula(false);
     }
   }
 
-  function atualizarModulo(
-    id: number,
-    campo: "titulo" | "ordem" | "liberado_pre_renuncia",
-    valor: string | number | boolean
-  ) {
-    setModulos((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, [campo]: valor } : item))
-    );
+  function editarModulo(modulo: Modulo) {
+    setEditingModuloId(modulo.id);
+    setFormModulo({
+      titulo: modulo.titulo || "",
+      descricao: modulo.descricao || "",
+      ordem:
+        modulo.ordem !== null && modulo.ordem !== undefined
+          ? String(modulo.ordem)
+          : "",
+    });
+    setSucesso("");
+    setErro("");
   }
 
-  function atualizarAula(
-    id: number,
-    campo:
-      | "titulo"
-      | "ordem"
-      | "modulo_id"
-      | "publica"
-      | "liberada_pre_renuncia",
-    valor: string | number | boolean | null
-  ) {
-    setAulas((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, [campo]: valor } : item))
-    );
+  function editarAula(aula: Aula) {
+    setEditingAulaId(aula.id);
+    setFormAula({
+      modulo_id:
+        aula.modulo_id !== null && aula.modulo_id !== undefined
+          ? String(aula.modulo_id)
+          : "",
+      titulo: aula.titulo || "",
+      descricao: aula.descricao || "",
+      ordem:
+        aula.ordem !== null && aula.ordem !== undefined
+          ? String(aula.ordem)
+          : "",
+      gratuito: Boolean(aula.gratuito),
+    });
+    setSucesso("");
+    setErro("");
   }
 
-  const aulasComModulo = useMemo(() => {
-    const mapaModulos = new Map<number, string>(
-      modulos.map((modulo) => [modulo.id, modulo.titulo || "Módulo sem título"])
+  async function apagarModulo(moduloId: number) {
+    if (!curso) return;
+
+    const temAulasLigadas = aulas.some((aula) => aula.modulo_id === moduloId);
+
+    if (temAulasLigadas) {
+      setErro(
+        "Não podes apagar este módulo enquanto existirem aulas associadas ao mesmo."
+      );
+      return;
+    }
+
+    const confirmar = window.confirm(
+      "Tens a certeza que queres apagar este módulo?"
     );
 
-    return aulas.map((aula) => ({
-      ...aula,
-      moduloTitulo: aula.modulo_id
-        ? mapaModulos.get(aula.modulo_id) || null
-        : null,
-    }));
-  }, [aulas, modulos]);
+    if (!confirmar) return;
 
-  if (loading) {
-    return (
-      <main style={main}>
-        <section style={container}>
-          <BoxEstado texto="A carregar estrutura do curso..." />
-        </section>
-      </main>
+    setErro("");
+    setSucesso("");
+
+    try {
+      const { error } = await supabase
+        .from("modulos")
+        .delete()
+        .eq("id", moduloId)
+        .eq("curso_id", curso.id);
+
+      if (error) {
+        setErro(error.message || "Não foi possível apagar o módulo.");
+        return;
+      }
+
+      if (editingModuloId === moduloId) {
+        limparFormularioModulo();
+      }
+
+      setSucesso("Módulo apagado com sucesso.");
+      await carregarDados();
+    } catch {
+      setErro("Ocorreu um erro inesperado ao apagar o módulo.");
+    }
+  }
+
+  async function apagarAula(aulaId: number) {
+    if (!curso) return;
+
+    const confirmar = window.confirm(
+      "Tens a certeza que queres apagar esta aula?"
     );
+
+    if (!confirmar) return;
+
+    setErro("");
+    setSucesso("");
+
+    try {
+      const { error } = await supabase
+        .from("aulas")
+        .delete()
+        .eq("id", aulaId)
+        .eq("curso_id", curso.id);
+
+      if (error) {
+        setErro(error.message || "Não foi possível apagar a aula.");
+        return;
+      }
+
+      if (editingAulaId === aulaId) {
+        limparFormularioAula();
+      }
+
+      setSucesso("Aula apagada com sucesso.");
+      await carregarDados();
+    } catch {
+      setErro("Ocorreu um erro inesperado ao apagar a aula.");
+    }
+  }
+
+  function aulasDoModulo(moduloId: number) {
+    return aulas.filter((aula) => aula.modulo_id === moduloId);
   }
 
   return (
-    <main style={main}>
-      <section style={container}>
-        {erro ? <BoxErro texto={erro} /> : null}
-        {sucesso ? <BoxSucesso texto={sucesso} /> : null}
+    <main
+      style={{
+        minHeight: "100vh",
+        background:
+          "radial-gradient(circle at top, rgba(166,120,61,0.08), transparent 20%), #2b160f",
+        color: "#e6c27a",
+        fontFamily: "Cormorant Garamond, serif",
+        padding: "42px 16px 90px",
+      }}
+    >
+      <section
+        style={{
+          maxWidth: "1380px",
+          margin: "0 auto",
+        }}
+      >
+        <header style={{ marginBottom: "28px" }}>
+          <p
+            style={{
+              margin: "0 0 10px 0",
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+              color: "#caa15a",
+              fontSize: "15px",
+            }}
+          >
+            Área do Formador
+          </p>
 
-        {!curso ? (
-          <BoxEstado texto="Curso não encontrado." />
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-end",
+              gap: "18px",
+              flexWrap: "wrap",
+            }}
+          >
+            <div>
+              <h1
+                style={{
+                  margin: 0,
+                  fontFamily: "Cinzel, serif",
+                  fontSize: "clamp(34px, 6vw, 64px)",
+                  lineHeight: 1.1,
+                  color: "#f0d79a",
+                  fontWeight: 500,
+                }}
+              >
+                Estrutura do Curso
+              </h1>
+
+              <p
+                style={{
+                  margin: "14px 0 0 0",
+                  fontSize: "clamp(20px, 2.5vw, 25px)",
+                  lineHeight: 1.7,
+                  color: "#d7b06c",
+                  maxWidth: "900px",
+                }}
+              >
+                Cria módulos, organiza aulas e marca as aulas gratuitas de
+                demonstração do teu curso.
+              </p>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => void carregarDados()}
+                style={botaoSecundario}
+              >
+                Atualizar
+              </button>
+
+              <Link href="/formadores/cursos" style={botaoSecundario}>
+                Voltar aos cursos
+              </Link>
+
+              <Link
+                href={`/formadores/cursos/${cursoId}`}
+                style={botaoPrimario}
+              >
+                Voltar à gestão
+              </Link>
+            </div>
+          </div>
+        </header>
+
+        {loading ? (
+          <BlocoMensagem texto="A carregar estrutura do curso..." />
+        ) : erro && !curso ? (
+          <BlocoErro texto={erro} />
+        ) : !curso ? (
+          <BlocoErro texto="Curso não encontrado." />
         ) : (
           <>
-            <header style={hero}>
-              <div style={{ display: "grid", gap: "10px" }}>
-                <p style={kicker}>Área do Formador</p>
-                <h1 style={titulo}>{curso.titulo || "Curso sem título"}</h1>
-                <p style={descricao}>
-                  Gestão interna da estrutura do curso, incluindo módulos, aulas
-                  e controlo do conteúdo disponível durante o prazo legal.
-                </p>
-              </div>
-
-              <div style={acoesHero}>
-                <Link href={`/formadores/cursos/${cursoId}`} style={botaoSecundario}>
-                  Voltar ao conteúdo
-                </Link>
-              </div>
-            </header>
-
-            <section style={cardGrande}>
-              <div style={secaoHeader}>
-                <div>
-                  <p style={miniKicker}>Prazo legal de 14 dias</p>
-                  <h2 style={secaoTitulo}>Configuração do curso</h2>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={guardarCurso14Dias}
-                  disabled={savingCurso}
-                  style={{
-                    ...botao,
-                    opacity: savingCurso ? 0.7 : 1,
-                    cursor: savingCurso ? "not-allowed" : "pointer",
-                  }}
-                >
-                  {savingCurso ? "Guardar..." : "Guardar configuração"}
-                </button>
-              </div>
-
-              <div style={grid2}>
-                <div>
-                  <label style={label}>Modo de acesso durante os 14 dias</label>
-                  <select
-                    value={curso.modo_acesso_14_dias || "sem_acesso_ate_renuncia"}
-                    onChange={(e) =>
-                      setCurso((prev) =>
-                        prev
-                          ? { ...prev, modo_acesso_14_dias: e.target.value }
-                          : prev
-                      )
-                    }
-                    style={input}
-                  >
-                    <option value="sem_acesso_ate_renuncia">
-                      Sem acesso até renúncia ou fim do prazo
-                    </option>
-                    <option value="acesso_modulo_1">
-                      Permitir apenas o módulo 1
-                    </option>
-                    <option value="acesso_conteudo_marcado">
-                      Permitir apenas conteúdo marcado
-                    </option>
-                  </select>
-                </div>
-
-                <div style={infoCard}>
-                  <p style={infoLabel}>Resumo</p>
-                  <p style={infoText}>
-                    {curso.modo_acesso_14_dias === "sem_acesso_ate_renuncia"
-                      ? "Enquanto o prazo legal estiver ativo, o aluno não vê aulas privadas. Só terá acesso integral após renúncia ou fim do prazo."
-                      : curso.modo_acesso_14_dias === "acesso_modulo_1"
-                      ? "Enquanto o prazo legal estiver ativo, o aluno vê apenas o primeiro módulo."
-                      : "Enquanto o prazo legal estiver ativo, o aluno vê apenas módulos ou aulas marcados para acesso pré-renúncia."}
-                  </p>
-                </div>
-              </div>
+            <section
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: "18px",
+                marginBottom: "28px",
+              }}
+            >
+              <ResumoCard
+                titulo="Curso"
+                valor={curso.titulo || "Sem título"}
+                subtitulo="Curso atual"
+                compact
+              />
+              <ResumoCard
+                titulo="Módulos"
+                valor={String(totalModulos)}
+                subtitulo="Módulos criados"
+              />
+              <ResumoCard
+                titulo="Aulas"
+                valor={String(totalAulas)}
+                subtitulo="Aulas criadas"
+              />
+              <ResumoCard
+                titulo="Gratuitas"
+                valor={String(totalGratuitas)}
+                subtitulo="Aulas de demonstração"
+              />
             </section>
 
-            <section style={gridPrincipal}>
-              <section style={cardGrande}>
-                <div style={secaoHeader}>
-                  <div>
-                    <p style={miniKicker}>Módulos</p>
-                    <h2 style={secaoTitulo}>Criar módulo</h2>
-                  </div>
-                </div>
+            {sucesso ? <BlocoSucesso texto={sucesso} /> : null}
+            {erro ? <BlocoErro texto={erro} /> : null}
 
-                <form onSubmit={criarModulo} style={formGrid}>
-                  <div>
-                    <label style={label}>Título do módulo</label>
-                    <input
-                      value={tituloNovoModulo}
-                      onChange={(e) => setTituloNovoModulo(e.target.value)}
-                      style={input}
-                      placeholder="Ex.: Módulo 1 — Introdução"
-                    />
-                  </div>
+            <section
+              style={{
+                display: "grid",
+                gridTemplateColumns: "minmax(320px, 420px) minmax(320px, 420px) minmax(0, 1fr)",
+                gap: "18px",
+                alignItems: "start",
+              }}
+            >
+              <form
+                onSubmit={guardarModulo}
+                style={painelLateral}
+              >
+                <h2 style={tituloPainel}>
+                  {editingModuloId ? "Editar Módulo" : "Novo Módulo"}
+                </h2>
 
-                  <div style={acoesFormulario}>
+                <CampoTexto
+                  label="Título do módulo"
+                  value={formModulo.titulo}
+                  onChange={(valor) =>
+                    setFormModulo((prev) => ({ ...prev, titulo: valor }))
+                  }
+                />
+
+                <CampoTextarea
+                  label="Descrição"
+                  value={formModulo.descricao}
+                  onChange={(valor) =>
+                    setFormModulo((prev) => ({ ...prev, descricao: valor }))
+                  }
+                  rows={5}
+                />
+
+                <CampoTexto
+                  label="Ordem"
+                  value={formModulo.ordem}
+                  onChange={(valor) =>
+                    setFormModulo((prev) => ({ ...prev, ordem: valor }))
+                  }
+                  type="number"
+                />
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <button
+                    type="submit"
+                    style={botaoPrimario}
+                    disabled={savingModulo}
+                  >
+                    {savingModulo
+                      ? "A guardar..."
+                      : editingModuloId
+                      ? "Guardar módulo"
+                      : "Criar módulo"}
+                  </button>
+
+                  {editingModuloId ? (
                     <button
-                      type="submit"
-                      disabled={creatingModulo}
-                      style={{
-                        ...botao,
-                        opacity: creatingModulo ? 0.7 : 1,
-                        cursor: creatingModulo ? "not-allowed" : "pointer",
-                      }}
+                      type="button"
+                      onClick={limparFormularioModulo}
+                      style={botaoSecundario}
                     >
-                      {creatingModulo ? "Criar..." : "Criar módulo"}
+                      Cancelar
                     </button>
-                  </div>
-                </form>
+                  ) : null}
+                </div>
+              </form>
 
-                <div style={lista}>
-                  {modulos.length === 0 ? (
-                    <BoxEstadoInterno texto="Ainda não existem módulos neste curso." />
-                  ) : (
-                    modulos.map((modulo) => (
-                      <article key={modulo.id} style={itemCard}>
-                        <div style={grid3}>
-                          <div>
-                            <label style={label}>Título</label>
-                            <input
-                              value={modulo.titulo || ""}
-                              onChange={(e) =>
-                                atualizarModulo(modulo.id, "titulo", e.target.value)
-                              }
-                              style={input}
-                            />
-                          </div>
+              <form
+                onSubmit={guardarAula}
+                style={painelLateral}
+              >
+                <h2 style={tituloPainel}>
+                  {editingAulaId ? "Editar Aula" : "Nova Aula"}
+                </h2>
 
-                          <div>
-                            <label style={label}>Ordem</label>
-                            <input
-                              type="number"
-                              min="1"
-                              value={String(modulo.ordem ?? 1)}
-                              onChange={(e) =>
-                                atualizarModulo(
-                                  modulo.id,
-                                  "ordem",
-                                  Number(e.target.value)
-                                )
-                              }
-                              style={input}
-                            />
-                          </div>
+                <CampoSelect
+                  label="Módulo"
+                  value={formAula.modulo_id}
+                  onChange={(valor) =>
+                    setFormAula((prev) => ({ ...prev, modulo_id: valor }))
+                  }
+                  options={[
+                    { value: "", label: "Sem módulo" },
+                    ...modulos.map((modulo) => ({
+                      value: String(modulo.id),
+                      label: modulo.titulo || `Módulo #${modulo.id}`,
+                    })),
+                  ]}
+                />
 
-                          <label style={checkboxLinha}>
-                            <input
-                              type="checkbox"
-                              checked={!!modulo.liberado_pre_renuncia}
-                              onChange={(e) =>
-                                atualizarModulo(
-                                  modulo.id,
-                                  "liberado_pre_renuncia",
-                                  e.target.checked
-                                )
-                              }
-                              style={{ accentColor: "#a6783d" }}
-                            />
-                            <span>Disponível antes da renúncia</span>
-                          </label>
-                        </div>
+                <CampoTexto
+                  label="Título da aula"
+                  value={formAula.titulo}
+                  onChange={(valor) =>
+                    setFormAula((prev) => ({ ...prev, titulo: valor }))
+                  }
+                />
 
-                        <div style={itemAcoes}>
-                          <button
-                            type="button"
-                            onClick={() => guardarModulo(modulo)}
-                            disabled={savingModuloId === modulo.id}
+                <CampoTextarea
+                  label="Descrição"
+                  value={formAula.descricao}
+                  onChange={(valor) =>
+                    setFormAula((prev) => ({ ...prev, descricao: valor }))
+                  }
+                  rows={5}
+                />
+
+                <CampoTexto
+                  label="Ordem"
+                  value={formAula.ordem}
+                  onChange={(valor) =>
+                    setFormAula((prev) => ({ ...prev, ordem: valor }))
+                  }
+                  type="number"
+                />
+
+                <LinhaCheck
+                  texto="Aula gratuita / demonstração"
+                  checked={formAula.gratuito}
+                  onChange={(checked) =>
+                    setFormAula((prev) => ({ ...prev, gratuito: checked }))
+                  }
+                />
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <button
+                    type="submit"
+                    style={botaoPrimario}
+                    disabled={savingAula}
+                  >
+                    {savingAula
+                      ? "A guardar..."
+                      : editingAulaId
+                      ? "Guardar aula"
+                      : "Criar aula"}
+                  </button>
+
+                  {editingAulaId ? (
+                    <button
+                      type="button"
+                      onClick={limparFormularioAula}
+                      style={botaoSecundario}
+                    >
+                      Cancelar
+                    </button>
+                  ) : null}
+                </div>
+              </form>
+
+              <section
+                style={{
+                  border: "1px solid #8a5d31",
+                  background:
+                    "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
+                  padding: "24px",
+                  boxShadow:
+                    "0 12px 26px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,225,170,0.03)",
+                }}
+              >
+                <h2 style={tituloPainel}>Estrutura Atual</h2>
+
+                {modulos.length === 0 && aulas.length === 0 ? (
+                  <BlocoMensagem texto="Ainda não existem módulos nem aulas neste curso." />
+                ) : (
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: "16px",
+                    }}
+                  >
+                    {modulos.map((modulo, moduloIndex) => {
+                      const aulasLigadas = ordenarAulas(aulasDoModulo(modulo.id));
+
+                      return (
+                        <article
+                          key={modulo.id}
+                          style={blocoEstrutura}
+                        >
+                          <div
                             style={{
-                              ...botaoSecundario,
-                              opacity: savingModuloId === modulo.id ? 0.7 : 1,
-                              cursor:
-                                savingModuloId === modulo.id
-                                  ? "not-allowed"
-                                  : "pointer",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "flex-start",
+                              gap: "12px",
+                              flexWrap: "wrap",
                             }}
                           >
-                            {savingModuloId === modulo.id ? "Guardar..." : "Guardar módulo"}
-                          </button>
-                        </div>
-                      </article>
-                    ))
-                  )}
-                </div>
-              </section>
+                            <div style={{ flex: 1, minWidth: "240px" }}>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  gap: "8px",
+                                  flexWrap: "wrap",
+                                  marginBottom: "10px",
+                                }}
+                              >
+                                <span style={pillInfo}>
+                                  Módulo {moduloIndex + 1}
+                                </span>
+                                <span style={pillInfo}>
+                                  Ordem: {modulo.ordem ?? "—"}
+                                </span>
+                              </div>
 
-              <section style={cardGrande}>
-                <div style={secaoHeader}>
-                  <div>
-                    <p style={miniKicker}>Aulas</p>
-                    <h2 style={secaoTitulo}>Criar aula</h2>
-                  </div>
-                </div>
+                              <h3 style={tituloBloco}>
+                                {modulo.titulo || "Módulo sem título"}
+                              </h3>
 
-                <form onSubmit={criarAula} style={lista}>
-                  <div style={grid2}>
-                    <div>
-                      <label style={label}>Título da aula</label>
-                      <input
-                        value={novaAulaTitulo}
-                        onChange={(e) => setNovaAulaTitulo(e.target.value)}
-                        style={input}
-                        placeholder="Ex.: Aula de apresentação"
-                      />
-                    </div>
-
-                    <div>
-                      <label style={label}>Módulo</label>
-                      <select
-                        value={novaAulaModuloId}
-                        onChange={(e) => setNovaAulaModuloId(e.target.value)}
-                        style={input}
-                      >
-                        <option value="">Sem módulo associado</option>
-                        {modulos.map((modulo) => (
-                          <option key={modulo.id} value={modulo.id}>
-                            {modulo.titulo || "Módulo sem título"}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label style={label}>Vídeo da aula</label>
-
-                    <UploadField
-                      buttonText={
-                        uploadingNovaAula
-                          ? "A enviar vídeo..."
-                          : novoVideoFicheiro
-                          ? novoVideoFicheiro.name
-                          : "Selecionar vídeo"
-                      }
-                      accept="video/*"
-                      onChange={(e) =>
-                        setNovoVideoFicheiro(e.target.files?.[0] || null)
-                      }
-                      disabled={uploadingNovaAula || creatingAula}
-                    />
-                  </div>
-
-                  <div style={grid2}>
-                    <label style={checkboxLinha}>
-                      <input
-                        type="checkbox"
-                        checked={novaAulaPublica}
-                        onChange={(e) => setNovaAulaPublica(e.target.checked)}
-                        style={{ accentColor: "#a6783d" }}
-                      />
-                      <span>Aula pública</span>
-                    </label>
-
-                    <label style={checkboxLinha}>
-                      <input
-                        type="checkbox"
-                        checked={novaAulaPreRenuncia}
-                        onChange={(e) =>
-                          setNovaAulaPreRenuncia(e.target.checked)
-                        }
-                        style={{ accentColor: "#a6783d" }}
-                      />
-                      <span>Disponível antes da renúncia</span>
-                    </label>
-                  </div>
-
-                  <div style={acoesFormulario}>
-                    <button
-                      type="submit"
-                      disabled={creatingAula || uploadingNovaAula}
-                      style={{
-                        ...botao,
-                        opacity: creatingAula || uploadingNovaAula ? 0.7 : 1,
-                        cursor:
-                          creatingAula || uploadingNovaAula
-                            ? "not-allowed"
-                            : "pointer",
-                      }}
-                    >
-                      {uploadingNovaAula
-                        ? "A enviar vídeo..."
-                        : creatingAula
-                        ? "Criar..."
-                        : "Criar aula"}
-                    </button>
-                  </div>
-                </form>
-
-                <div style={lista}>
-                  {aulasComModulo.length === 0 ? (
-                    <BoxEstadoInterno texto="Ainda não existem aulas neste curso." />
-                  ) : (
-                    aulasComModulo.map((aula) => (
-                      <article key={aula.id} style={itemCard}>
-                        <div style={grid2}>
-                          <div>
-                            <label style={label}>Título</label>
-                            <input
-                              value={aula.titulo || ""}
-                              onChange={(e) =>
-                                atualizarAula(aula.id, "titulo", e.target.value)
-                              }
-                              style={input}
-                            />
-                          </div>
-
-                          <div>
-                            <label style={label}>Módulo</label>
-                            <select
-                              value={aula.modulo_id ? String(aula.modulo_id) : ""}
-                              onChange={(e) =>
-                                atualizarAula(
-                                  aula.id,
-                                  "modulo_id",
-                                  e.target.value ? Number(e.target.value) : null
-                                )
-                              }
-                              style={input}
-                            >
-                              <option value="">Sem módulo associado</option>
-                              {modulos.map((modulo) => (
-                                <option key={modulo.id} value={modulo.id}>
-                                  {modulo.titulo || "Módulo sem título"}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-
-                        <div style={grid2}>
-                          <div>
-                            <label style={label}>Vídeo atualmente associado</label>
-                            <div style={infoCard}>
-                              <p style={infoLabel}>Bunny video ID</p>
-                              <p style={infoText}>
-                                {aula.video_url || "Sem vídeo associado"}
+                              <p style={textoBloco}>
+                                {modulo.descricao || "Sem descrição."}
                               </p>
+
+                              <p style={textoData}>
+                                Criado em: {formatarData(modulo.created_at)}
+                              </p>
+                            </div>
+
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: "10px",
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => editarModulo(modulo)}
+                                style={botaoSecundario}
+                              >
+                                Editar módulo
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => void apagarModulo(modulo.id)}
+                                style={botaoPerigo}
+                              >
+                                Apagar módulo
+                              </button>
                             </div>
                           </div>
 
-                          <div>
-                            <label style={label}>Ordem</label>
-                            <input
-                              type="number"
-                              min="1"
-                              value={String(aula.ordem ?? 1)}
-                              onChange={(e) =>
-                                atualizarAula(
-                                  aula.id,
-                                  "ordem",
-                                  Number(e.target.value)
-                                )
-                              }
-                              style={input}
-                            />
+                          <div
+                            style={{
+                              marginTop: "16px",
+                              display: "grid",
+                              gap: "12px",
+                            }}
+                          >
+                            {aulasLigadas.length === 0 ? (
+                              <div style={caixaVaziaInterna}>
+                                Ainda não existem aulas neste módulo.
+                              </div>
+                            ) : (
+                              aulasLigadas.map((aula, aulaIndex) => (
+                                <div key={aula.id} style={blocoInternoAula}>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      alignItems: "flex-start",
+                                      gap: "12px",
+                                      flexWrap: "wrap",
+                                    }}
+                                  >
+                                    <div style={{ flex: 1, minWidth: "220px" }}>
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          gap: "8px",
+                                          flexWrap: "wrap",
+                                          marginBottom: "10px",
+                                        }}
+                                      >
+                                        <span style={pillInfo}>
+                                          Aula {aulaIndex + 1}
+                                        </span>
+                                        <span style={pillInfo}>
+                                          Ordem: {aula.ordem ?? "—"}
+                                        </span>
+                                        <span style={pillInfo}>
+                                          {aula.gratuito
+                                            ? "Gratuita"
+                                            : "Reservada"}
+                                        </span>
+                                      </div>
+
+                                      <h4 style={tituloAula}>
+                                        {aula.titulo || "Aula sem título"}
+                                      </h4>
+
+                                      <p style={textoBloco}>
+                                        {aula.descricao || "Sem descrição."}
+                                      </p>
+
+                                      <p style={textoData}>
+                                        Criada em: {formatarData(aula.created_at)}
+                                      </p>
+                                    </div>
+
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        gap: "10px",
+                                        flexWrap: "wrap",
+                                      }}
+                                    >
+                                      <button
+                                        type="button"
+                                        onClick={() => editarAula(aula)}
+                                        style={botaoSecundario}
+                                      >
+                                        Editar aula
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => void apagarAula(aula.id)}
+                                        style={botaoPerigo}
+                                      >
+                                        Apagar aula
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            )}
                           </div>
-                        </div>
+                        </article>
+                      );
+                    })}
 
-                        <div>
-                          <label style={label}>Substituir vídeo</label>
+                    {aulasSemModulo.length > 0 ? (
+                      <article style={blocoEstrutura}>
+                        <h3 style={tituloBloco}>Aulas sem módulo</h3>
 
-                          <UploadField
-                            buttonText={
-                              uploadingVideoAulaId === aula.id
-                                ? "A enviar vídeo..."
-                                : aulaVideoFiles[aula.id]
-                                ? aulaVideoFiles[aula.id]?.name || "Vídeo selecionado"
-                                : "Selecionar novo vídeo"
-                            }
-                            accept="video/*"
-                            onChange={(e) =>
-                              setAulaVideoFiles((prev) => ({
-                                ...prev,
-                                [aula.id]: e.target.files?.[0] || null,
-                              }))
-                            }
-                            disabled={uploadingVideoAulaId === aula.id}
-                          />
-                        </div>
+                        <div
+                          style={{
+                            marginTop: "16px",
+                            display: "grid",
+                            gap: "12px",
+                          }}
+                        >
+                          {aulasSemModulo.map((aula, index) => (
+                            <div key={aula.id} style={blocoInternoAula}>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "flex-start",
+                                  gap: "12px",
+                                  flexWrap: "wrap",
+                                }}
+                              >
+                                <div style={{ flex: 1, minWidth: "220px" }}>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      gap: "8px",
+                                      flexWrap: "wrap",
+                                      marginBottom: "10px",
+                                    }}
+                                  >
+                                    <span style={pillInfo}>
+                                      Aula {index + 1}
+                                    </span>
+                                    <span style={pillInfo}>
+                                      Ordem: {aula.ordem ?? "—"}
+                                    </span>
+                                    <span style={pillInfo}>
+                                      {aula.gratuito
+                                        ? "Gratuita"
+                                        : "Reservada"}
+                                    </span>
+                                  </div>
 
-                        <div style={grid2}>
-                          <label style={checkboxLinha}>
-                            <input
-                              type="checkbox"
-                              checked={!!aula.publica}
-                              onChange={(e) =>
-                                atualizarAula(aula.id, "publica", e.target.checked)
-                              }
-                              style={{ accentColor: "#a6783d" }}
-                            />
-                            <span>Aula pública</span>
-                          </label>
+                                  <h4 style={tituloAula}>
+                                    {aula.titulo || "Aula sem título"}
+                                  </h4>
 
-                          <label style={checkboxLinha}>
-                            <input
-                              type="checkbox"
-                              checked={!!aula.liberada_pre_renuncia}
-                              onChange={(e) =>
-                                atualizarAula(
-                                  aula.id,
-                                  "liberada_pre_renuncia",
-                                  e.target.checked
-                                )
-                              }
-                              style={{ accentColor: "#a6783d" }}
-                            />
-                            <span>Disponível antes da renúncia</span>
-                          </label>
-                        </div>
+                                  <p style={textoBloco}>
+                                    {aula.descricao || "Sem descrição."}
+                                  </p>
 
-                        <div style={infoCard}>
-                          <p style={infoLabel}>Estado atual</p>
-                          <p style={infoText}>
-                            {aula.publica
-                              ? "Esta aula pode ser mostrada publicamente."
-                              : aula.liberada_pre_renuncia
-                              ? "Esta aula fica disponível a compradores durante o prazo legal."
-                              : aula.moduloTitulo
-                              ? `Esta aula pertence a "${aula.moduloTitulo}" e ficará sujeita às regras do módulo e do curso.`
-                              : "Esta aula ficará sujeita apenas às regras gerais do curso."}
-                          </p>
-                        </div>
+                                  <p style={textoData}>
+                                    Criada em: {formatarData(aula.created_at)}
+                                  </p>
+                                </div>
 
-                        <div style={itemAcoes}>
-                          <button
-                            type="button"
-                            onClick={() => substituirVideoAula(aula)}
-                            disabled={uploadingVideoAulaId === aula.id}
-                            style={{
-                              ...botaoSecundario,
-                              opacity: uploadingVideoAulaId === aula.id ? 0.7 : 1,
-                              cursor:
-                                uploadingVideoAulaId === aula.id
-                                  ? "not-allowed"
-                                  : "pointer",
-                            }}
-                          >
-                            {uploadingVideoAulaId === aula.id
-                              ? "A enviar..."
-                              : "Substituir vídeo"}
-                          </button>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    gap: "10px",
+                                    flexWrap: "wrap",
+                                  }}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => editarAula(aula)}
+                                    style={botaoSecundario}
+                                  >
+                                    Editar aula
+                                  </button>
 
-                          <button
-                            type="button"
-                            onClick={() => removerVideoDaAula(aula)}
-                            disabled={
-                              removingVideoAulaId === aula.id || !aula.video_url
-                            }
-                            style={{
-                              ...botaoSecundario,
-                              opacity:
-                                removingVideoAulaId === aula.id || !aula.video_url
-                                  ? 0.7
-                                  : 1,
-                              cursor:
-                                removingVideoAulaId === aula.id || !aula.video_url
-                                  ? "not-allowed"
-                                  : "pointer",
-                            }}
-                          >
-                            {removingVideoAulaId === aula.id
-                              ? "A remover..."
-                              : "Remover vídeo"}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => guardarAula(aula)}
-                            disabled={savingAulaId === aula.id}
-                            style={{
-                              ...botaoSecundario,
-                              opacity: savingAulaId === aula.id ? 0.7 : 1,
-                              cursor:
-                                savingAulaId === aula.id
-                                  ? "not-allowed"
-                                  : "pointer",
-                            }}
-                          >
-                            {savingAulaId === aula.id ? "Guardar..." : "Guardar aula"}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => apagarAula(aula)}
-                            disabled={deletingAulaId === aula.id}
-                            style={{
-                              ...botaoSecundario,
-                              opacity: deletingAulaId === aula.id ? 0.7 : 1,
-                              cursor:
-                                deletingAulaId === aula.id
-                                  ? "not-allowed"
-                                  : "pointer",
-                            }}
-                          >
-                            {deletingAulaId === aula.id ? "A apagar..." : "Apagar aula"}
-                          </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => void apagarAula(aula.id)}
+                                    style={botaoPerigo}
+                                  >
+                                    Apagar aula
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </article>
-                    ))
-                  )}
-                </div>
+                    ) : null}
+                  </div>
+                )}
               </section>
             </section>
           </>
@@ -1082,122 +1107,287 @@ export default function EstruturaCursoFormadorPage() {
   );
 }
 
-function UploadField({
-  buttonText,
-  accept,
-  onChange,
-  disabled,
+function ResumoCard({
+  titulo,
+  valor,
+  subtitulo,
+  compact = false,
 }: {
-  buttonText: string;
-  accept: string;
-  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  disabled?: boolean;
+  titulo: string;
+  valor: string;
+  subtitulo: string;
+  compact?: boolean;
+}) {
+  return (
+    <article
+      style={{
+        border: "1px solid #8a5d31",
+        background:
+          "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
+        padding: "22px",
+        boxShadow:
+          "0 12px 26px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,225,170,0.03)",
+      }}
+    >
+      <p
+        style={{
+          margin: "0 0 10px 0",
+          fontSize: "15px",
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: "#caa15a",
+        }}
+      >
+        {titulo}
+      </p>
+
+      <p
+        style={{
+          margin: "0 0 8px 0",
+          fontFamily: "Cinzel, serif",
+          fontSize: compact ? "28px" : "34px",
+          color: "#f0d79a",
+          lineHeight: 1.2,
+        }}
+      >
+        {valor}
+      </p>
+
+      <p
+        style={{
+          margin: 0,
+          fontSize: "19px",
+          color: "#d7b06c",
+          lineHeight: 1.6,
+        }}
+      >
+        {subtitulo}
+      </p>
+    </article>
+  );
+}
+
+function CampoTexto({
+  label,
+  value,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (valor: string) => void;
+  type?: string;
+}) {
+  return (
+    <div>
+      <label
+        style={{
+          display: "block",
+          marginBottom: "8px",
+          fontSize: "19px",
+          color: "#e6c27a",
+        }}
+      >
+        {label}
+      </label>
+
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={campoBase}
+      />
+    </div>
+  );
+}
+
+function CampoTextarea({
+  label,
+  value,
+  onChange,
+  rows,
+}: {
+  label: string;
+  value: string;
+  onChange: (valor: string) => void;
+  rows: number;
+}) {
+  return (
+    <div>
+      <label
+        style={{
+          display: "block",
+          marginBottom: "8px",
+          fontSize: "19px",
+          color: "#e6c27a",
+        }}
+      >
+        {label}
+      </label>
+
+      <textarea
+        rows={rows}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          ...campoBase,
+          resize: "vertical",
+        }}
+      />
+    </div>
+  );
+}
+
+function CampoSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (valor: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <div>
+      <label
+        style={{
+          display: "block",
+          marginBottom: "8px",
+          fontSize: "19px",
+          color: "#e6c27a",
+        }}
+      >
+        {label}
+      </label>
+
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={campoBase}
+      >
+        {options.map((option) => (
+          <option
+            key={option.value}
+            value={option.value}
+            style={{ background: "#1a100c", color: "#e6c27a" }}
+          >
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function LinhaCheck({
+  texto,
+  checked,
+  onChange,
+}: {
+  texto: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
 }) {
   return (
     <label
       style={{
-        display: "inline-flex",
+        display: "flex",
         alignItems: "center",
-        justifyContent: "center",
-        textDecoration: "none",
-        border: "1px solid #a6783d",
+        gap: "10px",
+        fontSize: "19px",
         color: "#e6c27a",
-        padding: "12px 18px",
-        fontSize: "15px",
-        background: "rgba(32,18,13,0.55)",
-        cursor: disabled ? "not-allowed" : "pointer",
-        textAlign: "center",
-        opacity: disabled ? 0.7 : 1,
-        minHeight: "46px",
-        width: "fit-content",
-        maxWidth: "100%",
-        wordBreak: "break-word",
+        flexWrap: "wrap",
+        border: "1px solid rgba(166,120,61,0.22)",
+        background: "rgba(32,18,13,0.45)",
+        padding: "14px 16px",
       }}
     >
-      {buttonText}
       <input
-        type="file"
-        accept={accept}
-        onChange={onChange}
-        disabled={disabled}
-        style={{ display: "none" }}
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        style={{ accentColor: "#a6783d" }}
       />
+      <span>{texto}</span>
     </label>
   );
 }
 
-function BoxEstado({ texto }: { texto: string }) {
-  return <section style={estadoBox}>{texto}</section>;
+function BlocoMensagem({ texto }: { texto: string }) {
+  return (
+    <section
+      style={{
+        border: "1px solid #8a5d31",
+        background:
+          "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
+        padding: "24px",
+        textAlign: "center",
+      }}
+    >
+      <p
+        style={{
+          margin: 0,
+          fontSize: "21px",
+          lineHeight: 1.7,
+          color: "#dfbe81",
+        }}
+      >
+        {texto}
+      </p>
+    </section>
+  );
 }
 
-function BoxEstadoInterno({ texto }: { texto: string }) {
-  return <section style={estadoInterno}>{texto}</section>;
+function BlocoErro({ texto }: { texto: string }) {
+  return (
+    <section
+      style={{
+        border: "1px solid rgba(255,107,107,0.35)",
+        background: "rgba(120,20,20,0.12)",
+        padding: "18px",
+        color: "#ffb4b4",
+        fontSize: "19px",
+        lineHeight: 1.7,
+        marginBottom: "14px",
+      }}
+    >
+      {texto}
+    </section>
+  );
 }
 
-function BoxErro({ texto }: { texto: string }) {
-  return <section style={erroBox}>{texto}</section>;
+function BlocoSucesso({ texto }: { texto: string }) {
+  return (
+    <section
+      style={{
+        border: "1px solid rgba(74,222,128,0.35)",
+        background: "rgba(20,90,40,0.12)",
+        padding: "18px",
+        color: "#bff1bf",
+        fontSize: "19px",
+        lineHeight: 1.7,
+        marginBottom: "14px",
+      }}
+    >
+      {texto}
+    </section>
+  );
 }
 
-function BoxSucesso({ texto }: { texto: string }) {
-  return <section style={sucessoBox}>{texto}</section>;
-}
-
-const main: React.CSSProperties = {
-  minHeight: "100vh",
-  background:
-    "radial-gradient(circle at top, rgba(166,120,61,0.08), transparent 20%), #2b160f",
+const campoBase: React.CSSProperties = {
+  width: "100%",
+  padding: "14px 14px",
+  background: "#1a100c",
+  border: "1px solid #8a5d31",
   color: "#e6c27a",
-  fontFamily: "Cormorant Garamond, serif",
-  padding: "40px 16px 90px",
+  fontSize: "18px",
+  outline: "none",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
 };
 
-const container: React.CSSProperties = {
-  maxWidth: "1280px",
-  margin: "0 auto",
-  display: "grid",
-  gap: "24px",
-};
-
-const hero: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-end",
-  gap: "18px",
-  flexWrap: "wrap",
-};
-
-const kicker: React.CSSProperties = {
-  margin: 0,
-  fontSize: "14px",
-  letterSpacing: "0.14em",
-  textTransform: "uppercase",
-  color: "#caa15a",
-};
-
-const titulo: React.CSSProperties = {
-  margin: 0,
-  fontFamily: "Cinzel, serif",
-  fontSize: "clamp(34px, 5vw, 52px)",
-  color: "#f0d79a",
-  lineHeight: 1.1,
-  fontWeight: 500,
-};
-
-const descricao: React.CSSProperties = {
-  margin: 0,
-  color: "#d7b06c",
-  fontSize: "clamp(18px, 2.2vw, 22px)",
-  lineHeight: 1.7,
-  maxWidth: "920px",
-};
-
-const acoesHero: React.CSSProperties = {
-  display: "flex",
-  gap: "12px",
-  flexWrap: "wrap",
-};
-
-const cardGrande: React.CSSProperties = {
+const painelLateral: React.CSSProperties = {
   border: "1px solid #8a5d31",
   background:
     "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
@@ -1206,185 +1396,92 @@ const cardGrande: React.CSSProperties = {
     "0 12px 26px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,225,170,0.03)",
   display: "grid",
   gap: "18px",
+  alignSelf: "start",
 };
 
-const secaoHeader: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-end",
-  gap: "18px",
-  flexWrap: "wrap",
-};
-
-const miniKicker: React.CSSProperties = {
-  margin: "0 0 8px 0",
-  fontSize: "13px",
-  color: "#caa15a",
-  textTransform: "uppercase",
-  letterSpacing: "0.12em",
-};
-
-const secaoTitulo: React.CSSProperties = {
+const tituloPainel: React.CSSProperties = {
   margin: 0,
   fontFamily: "Cinzel, serif",
-  fontSize: "clamp(26px, 4vw, 36px)",
+  fontSize: "32px",
   color: "#f0d79a",
   fontWeight: 500,
 };
 
-const gridPrincipal: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
-  gap: "24px",
-  alignItems: "start",
-};
-
-const grid2: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-  gap: "16px",
-};
-
-const grid3: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: "16px",
-  alignItems: "end",
-};
-
-const formGrid: React.CSSProperties = {
-  display: "grid",
-  gap: "16px",
-};
-
-const lista: React.CSSProperties = {
-  display: "grid",
-  gap: "14px",
-};
-
-const itemCard: React.CSSProperties = {
-  border: "1px solid rgba(166,120,61,0.18)",
-  background: "rgba(20,13,9,0.45)",
+const blocoEstrutura: React.CSSProperties = {
+  border: "1px solid rgba(166,120,61,0.22)",
+  background: "rgba(32,18,13,0.45)",
   padding: "18px",
-  display: "grid",
-  gap: "14px",
 };
 
-const itemAcoes: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "flex-end",
-  gap: "12px",
-  flexWrap: "wrap",
-};
-
-const label: React.CSSProperties = {
-  display: "block",
-  marginBottom: "8px",
-  color: "#caa15a",
-  fontSize: "14px",
-  textTransform: "uppercase",
-  letterSpacing: "1px",
-};
-
-const input: React.CSSProperties = {
-  width: "100%",
-  padding: "12px 14px",
-  border: "1px solid #8a5d31",
-  background: "#140d09",
-  color: "#e6c27a",
-  fontSize: "17px",
-  outline: "none",
-};
-
-const checkboxLinha: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "10px",
-  minHeight: "46px",
-  color: "#e6c27a",
-  fontSize: "17px",
-  flexWrap: "wrap",
-};
-
-const acoesFormulario: React.CSSProperties = {
-  display: "flex",
-  gap: "12px",
-  flexWrap: "wrap",
-};
-
-const infoCard: React.CSSProperties = {
-  border: "1px solid rgba(166,120,61,0.18)",
-  background: "rgba(20,13,9,0.36)",
-  padding: "14px 16px",
-};
-
-const infoLabel: React.CSSProperties = {
-  margin: "0 0 8px 0",
-  fontSize: "13px",
-  color: "#caa15a",
-  textTransform: "uppercase",
-  letterSpacing: "1px",
-};
-
-const infoText: React.CSSProperties = {
-  margin: 0,
-  color: "#d7b06c",
-  fontSize: "17px",
-  lineHeight: 1.7,
-  wordBreak: "break-word",
-};
-
-const estadoBox: React.CSSProperties = {
-  border: "1px solid #8a5d31",
-  background:
-    "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-  padding: "28px",
-  textAlign: "center",
-  color: "#d7b06c",
-  fontSize: "21px",
-  lineHeight: 1.7,
-};
-
-const estadoInterno: React.CSSProperties = {
+const blocoInternoAula: React.CSSProperties = {
   border: "1px solid rgba(166,120,61,0.18)",
   background: "rgba(20,13,9,0.35)",
-  padding: "20px",
-  textAlign: "center",
+  padding: "16px",
+};
+
+const caixaVaziaInterna: React.CSSProperties = {
+  border: "1px dashed rgba(166,120,61,0.25)",
+  background: "rgba(20,13,9,0.2)",
+  padding: "16px",
   color: "#d7b06c",
   fontSize: "18px",
-  lineHeight: 1.7,
+  lineHeight: 1.6,
 };
 
-const erroBox: React.CSSProperties = {
-  border: "1px solid rgba(255,107,107,0.35)",
-  background: "rgba(120,20,20,0.12)",
-  padding: "18px 20px",
-  color: "#ffb4b4",
-  fontSize: "18px",
-  lineHeight: 1.7,
+const tituloBloco: React.CSSProperties = {
+  margin: "0 0 10px 0",
+  fontFamily: "Cinzel, serif",
+  fontSize: "28px",
+  color: "#f0d79a",
+  fontWeight: 500,
 };
 
-const sucessoBox: React.CSSProperties = {
-  border: "1px solid rgba(74,222,128,0.35)",
-  background: "rgba(20,90,40,0.12)",
-  padding: "18px 20px",
-  color: "#bff1bf",
-  fontSize: "18px",
-  lineHeight: 1.7,
+const tituloAula: React.CSSProperties = {
+  margin: "0 0 10px 0",
+  fontFamily: "Cinzel, serif",
+  fontSize: "24px",
+  color: "#f0d79a",
+  fontWeight: 500,
 };
 
-const botao: React.CSSProperties = {
+const textoBloco: React.CSSProperties = {
+  margin: 0,
+  fontSize: "19px",
+  lineHeight: 1.7,
+  color: "#d7b06c",
+  whiteSpace: "pre-line",
+};
+
+const textoData: React.CSSProperties = {
+  margin: "10px 0 0 0",
+  fontSize: "16px",
+  color: "#caa15a",
+};
+
+const pillInfo: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  border: "1px solid rgba(166,120,61,0.4)",
+  color: "#f0dfbf",
+  padding: "8px 12px",
+  fontSize: "14px",
+  background: "rgba(43,22,15,0.7)",
+  textAlign: "center",
+};
+
+const botaoPrimario: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   textDecoration: "none",
-  border: "1px solid #c4914d",
-  padding: "13px 18px",
-  background: "linear-gradient(180deg, #c4914d 0%, #a6783d 100%)",
-  color: "#140d09",
+  border: "1px solid #a6783d",
+  color: "#e6c27a",
+  padding: "14px 18px",
   fontSize: "16px",
-  fontWeight: 700,
-  minHeight: "46px",
+  background: "transparent",
+  textAlign: "center",
+  cursor: "pointer",
 };
 
 const botaoSecundario: React.CSSProperties = {
@@ -1397,5 +1494,20 @@ const botaoSecundario: React.CSSProperties = {
   padding: "12px 16px",
   fontSize: "15px",
   background: "rgba(32,18,13,0.55)",
-  minHeight: "46px",
+  cursor: "pointer",
+  textAlign: "center",
+};
+
+const botaoPerigo: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  textDecoration: "none",
+  border: "1px solid rgba(255,107,107,0.45)",
+  color: "#ffb4b4",
+  padding: "12px 16px",
+  fontSize: "15px",
+  background: "rgba(120,20,20,0.12)",
+  cursor: "pointer",
+  textAlign: "center",
 };

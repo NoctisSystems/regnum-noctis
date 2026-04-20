@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 type Formador = {
@@ -65,7 +65,6 @@ const resumoFinanceiroInicial: ResumoFinanceiroFormador = {
 export default function DashboardFormadorPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
-  const [formador, setFormador] = useState<Formador | null>(null);
   const [cursos, setCursos] = useState<Curso[]>([]);
   const [inscricoes, setInscricoes] = useState<Inscricao[]>([]);
   const [comunidades, setComunidades] = useState<Comunidade[]>([]);
@@ -74,60 +73,55 @@ export default function DashboardFormadorPage() {
     []
   );
   const [ticketsFormador, setTicketsFormador] = useState<TicketFormador[]>([]);
-  const [resumoFinanceiro, setResumoFinanceiro] = useState<ResumoFinanceiroFormador>(
-    resumoFinanceiroInicial
+  const [resumoFinanceiro, setResumoFinanceiro] =
+    useState<ResumoFinanceiroFormador>(resumoFinanceiroInicial);
+
+  const encontrarFormadorComRecuperacao = useCallback(
+    async (userId: string, userEmail: string | null | undefined) => {
+      const { data: porAuthId } = await supabase
+        .from("formadores")
+        .select("id, nome, email, auth_id, status")
+        .eq("auth_id", userId)
+        .maybeSingle();
+
+      if (porAuthId) {
+        return porAuthId as Formador;
+      }
+
+      if (!userEmail) {
+        return null;
+      }
+
+      const { data: porEmail } = await supabase
+        .from("formadores")
+        .select("id, nome, email, auth_id, status")
+        .eq("email", userEmail)
+        .maybeSingle();
+
+      if (!porEmail) {
+        return null;
+      }
+
+      if (!porEmail.auth_id) {
+        const { error: updateError } = await supabase
+          .from("formadores")
+          .update({ auth_id: userId })
+          .eq("id", porEmail.id);
+
+        if (!updateError) {
+          return {
+            ...(porEmail as Formador),
+            auth_id: userId,
+          };
+        }
+      }
+
+      return porEmail as Formador;
+    },
+    []
   );
 
-  useEffect(() => {
-    carregarDados();
-  }, []);
-
-  async function encontrarFormadorComRecuperacao(
-    userId: string,
-    userEmail: string | null | undefined
-  ) {
-    const { data: porAuthId } = await supabase
-      .from("formadores")
-      .select("id, nome, email, auth_id, status")
-      .eq("auth_id", userId)
-      .maybeSingle();
-
-    if (porAuthId) {
-      return porAuthId as Formador;
-    }
-
-    if (!userEmail) {
-      return null;
-    }
-
-    const { data: porEmail } = await supabase
-      .from("formadores")
-      .select("id, nome, email, auth_id, status")
-      .eq("email", userEmail)
-      .maybeSingle();
-
-    if (!porEmail) {
-      return null;
-    }
-
-    if (!porEmail.auth_id) {
-      const { error: updateError } = await supabase
-        .from("formadores")
-        .update({ auth_id: userId })
-        .eq("id", porEmail.id);
-
-      if (!updateError) {
-        return {
-          ...(porEmail as Formador),
-          auth_id: userId,
-        };
-      }
-    }
-
-    return porEmail as Formador;
-  }
-
-  async function carregarResumoFinanceiro(formadorId: number) {
+  const carregarResumoFinanceiro = useCallback(async (formadorId: number) => {
     try {
       const tentativas = [
         supabase
@@ -174,9 +168,9 @@ export default function DashboardFormadorPage() {
     } catch {
       setResumoFinanceiro(resumoFinanceiroInicial);
     }
-  }
+  }, []);
 
-  async function carregarDados() {
+  const carregarDados = useCallback(async () => {
     setLoading(true);
     setErro("");
 
@@ -210,8 +204,6 @@ export default function DashboardFormadorPage() {
         setLoading(false);
         return;
       }
-
-      setFormador(formadorData);
 
       await carregarResumoFinanceiro(formadorData.id);
 
@@ -297,7 +289,11 @@ export default function DashboardFormadorPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [carregarResumoFinanceiro, encontrarFormadorComRecuperacao]);
+
+  useEffect(() => {
+    void carregarDados();
+  }, [carregarDados]);
 
   const totalCursos = cursos.length;
   const totalAlunos = useMemo(
@@ -376,7 +372,7 @@ export default function DashboardFormadorPage() {
 
             <button
               type="button"
-              onClick={carregarDados}
+              onClick={() => void carregarDados()}
               style={botaoSecundario}
             >
               Atualizar dashboard
@@ -416,7 +412,7 @@ export default function DashboardFormadorPage() {
                 />
                 <ShortcutCard
                   titulo="Os meus cursos"
-                  descricao="Consulta os teus cursos, edita conteúdos e acompanha a estrutura de cada formação."
+                  descricao="Consulta os teus cursos, entra em cada card e gere a estrutura, conteúdos e publicação."
                   href="/formadores/cursos"
                   textoBotao="Ver cursos"
                 />
@@ -431,6 +427,12 @@ export default function DashboardFormadorPage() {
                   descricao="Entra nas comunidades internas dos teus cursos e responde às dúvidas das turmas."
                   href="/formadores/comunidades"
                   textoBotao="Abrir comunidades"
+                />
+                <ShortcutCard
+                  titulo="Guia do formador"
+                  descricao="Consulta boas práticas, orientação geral e sugestões para estruturar e valorizar melhor os teus cursos."
+                  href="/formadores/guia"
+                  textoBotao="Abrir guia"
                 />
                 <ShortcutCard
                   titulo="Suporte interno"

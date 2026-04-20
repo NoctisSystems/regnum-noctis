@@ -61,7 +61,7 @@ export default function RootShell({
             <a
               href="https://www.noctissystems.pt"
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="footer-link"
             >
               Noctis Systems
@@ -74,7 +74,7 @@ export default function RootShell({
           <a
             href="https://www.livroreclamacoes.pt/inicio/reclamacao"
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="footer-legal-link"
           >
             Livro de Reclamações
@@ -83,7 +83,7 @@ export default function RootShell({
           <a
             href="https://www.consumidor.gov.pt/ral-mapa-e-lista-de-entidades"
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="footer-legal-link"
           >
             Resolução de Litígios
