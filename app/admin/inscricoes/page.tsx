@@ -1,6 +1,12 @@
 "use client";
 
-import { CSSProperties, useEffect, useMemo, useState } from "react";
+import {
+  CSSProperties,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { supabase } from "@/lib/supabase";
 
 type Aluno = {
@@ -31,6 +37,14 @@ type LinhaInscricao = {
   createdAt: string | null;
 };
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 export default function AdminInscricoesPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
@@ -49,11 +63,7 @@ export default function AdminInscricoesPage() {
   const [cursoId, setCursoId] = useState("");
   const [statusNovo, setStatusNovo] = useState("ativo");
 
-  useEffect(() => {
-    carregarDados();
-  }, []);
-
-  async function carregarDados() {
+  const carregarDados = useCallback(async () => {
     setLoading(true);
     setErro("");
     setSucesso("");
@@ -83,12 +93,16 @@ export default function AdminInscricoesPage() {
       setAlunos((alunosRes.data || []) as Aluno[]);
       setCursos((cursosRes.data || []) as Curso[]);
       setInscricoes((inscricoesRes.data || []) as Inscricao[]);
-    } catch (err: any) {
-      setErro(err?.message || "Não foi possível carregar as inscrições.");
+    } catch (err: unknown) {
+      setErro(getErrorMessage(err, "Não foi possível carregar as inscrições."));
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    void carregarDados();
+  }, [carregarDados]);
 
   function limparFormulario() {
     setAlunoId("");
@@ -137,8 +151,8 @@ export default function AdminInscricoesPage() {
       limparFormulario();
       setMostrarNovaInscricao(false);
       await carregarDados();
-    } catch (err: any) {
-      setErro(err?.message || "Não foi possível criar a inscrição.");
+    } catch (err: unknown) {
+      setErro(getErrorMessage(err, "Não foi possível criar a inscrição."));
     } finally {
       setAGuardarNova(false);
     }
@@ -165,8 +179,8 @@ export default function AdminInscricoesPage() {
       );
 
       setSucesso("Estado da inscrição atualizado com sucesso.");
-    } catch (err: any) {
-      setErro(err?.message || "Não foi possível atualizar a inscrição.");
+    } catch (err: unknown) {
+      setErro(getErrorMessage(err, "Não foi possível atualizar a inscrição."));
     } finally {
       setSavingStatusId(null);
     }
@@ -371,7 +385,7 @@ export default function AdminInscricoesPage() {
                 cursor: aGuardarNova ? "not-allowed" : "pointer",
               }}
               disabled={aGuardarNova}
-              onClick={criarInscricao}
+              onClick={() => void criarInscricao()}
             >
               {aGuardarNova ? "A guardar..." : "Guardar inscrição"}
             </button>
@@ -406,7 +420,9 @@ export default function AdminInscricoesPage() {
 
                 <select
                   value={linha.status}
-                  onChange={(e) => atualizarStatus(linha.id, e.target.value)}
+                  onChange={(e) =>
+                    void atualizarStatus(linha.id, e.target.value)
+                  }
                   disabled={savingStatusId === linha.id}
                   style={{
                     ...inputTabela,

@@ -25,16 +25,65 @@ type PublicidadeCandidatura = {
   updated_at: string;
 };
 
+type FormManual = {
+  nome: string;
+  email: string;
+  telefone: string;
+  nome_marca: string;
+  website_url: string;
+  instagram_url: string;
+  whatsapp: string;
+  plano_interesse: string;
+  titulo_anuncio: string;
+  descricao_curta: string;
+  descricao: string;
+  logo_url: string;
+  link_destino: string;
+  observacoes: string;
+  estado: string;
+  notas_admin: string;
+};
+
+const formManualInicial: FormManual = {
+  nome: "",
+  email: "",
+  telefone: "",
+  nome_marca: "",
+  website_url: "",
+  instagram_url: "",
+  whatsapp: "",
+  plano_interesse: "sidebar",
+  titulo_anuncio: "",
+  descricao_curta: "",
+  descricao: "",
+  logo_url: "",
+  link_destino: "",
+  observacoes: "",
+  estado: "pendente",
+  notas_admin: "",
+};
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 export default function AdminPublicidadeCandidaturasPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
   const [pesquisa, setPesquisa] = useState("");
   const [savingId, setSavingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [submittingManual, setSubmittingManual] = useState(false);
   const [candidaturas, setCandidaturas] = useState<PublicidadeCandidatura[]>([]);
+  const [formManual, setFormManual] = useState<FormManual>(formManualInicial);
 
   useEffect(() => {
-    carregarCandidaturas();
+    void carregarCandidaturas();
   }, []);
 
   async function carregarCandidaturas() {
@@ -51,8 +100,8 @@ export default function AdminPublicidadeCandidaturasPage() {
       if (error) throw error;
 
       setCandidaturas((data || []) as PublicidadeCandidatura[]);
-    } catch (err: any) {
-      setErro(err?.message || "Não foi possível carregar as candidaturas.");
+    } catch (err: unknown) {
+      setErro(getErrorMessage(err, "Não foi possível carregar as candidaturas."));
     } finally {
       setLoading(false);
     }
@@ -66,6 +115,32 @@ export default function AdminPublicidadeCandidaturasPage() {
     setCandidaturas((prev) =>
       prev.map((item) => (item.id === id ? { ...item, [campo]: valor } : item))
     );
+  }
+
+  function atualizarFormManual<K extends keyof FormManual>(
+    campo: K,
+    valor: FormManual[K]
+  ) {
+    setFormManual((prev) => ({
+      ...prev,
+      [campo]: valor,
+    }));
+  }
+
+  function validarFormularioManual() {
+    if (!formManual.nome.trim()) {
+      return "Indica o nome da pessoa ou responsável.";
+    }
+
+    if (!formManual.email.trim()) {
+      return "Indica o email.";
+    }
+
+    if (!formManual.plano_interesse.trim()) {
+      return "Indica o plano de interesse.";
+    }
+
+    return "";
   }
 
   async function guardarEstado(item: PublicidadeCandidatura) {
@@ -86,8 +161,8 @@ export default function AdminPublicidadeCandidaturasPage() {
       if (error) throw error;
 
       setSucesso(`Candidatura #${item.id} atualizada com sucesso.`);
-    } catch (err: any) {
-      setErro(err?.message || "Não foi possível atualizar a candidatura.");
+    } catch (err: unknown) {
+      setErro(getErrorMessage(err, "Não foi possível atualizar a candidatura."));
     } finally {
       setSavingId(null);
     }
@@ -145,13 +220,189 @@ export default function AdminPublicidadeCandidaturasPage() {
       setSucesso(
         `Candidatura #${item.id} aprovada e convertida em publicidade ativa.`
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       setErro(
-        err?.message ||
+        getErrorMessage(
+          err,
           "Não foi possível aprovar e converter a candidatura."
+        )
       );
     } finally {
       setSavingId(null);
+    }
+  }
+
+  async function apagarRejeitada(item: PublicidadeCandidatura) {
+    if (item.estado !== "rejeitada") {
+      setErro("Só é possível apagar candidaturas com estado rejeitada.");
+      return;
+    }
+
+    const confirmar = window.confirm(
+      `Tens a certeza que queres apagar a candidatura #${item.id}?`
+    );
+
+    if (!confirmar) {
+      return;
+    }
+
+    setErro("");
+    setSucesso("");
+
+    try {
+      setDeletingId(item.id);
+
+      const { error } = await supabase
+        .from("publicidade_candidaturas")
+        .delete()
+        .eq("id", item.id);
+
+      if (error) throw error;
+
+      setCandidaturas((prev) => prev.filter((c) => c.id !== item.id));
+      setSucesso(`Candidatura #${item.id} apagada com sucesso.`);
+    } catch (err: unknown) {
+      setErro(
+        getErrorMessage(err, "Não foi possível apagar a candidatura rejeitada.")
+      );
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  async function criarManualComoCandidatura() {
+    setErro("");
+    setSucesso("");
+
+    const validacao = validarFormularioManual();
+    if (validacao) {
+      setErro(validacao);
+      return;
+    }
+
+    try {
+      setSubmittingManual(true);
+
+      const payload = {
+        nome: formManual.nome.trim(),
+        email: formManual.email.trim().toLowerCase(),
+        telefone: formManual.telefone.trim() || null,
+        nome_marca: formManual.nome_marca.trim() || null,
+        website_url: formManual.website_url.trim() || null,
+        instagram_url: formManual.instagram_url.trim() || null,
+        whatsapp: formManual.whatsapp.trim() || null,
+        plano_interesse: formManual.plano_interesse,
+        titulo_anuncio: formManual.titulo_anuncio.trim() || null,
+        descricao_curta: formManual.descricao_curta.trim() || null,
+        descricao: formManual.descricao.trim() || null,
+        logo_url: formManual.logo_url.trim() || null,
+        link_destino: formManual.link_destino.trim() || null,
+        observacoes: formManual.observacoes.trim() || null,
+        estado: formManual.estado || "pendente",
+        notas_admin: formManual.notas_admin.trim() || null,
+      };
+
+      const { error } = await supabase
+        .from("publicidade_candidaturas")
+        .insert(payload);
+
+      if (error) throw error;
+
+      setFormManual(formManualInicial);
+      setSucesso("Candidatura criada manualmente com sucesso.");
+      await carregarCandidaturas();
+    } catch (err: unknown) {
+      setErro(
+        getErrorMessage(err, "Não foi possível criar a candidatura manualmente.")
+      );
+    } finally {
+      setSubmittingManual(false);
+    }
+  }
+
+  async function criarManualEDiretoParaPublicidade() {
+    setErro("");
+    setSucesso("");
+
+    const validacao = validarFormularioManual();
+    if (validacao) {
+      setErro(validacao);
+      return;
+    }
+
+    try {
+      setSubmittingManual(true);
+
+      const candidaturaPayload = {
+        nome: formManual.nome.trim(),
+        email: formManual.email.trim().toLowerCase(),
+        telefone: formManual.telefone.trim() || null,
+        nome_marca: formManual.nome_marca.trim() || null,
+        website_url: formManual.website_url.trim() || null,
+        instagram_url: formManual.instagram_url.trim() || null,
+        whatsapp: formManual.whatsapp.trim() || null,
+        plano_interesse: formManual.plano_interesse,
+        titulo_anuncio: formManual.titulo_anuncio.trim() || null,
+        descricao_curta: formManual.descricao_curta.trim() || null,
+        descricao: formManual.descricao.trim() || null,
+        logo_url: formManual.logo_url.trim() || null,
+        link_destino: formManual.link_destino.trim() || null,
+        observacoes: formManual.observacoes.trim() || null,
+        estado: "convertida",
+        notas_admin: formManual.notas_admin.trim() || null,
+      };
+
+      const { data: candidaturaCriada, error: candidaturaError } = await supabase
+        .from("publicidade_candidaturas")
+        .insert(candidaturaPayload)
+        .select("id")
+        .single();
+
+      if (candidaturaError) throw candidaturaError;
+
+      const payloadPublicidade = {
+        nome: formManual.nome_marca.trim() || formManual.nome.trim(),
+        slug: criarSlug(
+          formManual.nome_marca || formManual.titulo_anuncio || formManual.nome
+        ),
+        tipo: "publicidade",
+        plano: formManual.plano_interesse,
+        descricao_curta: formManual.descricao_curta.trim() || null,
+        descricao: formManual.descricao.trim() || null,
+        imagem_url: formManual.logo_url.trim() || null,
+        link_url: formManual.link_destino.trim() || null,
+        email_contacto: formManual.email.trim().toLowerCase() || null,
+        whatsapp_contacto: formManual.whatsapp.trim() || null,
+        estado: "ativo",
+        mostrar_na_home: formManual.plano_interesse === "home",
+        ordem_home: formManual.plano_interesse === "home" ? 99 : null,
+        destaque:
+          formManual.plano_interesse === "destaque" ||
+          formManual.plano_interesse === "home",
+        ativo: true,
+        notas_admin: formManual.notas_admin.trim() || null,
+      };
+
+      const { error: publicidadeError } = await supabase
+        .from("publicidade_parceiros")
+        .insert(payloadPublicidade);
+
+      if (publicidadeError) throw publicidadeError;
+
+      setFormManual(formManualInicial);
+      setSucesso(
+        `Candidatura manual #${candidaturaCriada.id} criada e convertida em publicidade ativa com sucesso.`
+      );
+      await carregarCandidaturas();
+    } catch (err: unknown) {
+      setErro(
+        getErrorMessage(
+          err,
+          "Não foi possível criar e converter a publicidade manualmente."
+        )
+      );
+    } finally {
+      setSubmittingManual(false);
     }
   }
 
@@ -184,7 +435,8 @@ export default function AdminPublicidadeCandidaturasPage() {
         <h1 style={titulo}>Candidaturas de Publicidade</h1>
         <p style={descricao}>
           Gestão das candidaturas recebidas para publicidade e parceiros, com
-          análise, atualização de estado e conversão para registo ativo.
+          análise, atualização de estado, criação manual e conversão para registo
+          ativo.
         </p>
       </section>
 
@@ -198,6 +450,158 @@ export default function AdminPublicidadeCandidaturasPage() {
       {erro ? <MensagemErro texto={erro} /> : null}
       {sucesso ? <MensagemSucesso texto={sucesso} /> : null}
 
+      <section style={card}>
+        <div style={{ marginBottom: "16px" }}>
+          <p style={miniLabel}>Criação manual</p>
+          <h2 style={cardTitulo}>Criar candidatura manualmente</h2>
+          <p style={subtextoBloco}>
+            Usa esta área quando o pagamento ou acordo foi tratado diretamente
+            contigo e não faz sentido obrigar a pessoa a preencher a candidatura
+            pública.
+          </p>
+        </div>
+
+        <div style={grid4}>
+          <CampoInput
+            label="Nome"
+            value={formManual.nome}
+            onChange={(v) => atualizarFormManual("nome", v)}
+          />
+          <CampoInput
+            label="Email"
+            value={formManual.email}
+            onChange={(v) => atualizarFormManual("email", v)}
+          />
+          <CampoInput
+            label="Telefone"
+            value={formManual.telefone}
+            onChange={(v) => atualizarFormManual("telefone", v)}
+          />
+          <CampoInput
+            label="Marca"
+            value={formManual.nome_marca}
+            onChange={(v) => atualizarFormManual("nome_marca", v)}
+          />
+        </div>
+
+        <div style={grid4}>
+          <CampoInput
+            label="Website"
+            value={formManual.website_url}
+            onChange={(v) => atualizarFormManual("website_url", v)}
+          />
+          <CampoInput
+            label="Instagram"
+            value={formManual.instagram_url}
+            onChange={(v) => atualizarFormManual("instagram_url", v)}
+          />
+          <CampoInput
+            label="WhatsApp"
+            value={formManual.whatsapp}
+            onChange={(v) => atualizarFormManual("whatsapp", v)}
+          />
+          <CampoInput
+            label="Logótipo URL"
+            value={formManual.logo_url}
+            onChange={(v) => atualizarFormManual("logo_url", v)}
+          />
+        </div>
+
+        <div style={grid4}>
+          <CampoSelect
+            label="Plano"
+            value={formManual.plano_interesse}
+            onChange={(v) => atualizarFormManual("plano_interesse", v)}
+            options={[
+              { value: "sidebar", label: "Sidebar" },
+              { value: "destaque", label: "Destaque" },
+              { value: "home", label: "Home" },
+            ]}
+          />
+          <CampoSelect
+            label="Estado inicial"
+            value={formManual.estado}
+            onChange={(v) => atualizarFormManual("estado", v)}
+            options={[
+              { value: "pendente", label: "Pendente" },
+              { value: "em_analise", label: "Em análise" },
+              { value: "aprovada", label: "Aprovada" },
+              { value: "rejeitada", label: "Rejeitada" },
+              { value: "convertida", label: "Convertida" },
+            ]}
+          />
+          <CampoInput
+            label="Título do anúncio"
+            value={formManual.titulo_anuncio}
+            onChange={(v) => atualizarFormManual("titulo_anuncio", v)}
+          />
+          <CampoInput
+            label="Link destino"
+            value={formManual.link_destino}
+            onChange={(v) => atualizarFormManual("link_destino", v)}
+          />
+        </div>
+
+        <div style={grid2}>
+          <CampoTextarea
+            label="Descrição curta"
+            value={formManual.descricao_curta}
+            onChange={(v) => atualizarFormManual("descricao_curta", v)}
+            rows={4}
+          />
+          <CampoTextarea
+            label="Notas admin"
+            value={formManual.notas_admin}
+            onChange={(v) => atualizarFormManual("notas_admin", v)}
+            rows={4}
+          />
+        </div>
+
+        <CampoTextarea
+          label="Descrição"
+          value={formManual.descricao}
+          onChange={(v) => atualizarFormManual("descricao", v)}
+          rows={5}
+        />
+
+        <CampoTextarea
+          label="Observações"
+          value={formManual.observacoes}
+          onChange={(v) => atualizarFormManual("observacoes", v)}
+          rows={4}
+        />
+
+        <div style={acoes}>
+          <button
+            type="button"
+            onClick={() => void criarManualComoCandidatura()}
+            disabled={submittingManual}
+            style={{
+              ...botaoSecundario,
+              opacity: submittingManual ? 0.7 : 1,
+              cursor: submittingManual ? "not-allowed" : "pointer",
+            }}
+          >
+            {submittingManual ? "A processar..." : "Criar candidatura manual"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => void criarManualEDiretoParaPublicidade()}
+            disabled={submittingManual}
+            style={{
+              ...botaoPrimario,
+              opacity: submittingManual ? 0.7 : 1,
+              cursor: submittingManual ? "not-allowed" : "pointer",
+            }}
+          >
+            {submittingManual
+              ? "A processar..."
+              : "Criar e converter em publicidade"}
+          </button>
+        </div>
+      </section>
+
       <section style={barra}>
         <input
           type="text"
@@ -210,7 +614,7 @@ export default function AdminPublicidadeCandidaturasPage() {
         <button
           type="button"
           style={botaoSecundario}
-          onClick={carregarCandidaturas}
+          onClick={() => void carregarCandidaturas()}
         >
           Atualizar
         </button>
@@ -335,12 +739,16 @@ export default function AdminPublicidadeCandidaturasPage() {
               <div style={acoes}>
                 <button
                   type="button"
-                  onClick={() => guardarEstado(item)}
-                  disabled={savingId === item.id}
+                  onClick={() => void guardarEstado(item)}
+                  disabled={savingId === item.id || deletingId === item.id}
                   style={{
                     ...botaoSecundario,
-                    opacity: savingId === item.id ? 0.7 : 1,
-                    cursor: savingId === item.id ? "not-allowed" : "pointer",
+                    opacity:
+                      savingId === item.id || deletingId === item.id ? 0.7 : 1,
+                    cursor:
+                      savingId === item.id || deletingId === item.id
+                        ? "not-allowed"
+                        : "pointer",
                   }}
                 >
                   {savingId === item.id ? "A guardar..." : "Guardar estado"}
@@ -348,16 +756,24 @@ export default function AdminPublicidadeCandidaturasPage() {
 
                 <button
                   type="button"
-                  onClick={() => aprovarECriarPublicidade(item)}
-                  disabled={savingId === item.id || item.estado === "convertida"}
+                  onClick={() => void aprovarECriarPublicidade(item)}
+                  disabled={
+                    savingId === item.id ||
+                    deletingId === item.id ||
+                    item.estado === "convertida"
+                  }
                   style={{
                     ...botaoPrimario,
                     opacity:
-                      savingId === item.id || item.estado === "convertida"
+                      savingId === item.id ||
+                      deletingId === item.id ||
+                      item.estado === "convertida"
                         ? 0.7
                         : 1,
                     cursor:
-                      savingId === item.id || item.estado === "convertida"
+                      savingId === item.id ||
+                      deletingId === item.id ||
+                      item.estado === "convertida"
                         ? "not-allowed"
                         : "pointer",
                   }}
@@ -368,6 +784,27 @@ export default function AdminPublicidadeCandidaturasPage() {
                     ? "Já convertida"
                     : "Aprovar e criar publicidade"}
                 </button>
+
+                {item.estado === "rejeitada" ? (
+                  <button
+                    type="button"
+                    onClick={() => void apagarRejeitada(item)}
+                    disabled={deletingId === item.id || savingId === item.id}
+                    style={{
+                      ...botaoPerigo,
+                      opacity:
+                        deletingId === item.id || savingId === item.id ? 0.7 : 1,
+                      cursor:
+                        deletingId === item.id || savingId === item.id
+                          ? "not-allowed"
+                          : "pointer",
+                    }}
+                  >
+                    {deletingId === item.id
+                      ? "A apagar..."
+                      : "Apagar rejeitada"}
+                  </button>
+                ) : null}
               </div>
             </article>
           ))}
@@ -416,6 +853,80 @@ function AreaSomenteLeitura({
     <div style={{ marginTop: "12px" }}>
       <label style={label}>{titulo}</label>
       <div style={boxTextoGrande}>{value}</div>
+    </div>
+  );
+}
+
+function CampoInput({
+  label: campoLabel,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div>
+      <label style={label}>{campoLabel}</label>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={input}
+      />
+    </div>
+  );
+}
+
+function CampoSelect({
+  label: campoLabel,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: Array<{ value: string; label: string }>;
+}) {
+  return (
+    <div>
+      <label style={label}>{campoLabel}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={input}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function CampoTextarea({
+  label: campoLabel,
+  value,
+  onChange,
+  rows,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  rows: number;
+}) {
+  return (
+    <div style={{ marginTop: "12px" }}>
+      <label style={label}>{campoLabel}</label>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={rows}
+        style={textarea}
+      />
     </div>
   );
 }
@@ -627,6 +1138,16 @@ const botaoSecundario: CSSProperties = {
   border: "1px solid #a6783d",
   background: "transparent",
   color: "#e6c27a",
+  fontSize: "16px",
+  cursor: "pointer",
+  minHeight: "46px",
+};
+
+const botaoPerigo: CSSProperties = {
+  padding: "12px 18px",
+  border: "1px solid rgba(255,107,107,0.45)",
+  background: "rgba(120,20,20,0.12)",
+  color: "#ffb4b4",
   fontSize: "16px",
   cursor: "pointer",
   minHeight: "46px",

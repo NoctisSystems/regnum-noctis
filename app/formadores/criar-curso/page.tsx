@@ -65,6 +65,39 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+async function enviarFicheiroParaBunny(params: {
+  file: File;
+  kind: "pdf_curso" | "certificado_pronto" | "certificado_modelo";
+  cursoId?: number | null;
+}) {
+  const body = new FormData();
+  body.append("file", params.file);
+  body.append("kind", params.kind);
+
+  if (typeof params.cursoId === "number" && Number.isFinite(params.cursoId)) {
+    body.append("cursoId", String(params.cursoId));
+  }
+
+  const response = await fetch("/api/formadores/upload-ficheiro", {
+    method: "POST",
+    body,
+  });
+
+  const data = (await response.json()) as {
+    ok?: boolean;
+    storagePath?: string;
+    error?: string;
+  };
+
+  if (!response.ok || !data.ok || !data.storagePath) {
+    throw new Error(
+      data.error || "Não foi possível enviar o ficheiro para o Bunny."
+    );
+  }
+
+  return data.storagePath;
+}
+
 export default function CriarCursoPage() {
   const router = useRouter();
 
@@ -301,25 +334,12 @@ export default function CriarCursoPage() {
         return;
       }
 
-      const user = await obterUtilizadorAutenticado();
+      const storagePath = await enviarFicheiroParaBunny({
+        file,
+        kind: "pdf_curso",
+      });
 
-      const nomeFicheiro = `formadores/${user.id}/pdfs/pdf-${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2)}.pdf`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("cursos_pdfs")
-        .upload(nomeFicheiro, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
-
-      if (uploadError) {
-        setErro(uploadError.message || "Não foi possível carregar o PDF.");
-        return;
-      }
-
-      update("pdf_path", nomeFicheiro);
+      update("pdf_path", storagePath);
       setSucesso("PDF carregado com sucesso.");
     } catch (error: unknown) {
       setErro(
@@ -361,35 +381,16 @@ export default function CriarCursoPage() {
         return;
       }
 
-      const user = await obterUtilizadorAutenticado();
-
-      const extensao = file.type === "image/png" ? "png" : "pdf";
-      const prefixo =
-        tipo === "pronto" ? "certificado-pronto" : "modelo-certificado";
-
-      const nomeFicheiro = `formadores/${user.id}/certificados/${prefixo}-${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2)}.${extensao}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("certificados")
-        .upload(nomeFicheiro, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
-
-      if (uploadError) {
-        setErro(
-          uploadError.message || "Não foi possível carregar o certificado."
-        );
-        return;
-      }
+      const storagePath = await enviarFicheiroParaBunny({
+        file,
+        kind: tipo === "pronto" ? "certificado_pronto" : "certificado_modelo",
+      });
 
       if (tipo === "pronto") {
-        update("certificado_pronto_path", nomeFicheiro);
+        update("certificado_pronto_path", storagePath);
         setSucesso("Certificado já pronto carregado com sucesso.");
       } else {
-        update("certificado_modelo_path", nomeFicheiro);
+        update("certificado_modelo_path", storagePath);
         setSucesso("Modelo base do certificado carregado com sucesso.");
       }
     } catch (error: unknown) {
@@ -433,7 +434,10 @@ export default function CriarCursoPage() {
         return;
       }
 
-      const formador = await encontrarFormadorComRecuperacao(user.id, user.email);
+      const formador = await encontrarFormadorComRecuperacao(
+        user.id,
+        user.email
+      );
 
       if (!formador) {
         setErro(

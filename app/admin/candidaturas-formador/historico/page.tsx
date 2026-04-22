@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
+import { eliminarCandidaturaRejeitada } from "../actions";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 type Candidatura = {
@@ -67,16 +68,31 @@ export default async function HistoricoCandidaturasPage() {
                     <p style={email}>{candidatura.email}</p>
                   </div>
 
-                  <div
-                    style={{
-                      ...estadoBadge,
-                      color:
-                        candidatura.estado === "aprovado"
-                          ? "#bff1bf"
-                          : "#ffb4b4",
-                    }}
-                  >
-                    {candidatura.estado}
+                  <div style={acoesHistorico}>
+                    <div
+                      style={{
+                        ...estadoBadge,
+                        color:
+                          candidatura.estado === "aprovado"
+                            ? "#bff1bf"
+                            : "#ffb4b4",
+                      }}
+                    >
+                      {candidatura.estado}
+                    </div>
+
+                    {candidatura.estado === "rejeitado" ? (
+                      <form action={eliminarCandidaturaRejeitada}>
+                        <input
+                          type="hidden"
+                          name="candidaturaId"
+                          value={candidatura.id}
+                        />
+                        <button type="submit" style={botaoEliminar}>
+                          Eliminar rejeitada
+                        </button>
+                      </form>
+                    ) : null}
                   </div>
                 </div>
 
@@ -239,6 +255,13 @@ const email: CSSProperties = {
   wordBreak: "break-word",
 };
 
+const acoesHistorico: CSSProperties = {
+  display: "flex",
+  gap: "12px",
+  flexWrap: "wrap",
+  alignItems: "flex-start",
+};
+
 const estadoBadge: CSSProperties = {
   border: "1px solid rgba(166,120,61,0.35)",
   padding: "10px 14px",
@@ -342,5 +365,19 @@ const botaoTopo: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
+  minHeight: "46px",
+};
+
+const botaoEliminar: CSSProperties = {
+  textDecoration: "none",
+  border: "1px solid rgba(255,107,107,0.45)",
+  padding: "12px 16px",
+  background: "rgba(120,20,20,0.12)",
+  color: "#ffb4b4",
+  cursor: "pointer",
+  fontSize: "14px",
+  fontWeight: 700,
+  letterSpacing: "0.05em",
+  textTransform: "uppercase",
   minHeight: "46px",
 };

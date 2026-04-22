@@ -1,6 +1,6 @@
 "use client";
 
-import { CSSProperties, useEffect, useMemo, useState } from "react";
+import { CSSProperties, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 type Aluno = {
@@ -50,11 +50,7 @@ export default function AdminAlunosPage() {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
 
-  useEffect(() => {
-    carregarDados();
-  }, []);
-
-  async function carregarDados() {
+  const carregarDados = useCallback(async () => {
     setLoading(true);
     setErro("");
     setSucesso("");
@@ -71,7 +67,9 @@ export default function AdminAlunosPage() {
           .select("id, titulo")
           .order("titulo", { ascending: true }),
 
-        supabase.from("inscricoes").select("id, aluno_id, curso_id, status"),
+        supabase
+          .from("inscricoes")
+          .select("id, aluno_id, curso_id, status"),
       ]);
 
       if (alunosRes.error) throw alunosRes.error;
@@ -81,12 +79,20 @@ export default function AdminAlunosPage() {
       setAlunos((alunosRes.data || []) as Aluno[]);
       setCursos((cursosRes.data || []) as Curso[]);
       setInscricoes((inscricoesRes.data || []) as Inscricao[]);
-    } catch (err: any) {
-      setErro(err?.message || "Não foi possível carregar os alunos.");
+    } catch (error: unknown) {
+      const mensagem =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível carregar os alunos.";
+      setErro(mensagem);
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    void carregarDados();
+  }, [carregarDados]);
 
   function limparFormulario() {
     setUsarAlunoExistente(false);
@@ -155,9 +161,10 @@ export default function AdminAlunosPage() {
         return;
       }
 
+      const cursoIdNum = Number(cursoId);
+
       const jaExisteInscricao = inscricoes.some(
-        (item) =>
-          item.aluno_id === alunoIdFinal && item.curso_id === Number(cursoId)
+        (item) => item.aluno_id === alunoIdFinal && item.curso_id === cursoIdNum
       );
 
       if (jaExisteInscricao) {
@@ -167,7 +174,7 @@ export default function AdminAlunosPage() {
 
       const { error: erroInscricao } = await supabase.from("inscricoes").insert({
         aluno_id: alunoIdFinal,
-        curso_id: Number(cursoId),
+        curso_id: cursoIdNum,
         status: "ativo",
       });
 
@@ -179,8 +186,12 @@ export default function AdminAlunosPage() {
       limparFormulario();
       setMostrarNovoAluno(false);
       await carregarDados();
-    } catch (err: any) {
-      setErro(err?.message || "Não foi possível associar o aluno ao curso.");
+    } catch (error: unknown) {
+      const mensagem =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível associar o aluno ao curso.";
+      setErro(mensagem);
     } finally {
       setAGuardar(false);
     }
@@ -326,6 +337,14 @@ export default function AdminAlunosPage() {
         <div style={acoesTopo}>
           <button type="button" style={buttonSecundario} onClick={exportarCSV}>
             Exportar
+          </button>
+
+          <button
+            type="button"
+            style={buttonSecundario}
+            onClick={() => void carregarDados()}
+          >
+            Atualizar
           </button>
 
           <button
@@ -552,8 +571,8 @@ const card: CSSProperties = {
 };
 
 const cardTitle: CSSProperties = {
-  fontSize: "20px",
   margin: "0 0 12px 0",
+  fontSize: "20px",
   color: "#e6c27a",
 };
 

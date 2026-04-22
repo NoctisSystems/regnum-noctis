@@ -1,6 +1,13 @@
 "use client";
 
-import { CSSProperties, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import {
+  CSSProperties,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { supabase } from "@/lib/supabase";
 
 type Formador = {
@@ -24,6 +31,14 @@ type FotosPreviewState = Record<number, string | null>;
 
 const BUCKET_FORMADORES_FOTOS = "formadores-fotos";
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 export default function FormadoresPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
@@ -35,21 +50,7 @@ export default function FormadoresPage() {
     useState<FotosSelecionadasState>({});
   const [fotosPreview, setFotosPreview] = useState<FotosPreviewState>({});
 
-  useEffect(() => {
-    carregarFormadores();
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      Object.values(fotosPreview).forEach((url) => {
-        if (url && url.startsWith("blob:")) {
-          URL.revokeObjectURL(url);
-        }
-      });
-    };
-  }, [fotosPreview]);
-
-  async function carregarFormadores() {
+  const carregarFormadores = useCallback(async () => {
     setLoading(true);
     setErro("");
     setSucesso("");
@@ -68,12 +69,26 @@ export default function FormadoresPage() {
       }
 
       setFormadores((data || []) as Formador[]);
-    } catch (err: any) {
-      setErro(err?.message || "Ocorreu um erro ao carregar os formadores.");
+    } catch (err: unknown) {
+      setErro(getErrorMessage(err, "Ocorreu um erro ao carregar os formadores."));
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    void carregarFormadores();
+  }, [carregarFormadores]);
+
+  useEffect(() => {
+    return () => {
+      Object.values(fotosPreview).forEach((url) => {
+        if (url && url.startsWith("blob:")) {
+          URL.revokeObjectURL(url);
+        }
+      });
+    };
+  }, [fotosPreview]);
 
   function atualizarCampo(
     id: number,
@@ -248,8 +263,10 @@ export default function FormadoresPage() {
       setSucesso(
         `Dados de ${formador.nome || "formador"} guardados com sucesso.`
       );
-    } catch (err: any) {
-      setErro(err?.message || "Não foi possível guardar os dados do formador.");
+    } catch (err: unknown) {
+      setErro(
+        getErrorMessage(err, "Não foi possível guardar os dados do formador.")
+      );
     } finally {
       setSavingId(null);
     }
@@ -300,7 +317,7 @@ export default function FormadoresPage() {
 
         <button
           type="button"
-          onClick={carregarFormadores}
+          onClick={() => void carregarFormadores()}
           style={botaoSecundario}
         >
           Atualizar
@@ -334,11 +351,16 @@ export default function FormadoresPage() {
 
                       <div style={molduraFoto}>
                         {fotoSrc ? (
-                          <img
-                            src={fotoSrc}
-                            alt={formador.nome || "Formador"}
-                            style={imagemFoto}
-                          />
+                          <div style={imagemWrapper}>
+                            <Image
+                              src={fotoSrc}
+                              alt={formador.nome || "Formador"}
+                              fill
+                              sizes="260px"
+                              style={imagemFoto}
+                              unoptimized
+                            />
+                          </div>
                         ) : (
                           <span style={textoSemFoto}>
                             Sem fotografia carregada
@@ -487,7 +509,7 @@ export default function FormadoresPage() {
                       <div style={rodapeAcoes}>
                         <button
                           type="button"
-                          onClick={() => guardarFormador(formador)}
+                          onClick={() => void guardarFormador(formador)}
                           disabled={savingId === formador.id}
                           style={{
                             ...botao,
@@ -728,9 +750,13 @@ const molduraFoto: CSSProperties = {
   justifyContent: "center",
 };
 
-const imagemFoto: CSSProperties = {
+const imagemWrapper: CSSProperties = {
+  position: "relative",
   width: "100%",
   height: "100%",
+};
+
+const imagemFoto: CSSProperties = {
   objectFit: "cover",
   display: "block",
 };

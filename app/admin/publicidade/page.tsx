@@ -1,6 +1,6 @@
 "use client";
 
-import { CSSProperties, useEffect, useMemo, useState } from "react";
+import { CSSProperties, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 type PublicidadeParceiro = {
@@ -27,6 +27,14 @@ type PublicidadeParceiro = {
   updated_at: string;
 };
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 export default function AdminPublicidadePage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
@@ -35,11 +43,7 @@ export default function AdminPublicidadePage() {
   const [savingId, setSavingId] = useState<number | null>(null);
   const [registos, setRegistos] = useState<PublicidadeParceiro[]>([]);
 
-  useEffect(() => {
-    carregarPublicidade();
-  }, []);
-
-  async function carregarPublicidade() {
+  const carregarPublicidade = useCallback(async () => {
     setLoading(true);
     setErro("");
     setSucesso("");
@@ -53,12 +57,16 @@ export default function AdminPublicidadePage() {
       if (error) throw error;
 
       setRegistos((data || []) as PublicidadeParceiro[]);
-    } catch (err: any) {
-      setErro(err?.message || "Não foi possível carregar a publicidade.");
+    } catch (err: unknown) {
+      setErro(getErrorMessage(err, "Não foi possível carregar a publicidade."));
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    void carregarPublicidade();
+  }, [carregarPublicidade]);
 
   function atualizarCampo(
     id: number,
@@ -107,8 +115,8 @@ export default function AdminPublicidadePage() {
       if (error) throw error;
 
       setSucesso(`Registo "${item.nome}" guardado com sucesso.`);
-    } catch (err: any) {
-      setErro(err?.message || "Não foi possível guardar o registo.");
+    } catch (err: unknown) {
+      setErro(getErrorMessage(err, "Não foi possível guardar o registo."));
     } finally {
       setSavingId(null);
     }
@@ -170,7 +178,7 @@ export default function AdminPublicidadePage() {
         <button
           type="button"
           style={botaoSecundario}
-          onClick={carregarPublicidade}
+          onClick={() => void carregarPublicidade()}
         >
           Atualizar
         </button>
@@ -195,7 +203,7 @@ export default function AdminPublicidadePage() {
 
                 <button
                   type="button"
-                  onClick={() => guardarRegisto(item)}
+                  onClick={() => void guardarRegisto(item)}
                   disabled={savingId === item.id}
                   style={{
                     ...botaoPrimario,

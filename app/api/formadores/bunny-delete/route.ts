@@ -28,6 +28,14 @@ function getEnv(name: string) {
   return value;
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 function getSupabaseFromBearerToken(token: string) {
   const supabaseUrl = getEnv("NEXT_PUBLIC_SUPABASE_URL");
   const supabaseAnonKey = getEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
@@ -68,9 +76,7 @@ async function apagarVideoNoBunny(videoId: string) {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(
-      errorText || "Falha ao apagar o vídeo no Bunny Stream."
-    );
+    throw new Error(errorText || "Falha ao apagar o vídeo no Bunny Stream.");
   }
 }
 
@@ -121,15 +127,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
+    const body = (await request.json()) as {
+      aulaId?: number | string;
+      apagarAula?: boolean;
+    };
+
     const aulaId = Number(body?.aulaId || 0);
     const apagarAula = Boolean(body?.apagarAula);
 
     if (!aulaId || Number.isNaN(aulaId)) {
-      return NextResponse.json(
-        { error: "Aula inválida." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Aula inválida." }, { status: 400 });
     }
 
     const { data: aulaData, error: aulaError } = await supabase
@@ -181,7 +188,10 @@ export async function POST(request: NextRequest) {
 
       if (deleteAulaError) {
         return NextResponse.json(
-          { error: deleteAulaError.message || "Não foi possível apagar a aula." },
+          {
+            error:
+              deleteAulaError.message || "Não foi possível apagar a aula.",
+          },
           { status: 500 }
         );
       }
@@ -216,12 +226,13 @@ export async function POST(request: NextRequest) {
       apagouVideo: true,
       apagouAula: false,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
       {
-        error:
-          error?.message ||
-          "Ocorreu um erro inesperado ao apagar o vídeo no Bunny.",
+        error: getErrorMessage(
+          error,
+          "Ocorreu um erro inesperado ao apagar o vídeo no Bunny."
+        ),
       },
       { status: 500 }
     );

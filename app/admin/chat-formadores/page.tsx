@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 type Conversa = {
@@ -36,6 +36,21 @@ const menuAdmin = [
   { href: "/admin/chat-formadores", label: "Chat formadores" },
 ];
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
+function formatarDataHora(valor: string) {
+  return new Intl.DateTimeFormat("pt-PT", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date(valor));
+}
+
 export default function AdminChatFormadoresPage() {
   const pathname = usePathname();
 
@@ -50,11 +65,7 @@ export default function AdminChatFormadoresPage() {
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [filtroCategoria, setFiltroCategoria] = useState("todos");
 
-  useEffect(() => {
-    carregarConversas();
-  }, []);
-
-  async function carregarConversas() {
+  const carregarConversas = useCallback(async () => {
     setLoading(true);
     setErro("");
 
@@ -74,7 +85,11 @@ export default function AdminChatFormadoresPage() {
       setConversas(conversasData);
 
       const formadorIds = Array.from(
-        new Set(conversasData.map((conversa) => conversa.formador_id))
+        new Set(
+          conversasData
+            .map((conversa) => conversa.formador_id)
+            .filter((id): id is number => typeof id === "number")
+        )
       );
 
       if (formadorIds.length > 0) {
@@ -91,19 +106,26 @@ export default function AdminChatFormadoresPage() {
         (formadoresData || []).forEach((formador) => {
           nextMap[formador.id] = formador as Formador;
         });
+
         setFormadoresMap(nextMap);
       } else {
         setFormadoresMap({});
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setErro(
-        err?.message ||
+        getErrorMessage(
+          err,
           "Ocorreu um erro ao carregar o chat interno dos formadores."
+        )
       );
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    void carregarConversas();
+  }, [carregarConversas]);
 
   const conversasFiltradas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -166,18 +188,54 @@ export default function AdminChatFormadoresPage() {
       ) : (
         <>
           <section className="admin-summary-panel fade-in-up fade-delay-1">
-            <p className="admin-summary-label" style={{ marginBottom: "10px" }}>
-              Suporte interno
-            </p>
-            <h1 className="admin-summary-title">Chat com formadores</h1>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: "18px",
+                flexWrap: "wrap",
+                alignItems: "flex-end",
+                marginBottom: "20px",
+              }}
+            >
+              <div>
+                <p className="admin-summary-label" style={{ marginBottom: "10px" }}>
+                  Suporte interno
+                </p>
+                <h1 className="admin-summary-title" style={{ marginBottom: 0 }}>
+                  Chat com formadores
+                </h1>
+              </div>
 
-            <div className="admin-summary-grid" style={{ marginTop: "18px" }}>
-              <ResumoItem label="Total de conversas" value={String(conversas.length)} />
+              <button
+                type="button"
+                onClick={() => void carregarConversas()}
+                className="admin-top-nav-link"
+                style={{
+                  minHeight: "48px",
+                  paddingInline: "18px",
+                  cursor: "pointer",
+                }}
+              >
+                Atualizar
+              </button>
+            </div>
+
+            <div className="admin-summary-grid">
+              <ResumoItem
+                label="Total de conversas"
+                value={String(conversas.length)}
+              />
               <ResumoItem
                 label="Abertas"
                 value={String(
                   conversas.filter((item) =>
-                    ["aberto", "em_analise", "aguarda_formador", "aguarda_admin"].includes(item.estado)
+                    [
+                      "aberto",
+                      "em_analise",
+                      "aguarda_formador",
+                      "aguarda_admin",
+                    ].includes(item.estado)
                   ).length
                 )}
               />
@@ -416,7 +474,11 @@ function Select({
         style={fieldStyle}
       >
         {options.map((option) => (
-          <option key={option.value} value={option.value} style={{ color: "#140d09" }}>
+          <option
+            key={option.value}
+            value={option.value}
+            style={{ color: "#140d09" }}
+          >
             {option.label}
           </option>
         ))}
@@ -449,13 +511,6 @@ function EmptyBox() {
       </p>
     </section>
   );
-}
-
-function formatarDataHora(valor: string) {
-  return new Intl.DateTimeFormat("pt-PT", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(valor));
 }
 
 const fieldStyle: React.CSSProperties = {

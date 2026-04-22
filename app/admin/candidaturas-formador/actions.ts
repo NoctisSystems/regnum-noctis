@@ -3,6 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 export async function aprovarCandidatura(formData: FormData) {
   const supabaseAdmin = getSupabaseAdmin();
 
@@ -49,6 +57,8 @@ export async function aprovarCandidatura(formData: FormData) {
     nome: candidatura.nome,
     email: candidatura.email,
     telefone: candidatura.numero_contacto || null,
+    nif_cpf: candidatura.nif_cpf || null,
+    dados_pagamento: candidatura.dados_pagamento || null,
     bio_curta: candidatura.biografia_curta || null,
     bio: candidatura.biografia_pagina_formador || null,
     area_ensino: candidatura.cursos_pretendidos || null,
@@ -104,8 +114,11 @@ export async function aprovarCandidatura(formData: FormData) {
     if (inviteError) {
       console.error("Convite por email falhou:", inviteError.message);
     }
-  } catch (error) {
-    console.error("Erro inesperado ao enviar convite:", error);
+  } catch (error: unknown) {
+    console.error(
+      "Erro inesperado ao enviar convite:",
+      getErrorMessage(error, "Erro desconhecido")
+    );
   }
 }
 
@@ -125,6 +138,42 @@ export async function rejeitarCandidatura(formData: FormData) {
 
   if (updateError) {
     throw new Error(`Erro ao rejeitar candidatura: ${updateError.message}`);
+  }
+
+  revalidatePath("/admin/candidaturas-formador");
+  revalidatePath("/admin/candidaturas-formador/historico");
+}
+
+export async function eliminarCandidaturaRejeitada(formData: FormData) {
+  const supabaseAdmin = getSupabaseAdmin();
+
+  const candidaturaId = String(formData.get("candidaturaId") || "");
+
+  if (!candidaturaId) {
+    throw new Error("ID da candidatura em falta.");
+  }
+
+  const { data: candidatura, error: candidaturaError } = await supabaseAdmin
+    .from("formador_candidaturas")
+    .select("id, estado")
+    .eq("id", candidaturaId)
+    .single();
+
+  if (candidaturaError || !candidatura) {
+    throw new Error("Candidatura não encontrada.");
+  }
+
+  if (candidatura.estado !== "rejeitado") {
+    throw new Error("Só é possível eliminar candidaturas rejeitadas.");
+  }
+
+  const { error: deleteError } = await supabaseAdmin
+    .from("formador_candidaturas")
+    .delete()
+    .eq("id", candidaturaId);
+
+  if (deleteError) {
+    throw new Error(`Erro ao eliminar candidatura: ${deleteError.message}`);
   }
 
   revalidatePath("/admin/candidaturas-formador");

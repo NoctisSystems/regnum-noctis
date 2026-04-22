@@ -1,6 +1,12 @@
 "use client";
 
-import { CSSProperties, useEffect, useMemo, useState } from "react";
+import {
+  CSSProperties,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { supabase } from "@/lib/supabase";
 
 type Levantamento = {
@@ -44,6 +50,14 @@ type LinhaLevantamento = {
   updatedAt: string;
 };
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 export default function AdminLevantamentosPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
@@ -55,11 +69,7 @@ export default function AdminLevantamentosPage() {
 
   const [savingId, setSavingId] = useState<number | null>(null);
 
-  useEffect(() => {
-    carregarDados();
-  }, []);
-
-  async function carregarDados() {
+  const carregarDados = useCallback(async () => {
     setLoading(true);
     setErro("");
     setSucesso("");
@@ -84,12 +94,16 @@ export default function AdminLevantamentosPage() {
 
       setLevantamentos((levantamentosRes.data || []) as Levantamento[]);
       setFormadores((formadoresRes.data || []) as Formador[]);
-    } catch (err: any) {
-      setErro(err?.message || "Não foi possível carregar os levantamentos.");
+    } catch (err: unknown) {
+      setErro(getErrorMessage(err, "Não foi possível carregar os levantamentos."));
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    void carregarDados();
+  }, [carregarDados]);
 
   const mapaFormadores = useMemo(() => {
     return new Map<number, Formador>(
@@ -166,7 +180,7 @@ export default function AdminLevantamentosPage() {
     try {
       setSavingId(levantamentoId);
 
-      const updatePayload: Record<string, any> = {
+      const updatePayload: Record<string, string | number | null> = {
         estado: dados.estado,
         valor_aprovado: dados.valor_aprovado,
         observacoes_admin: dados.observacoes_admin,
@@ -200,19 +214,30 @@ export default function AdminLevantamentosPage() {
                 estado: dados.estado,
                 valor_aprovado: dados.valor_aprovado,
                 observacoes_admin: dados.observacoes_admin,
-                updated_at: updatePayload.updated_at,
+                updated_at:
+                  typeof updatePayload.updated_at === "string"
+                    ? updatePayload.updated_at
+                    : item.updated_at,
                 fatura_enviada_em:
-                  updatePayload.fatura_enviada_em ?? item.fatura_enviada_em,
-                validado_em: updatePayload.validado_em ?? item.validado_em,
-                pago_em: updatePayload.pago_em ?? item.pago_em,
+                  typeof updatePayload.fatura_enviada_em === "string"
+                    ? updatePayload.fatura_enviada_em
+                    : item.fatura_enviada_em,
+                validado_em:
+                  typeof updatePayload.validado_em === "string"
+                    ? updatePayload.validado_em
+                    : item.validado_em,
+                pago_em:
+                  typeof updatePayload.pago_em === "string"
+                    ? updatePayload.pago_em
+                    : item.pago_em,
               }
             : item
         )
       );
 
       setSucesso("Levantamento atualizado com sucesso.");
-    } catch (err: any) {
-      setErro(err?.message || "Não foi possível atualizar o levantamento.");
+    } catch (err: unknown) {
+      setErro(getErrorMessage(err, "Não foi possível atualizar o levantamento."));
     } finally {
       setSavingId(null);
     }
@@ -264,7 +289,11 @@ export default function AdminLevantamentosPage() {
           style={inputPesquisa}
         />
 
-        <button type="button" style={buttonSecundario} onClick={carregarDados}>
+        <button
+          type="button"
+          style={buttonSecundario}
+          onClick={() => void carregarDados()}
+        >
           Atualizar
         </button>
       </section>
@@ -277,7 +306,7 @@ export default function AdminLevantamentosPage() {
         ) : (
           linhasFiltradas.map((linha) => (
             <LinhaLevantamentoItem
-              key={linha.id}
+              key={`${linha.id}-${linha.updatedAt}-${linha.estado}-${linha.valorAprovado ?? ""}-${linha.observacoesAdmin ?? ""}`}
               linha={linha}
               saving={savingId === linha.id}
               onGuardar={atualizarLevantamento}
@@ -310,14 +339,6 @@ function LinhaLevantamentoItem({
     linha.valorAprovado !== null ? String(linha.valorAprovado) : ""
   );
   const [observacoes, setObservacoes] = useState(linha.observacoesAdmin || "");
-
-  useEffect(() => {
-    setEstado(linha.estado || "aguarda_fatura");
-    setValorAprovado(
-      linha.valorAprovado !== null ? String(linha.valorAprovado) : ""
-    );
-    setObservacoes(linha.observacoesAdmin || "");
-  }, [linha]);
 
   return (
     <article style={cardLinha}>
@@ -362,7 +383,12 @@ function LinhaLevantamentoItem({
 
           <div style={{ display: "grid", gap: "8px" }}>
             {linha.faturaUrl ? (
-              <a href={linha.faturaUrl} target="_blank" style={linkMini}>
+              <a
+                href={linha.faturaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={linkMini}
+              >
                 Ver fatura
               </a>
             ) : (
@@ -370,7 +396,12 @@ function LinhaLevantamentoItem({
             )}
 
             {linha.comprovativoUrl ? (
-              <a href={linha.comprovativoUrl} target="_blank" style={linkMini}>
+              <a
+                href={linha.comprovativoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={linkMini}
+              >
                 Ver comprovativo
               </a>
             ) : (
@@ -434,7 +465,7 @@ function LinhaLevantamentoItem({
           }}
           disabled={saving}
           onClick={() =>
-            onGuardar(linha.id, {
+            void onGuardar(linha.id, {
               estado,
               valor_aprovado:
                 valorAprovado.trim() === "" ? null : Number(valorAprovado),

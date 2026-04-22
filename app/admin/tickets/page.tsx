@@ -52,6 +52,14 @@ const menuAdmin = [
   { href: "/admin/chat-formadores", label: "Chat formadores" },
 ];
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 export default function AdminTicketsPage() {
   const pathname = usePathname();
 
@@ -70,7 +78,7 @@ export default function AdminTicketsPage() {
   const [filtroPrioridade, setFiltroPrioridade] = useState("todos");
 
   useEffect(() => {
-    carregarTickets();
+    void carregarTickets();
   }, []);
 
   async function carregarTickets() {
@@ -172,8 +180,8 @@ export default function AdminTicketsPage() {
       } else {
         setCursosMap({});
       }
-    } catch (err: any) {
-      setErro(err?.message || "Ocorreu um erro ao carregar os tickets.");
+    } catch (err: unknown) {
+      setErro(getErrorMessage(err, "Ocorreu um erro ao carregar os tickets."));
     } finally {
       setLoading(false);
     }
@@ -238,7 +246,13 @@ export default function AdminTicketsPage() {
   ]);
 
   const totalAbertos = tickets.filter((ticket) =>
-    ["aberto", "em_analise", "aguarda_resposta_formador", "aguarda_resposta_admin", "aguarda_resposta_aluno"].includes(ticket.estado)
+    [
+      "aberto",
+      "em_analise",
+      "aguarda_resposta_formador",
+      "aguarda_resposta_admin",
+      "aguarda_resposta_aluno",
+    ].includes(ticket.estado)
   ).length;
 
   const totalComFormador = tickets.filter(
@@ -293,7 +307,7 @@ export default function AdminTicketsPage() {
 
               <button
                 type="button"
-                onClick={carregarTickets}
+                onClick={() => void carregarTickets()}
                 className="admin-top-nav-link"
                 style={{
                   minHeight: "48px",

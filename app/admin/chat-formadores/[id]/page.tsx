@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 type Conversa = {
@@ -52,10 +52,30 @@ const menuAdmin = [
   { href: "/admin/chat-formadores", label: "Chat formadores" },
 ];
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
+function capitalizarAutor(valor: string) {
+  if (!valor) return "Desconhecido";
+  return valor.charAt(0).toUpperCase() + valor.slice(1);
+}
+
+function formatarDataHora(valor: string) {
+  return new Intl.DateTimeFormat("pt-PT", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date(valor));
+}
+
 export default function AdminChatFormadorDetalhePage() {
   const pathname = usePathname();
-  const params = useParams();
-  const conversaId = Number(params.id);
+  const params = useParams<{ id: string }>();
+  const conversaId = Number(params?.id);
 
   const [loading, setLoading] = useState(true);
   const [submittingMensagem, setSubmittingMensagem] = useState(false);
@@ -70,17 +90,7 @@ export default function AdminChatFormadorDetalhePage() {
   const [novaMensagem, setNovaMensagem] = useState("");
   const [novoEstado, setNovoEstado] = useState("");
 
-  useEffect(() => {
-    if (!Number.isFinite(conversaId)) {
-      setErro("ID de conversa inválido.");
-      setLoading(false);
-      return;
-    }
-
-    carregarTudo();
-  }, [conversaId]);
-
-  async function carregarTudo() {
+  const carregarTudo = useCallback(async () => {
     setLoading(true);
     setErro("");
     setSucesso("");
@@ -148,12 +158,22 @@ export default function AdminChatFormadorDetalhePage() {
       }
 
       setFormador((formadorData as Formador | null) || null);
-    } catch (err: any) {
-      setErro(err?.message || "Ocorreu um erro ao carregar a conversa.");
+    } catch (err: unknown) {
+      setErro(getErrorMessage(err, "Ocorreu um erro ao carregar a conversa."));
     } finally {
       setLoading(false);
     }
-  }
+  }, [conversaId]);
+
+  useEffect(() => {
+    if (!Number.isFinite(conversaId) || conversaId <= 0) {
+      setErro("ID de conversa inválido.");
+      setLoading(false);
+      return;
+    }
+
+    void carregarTudo();
+  }, [carregarTudo, conversaId]);
 
   async function guardarEstado() {
     if (!conversa || !adminAtual) return;
@@ -219,8 +239,8 @@ export default function AdminChatFormadorDetalhePage() {
       setNovaMensagem("");
       setSucesso("Mensagem enviada com sucesso.");
       await carregarTudo();
-    } catch (err: any) {
-      setErro(err?.message || "Não foi possível enviar a mensagem.");
+    } catch (err: unknown) {
+      setErro(getErrorMessage(err, "Não foi possível enviar a mensagem."));
     } finally {
       setSubmittingMensagem(false);
     }
@@ -406,7 +426,7 @@ export default function AdminChatFormadorDetalhePage() {
 
               <button
                 type="button"
-                onClick={enviarMensagem}
+                onClick={() => void enviarMensagem()}
                 disabled={submittingMensagem}
                 className="admin-top-nav-link active"
                 style={{
@@ -455,7 +475,7 @@ export default function AdminChatFormadorDetalhePage() {
 
             <button
               type="button"
-              onClick={guardarEstado}
+              onClick={() => void guardarEstado()}
               className="admin-top-nav-link active"
               style={{
                 minHeight: "48px",
@@ -606,18 +626,6 @@ function LoadingBox() {
 
 function ErrorBox({ texto }: { texto: string }) {
   return <section className="admin-error-box fade-in-up">{texto}</section>;
-}
-
-function capitalizarAutor(valor: string) {
-  if (!valor) return "Desconhecido";
-  return valor.charAt(0).toUpperCase() + valor.slice(1);
-}
-
-function formatarDataHora(valor: string) {
-  return new Intl.DateTimeFormat("pt-PT", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(valor));
 }
 
 const fieldStyle: React.CSSProperties = {

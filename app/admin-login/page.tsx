@@ -4,6 +4,20 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
+type AdminRegisto = {
+  id: number;
+  auth_id: string | null;
+  email: string | null;
+};
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 export default function AdminLoginPage() {
   const router = useRouter();
 
@@ -17,7 +31,9 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setErro("");
 
-    if (!email.trim()) {
+    const emailLimpo = email.trim().toLowerCase();
+
+    if (!emailLimpo) {
       setErro("Indica o email.");
       return;
     }
@@ -31,7 +47,7 @@ export default function AdminLoginPage() {
       setLoading(true);
 
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: emailLimpo,
         password,
       });
 
@@ -48,18 +64,32 @@ export default function AdminLoginPage() {
         .from("admin")
         .select("id, auth_id, email")
         .eq("auth_id", data.user.id)
-        .single();
+        .maybeSingle();
 
-      if (adminError || !adminData) {
+      if (adminError) {
+        await supabase.auth.signOut();
+        setErro("Não foi possível validar as permissões de administrador.");
+        return;
+      }
+
+      if (!adminData) {
         await supabase.auth.signOut();
         setErro("Não tens permissões de administrador.");
         return;
       }
 
-      router.push("/admin");
+      const admin = adminData as AdminRegisto;
+
+      if (!admin.id) {
+        await supabase.auth.signOut();
+        setErro("Registo de administrador inválido.");
+        return;
+      }
+
+      router.replace("/admin");
       router.refresh();
-    } catch (error: any) {
-      setErro(error?.message || "Erro ao entrar.");
+    } catch (error: unknown) {
+      setErro(getErrorMessage(error, "Erro ao entrar."));
     } finally {
       setLoading(false);
     }
@@ -75,6 +105,13 @@ export default function AdminLoginPage() {
         <p style={subtitle}>
           Entrada reservada à equipa de administração do Regnum Noctis.
         </p>
+
+        <div style={infoBox}>
+          <p style={infoText}>
+            Esta área está protegida e valida não só a autenticação, mas também
+            a existência de permissões reais de administrador.
+          </p>
+        </div>
 
         {erro ? <div style={erroBox}>{erro}</div> : null}
 
@@ -92,6 +129,7 @@ export default function AdminLoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
               placeholder="admin@regnumnoctis.pt"
+              disabled={loading}
             />
           </div>
 
@@ -108,12 +146,14 @@ export default function AdminLoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
               placeholder="A tua palavra-passe"
+              disabled={loading}
             />
 
             <button
               type="button"
               onClick={() => setMostrarPassword((prev) => !prev)}
               style={toggleButton}
+              disabled={loading}
             >
               {mostrarPassword
                 ? "Ocultar palavra-passe"
@@ -121,7 +161,15 @@ export default function AdminLoginPage() {
             </button>
           </div>
 
-          <button type="submit" style={button} disabled={loading}>
+          <button
+            type="submit"
+            style={{
+              ...button,
+              opacity: loading ? 0.7 : 1,
+              cursor: loading ? "not-allowed" : "pointer",
+            }}
+            disabled={loading}
+          >
             {loading ? "A entrar..." : "Entrar"}
           </button>
         </form>
@@ -176,10 +224,25 @@ const title: React.CSSProperties = {
 const subtitle: React.CSSProperties = {
   textAlign: "center",
   marginTop: 0,
-  marginBottom: "28px",
+  marginBottom: "18px",
   fontSize: "clamp(18px, 2.3vw, 20px)",
   lineHeight: 1.7,
   color: "#caa15a",
+};
+
+const infoBox: React.CSSProperties = {
+  border: "1px solid rgba(166,120,61,0.28)",
+  background: "rgba(38,20,15,0.35)",
+  padding: "12px 14px",
+  marginBottom: "20px",
+};
+
+const infoText: React.CSSProperties = {
+  margin: 0,
+  textAlign: "center",
+  fontSize: "17px",
+  lineHeight: 1.6,
+  color: "#d7b06c",
 };
 
 const form: React.CSSProperties = {
@@ -212,7 +275,6 @@ const button: React.CSSProperties = {
   background: "transparent",
   color: "#e6c27a",
   fontSize: "20px",
-  cursor: "pointer",
   minHeight: "52px",
 };
 

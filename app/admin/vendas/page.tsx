@@ -91,6 +91,14 @@ const metricasVazias: AdminVendasMetricas = {
   total_afiliados_liquido: 0,
 };
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 export default function AdminVendasPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
@@ -149,8 +157,8 @@ export default function AdminVendasPage() {
       setAlunos((alunosRes.data || []) as Aluno[]);
       setCursos((cursosRes.data || []) as Curso[]);
       setFormadores((formadoresRes.data || []) as Formador[]);
-    } catch (err: any) {
-      setErro(err?.message || "Não foi possível carregar as vendas.");
+    } catch (err: unknown) {
+      setErro(getErrorMessage(err, "Não foi possível carregar as vendas."));
     } finally {
       setLoading(false);
     }

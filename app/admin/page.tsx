@@ -72,6 +72,14 @@ const menuAdmin = [
   { href: "/admin/chat-formadores", label: "Chat formadores" },
 ];
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
@@ -106,11 +114,11 @@ export default function AdminDashboardPage() {
 
       setFinanceiro((data as AdminResumoFinanceiro | null) || resumoFinanceiroVazio);
       setUltimaAtualizacaoResumo(new Date());
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setFinanceiro(resumoFinanceiroVazio);
       setAvisoFinanceiro(
-        err?.message || "Resumo financeiro temporariamente indisponível."
+        getErrorMessage(err, "Resumo financeiro temporariamente indisponível.")
       );
     } finally {
       setAAtualizarResumo(false);
@@ -205,9 +213,12 @@ export default function AdminDashboardPage() {
       setErro("");
 
       await Promise.all([carregarContagens(), carregarResumoFinanceiro()]);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setErro(
-        err?.message || "Ocorreu um erro ao carregar a dashboard da administração."
+        getErrorMessage(
+          err,
+          "Ocorreu um erro ao carregar a dashboard da administração."
+        )
       );
     } finally {
       setLoading(false);

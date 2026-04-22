@@ -85,6 +85,14 @@ function numeroOuVazio(valor?: number | string | null) {
   return String(valor);
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 export default function GestaoCursoPage() {
   const router = useRouter();
   const params = useParams<{ cursoId: string }>();
@@ -92,6 +100,7 @@ export default function GestaoCursoPage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [apagandoCurso, setApagandoCurso] = useState(false);
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
   const [formadorId, setFormadorId] = useState<number | null>(null);
@@ -302,32 +311,56 @@ export default function GestaoCursoPage() {
   }
 
   async function apagarCurso() {
-    if (!curso || !formadorId) return;
+    if (!curso) return;
 
     const confirmar = window.confirm(
-      "Tens a certeza que queres apagar este curso?"
+      "Tens a certeza que queres apagar este curso? Esta ação vai remover o curso, módulos, aulas e ficheiros associados."
     );
 
     if (!confirmar) return;
 
+    setApagandoCurso(true);
     setErro("");
     setSucesso("");
 
     try {
-      const { error } = await supabase
-        .from("cursos")
-        .delete()
-        .eq("id", curso.id)
-        .eq("formador_id", formadorId);
+      const response = await fetch("/api/formadores/apagar-curso", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          cursoId: curso.id,
+        }),
+      });
 
-      if (error) {
-        setErro(error.message || "Não foi possível apagar o curso.");
+      const data = (await response.json()) as {
+        success?: boolean;
+        error?: string;
+        avisos?: string[];
+      };
+
+      if (!response.ok || !data.success) {
+        setErro(data.error || "Não foi possível apagar o curso.");
+        setApagandoCurso(false);
         return;
       }
 
+      if (Array.isArray(data.avisos) && data.avisos.length > 0) {
+        setSucesso(
+          `Curso apagado com sucesso. Existem avisos pendentes: ${data.avisos.join(" | ")}`
+        );
+      } else {
+        setSucesso("Curso apagado com sucesso.");
+      }
+
       router.push("/formadores/cursos");
-    } catch {
-      setErro("Ocorreu um erro inesperado ao apagar o curso.");
+    } catch (error: unknown) {
+      setErro(
+        getErrorMessage(error, "Ocorreu um erro inesperado ao apagar o curso.")
+      );
+    } finally {
+      setApagandoCurso(false);
     }
   }
 
@@ -673,10 +706,11 @@ export default function GestaoCursoPage() {
 
                 <button
                   type="button"
-                  onClick={apagarCurso}
+                  onClick={() => void apagarCurso()}
                   style={botaoPerigo}
+                  disabled={apagandoCurso}
                 >
-                  Apagar curso
+                  {apagandoCurso ? "A apagar curso..." : "Apagar curso"}
                 </button>
               </div>
             </form>

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, usePathname } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 type Ticket = {
@@ -80,6 +80,14 @@ const menuAdmin = [
   { href: "/admin/chat-formadores", label: "Chat formadores" },
 ];
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 export default function AdminTicketDetalhePage() {
   const pathname = usePathname();
   const params = useParams();
@@ -105,17 +113,7 @@ export default function AdminTicketDetalhePage() {
   const [novoEstado, setNovoEstado] = useState("");
   const [novaPrioridade, setNovaPrioridade] = useState("");
 
-  useEffect(() => {
-    if (!Number.isFinite(ticketId)) {
-      setErro("ID de ticket inválido.");
-      setLoading(false);
-      return;
-    }
-
-    carregarTudo();
-  }, [ticketId]);
-
-  async function carregarTudo() {
+  const carregarTudo = useCallback(async () => {
     setLoading(true);
     setErro("");
     setSucesso("");
@@ -220,12 +218,22 @@ export default function AdminTicketDetalhePage() {
       } else {
         setCurso(null);
       }
-    } catch (err: any) {
-      setErro(err?.message || "Ocorreu um erro ao carregar o ticket.");
+    } catch (err: unknown) {
+      setErro(getErrorMessage(err, "Ocorreu um erro ao carregar o ticket."));
     } finally {
       setLoading(false);
     }
-  }
+  }, [ticketId]);
+
+  useEffect(() => {
+    if (!Number.isFinite(ticketId)) {
+      setErro("ID de ticket inválido.");
+      setLoading(false);
+      return;
+    }
+
+    void carregarTudo();
+  }, [ticketId, carregarTudo]);
 
   const timeline = useMemo(() => {
     const entradaInicial = ticket
@@ -262,7 +270,7 @@ export default function AdminTicketDetalhePage() {
     setErro("");
     setSucesso("");
 
-    const updates: Record<string, any> = {};
+    const updates: Record<string, unknown> = {};
     if (novoEstado !== ticket.estado) {
       updates.estado = novoEstado;
     }
@@ -392,8 +400,8 @@ export default function AdminTicketDetalhePage() {
       setNovaMensagem("");
       setSucesso("Mensagem enviada com sucesso.");
       await carregarTudo();
-    } catch (err: any) {
-      setErro(err?.message || "Não foi possível enviar a mensagem.");
+    } catch (err: unknown) {
+      setErro(getErrorMessage(err, "Não foi possível enviar a mensagem."));
     } finally {
       setSubmittingMensagem(false);
     }
@@ -427,8 +435,8 @@ export default function AdminTicketDetalhePage() {
       setNovaNota("");
       setSucesso("Nota interna guardada com sucesso.");
       await carregarTudo();
-    } catch (err: any) {
-      setErro(err?.message || "Não foi possível guardar a nota interna.");
+    } catch (err: unknown) {
+      setErro(getErrorMessage(err, "Não foi possível guardar a nota interna."));
     } finally {
       setSubmittingNota(false);
     }
@@ -616,7 +624,7 @@ export default function AdminTicketDetalhePage() {
               >
                 <button
                   type="button"
-                  onClick={enviarMensagem}
+                  onClick={() => void enviarMensagem()}
                   disabled={submittingMensagem}
                   className="admin-top-nav-link active"
                   style={{
@@ -632,7 +640,7 @@ export default function AdminTicketDetalhePage() {
                 {!ticket.formador_envolvido && ticket.formador_id ? (
                   <button
                     type="button"
-                    onClick={envolverFormador}
+                    onClick={() => void envolverFormador()}
                     className="admin-top-nav-link"
                     style={{
                       minHeight: "48px",
@@ -707,7 +715,7 @@ export default function AdminTicketDetalhePage() {
 
               <button
                 type="button"
-                onClick={guardarNotaInterna}
+                onClick={() => void guardarNotaInterna()}
                 disabled={submittingNota}
                 className="admin-top-nav-link"
                 style={{
@@ -775,7 +783,7 @@ export default function AdminTicketDetalhePage() {
 
             <button
               type="button"
-              onClick={guardarMetadadosTicket}
+              onClick={() => void guardarMetadadosTicket()}
               className="admin-top-nav-link active"
               style={{
                 minHeight: "48px",
