@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { deleteFromBunny } from "@/lib/bunny-storage";
 
@@ -22,7 +22,7 @@ type Curso = {
 
 type Aula = {
   id: number;
-  video_url: string | null;
+  bunny_video_id: string | null;
 };
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -33,17 +33,35 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-function getAuthSupabase(cookieStore: Awaited<ReturnType<typeof cookies>>) {
+async function getAuthSupabase() {
+  const cookieStore = await cookies();
+
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+        getAll() {
+          return cookieStore.getAll().map((cookie) => ({
+            name: cookie.name,
+            value: cookie.value,
+          }));
         },
-        set() {},
-        remove() {},
+        setAll(
+          cookiesToSet: Array<{
+            name: string;
+            value: string;
+            options?: CookieOptions;
+          }>
+        ) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch {
+            // Ignorar em contextos onde não é necessário escrever cookies.
+          }
+        },
       },
     }
   );
@@ -55,13 +73,13 @@ async function encontrarFormadorComRecuperacao(
 ): Promise<Formador | null> {
   const supabaseAdmin = getSupabaseAdmin();
 
-  const { data: porAuthId } = await supabaseAdmin
+  const { data: porAuthId, error: porAuthIdError } = await supabaseAdmin
     .from("formadores")
     .select("id, auth_id, email, status")
     .eq("auth_id", userId)
     .maybeSingle();
 
-  if (porAuthId) {
+  if (!porAuthIdError && porAuthId) {
     return porAuthId as Formador;
   }
 
@@ -69,13 +87,13 @@ async function encontrarFormadorComRecuperacao(
     return null;
   }
 
-  const { data: porEmail } = await supabaseAdmin
+  const { data: porEmail, error: porEmailError } = await supabaseAdmin
     .from("formadores")
     .select("id, auth_id, email, status")
     .eq("email", userEmail)
     .maybeSingle();
 
-  if (!porEmail) {
+  if (porEmailError || !porEmail) {
     return null;
   }
 
@@ -118,9 +136,7 @@ async function apagarVideoNoBunnyStream(videoId: string) {
 
   if (!response.ok) {
     const detalhe = (await response.text()).trim();
-    throw new Error(
-      detalhe || "Falha ao apagar o vídeo no Bunny Stream."
-    );
+    throw new Error(detalhe || "Falha ao apagar o vídeo no Bunny Stream.");
   }
 }
 
@@ -142,14 +158,15 @@ function extrairPathCursoCapa(capaUrl: string | null): string | null {
   return valor.replace(/^\/+/, "");
 }
 
-function parecePathBunnyStorage(path: string | null): boolean {
-  if (!path) return false;
+function normalizarPathBunny(path: string | null): string | null {
+  if (!path) return null;
 
   const valor = path.trim();
-  if (!valor) return false;
-  if (valor.startsWith("http://") || valor.startsWith("https://")) return false;
 
-  return (
+  if (!valor) return null;
+  if (valor.startsWith("http://") || valor.startsWith("https://")) return null;
+
+  const permitido =
     valor.startsWith("pdfs/") ||
     valor.includes("/pdfs/") ||
     valor.startsWith("certificados/") ||
@@ -157,8 +174,9 @@ function parecePathBunnyStorage(path: string | null): boolean {
     valor.startsWith("anexos/") ||
     valor.includes("/anexos/") ||
     valor.startsWith("levantamentos/") ||
-    valor.includes("/levantamentos/")
-  );
+    valor.includes("/levantamentos/");
+
+  return permitido ? valor : null;
 }
 
 async function tentarApagarCapaSupabase(capaUrl: string | null) {
@@ -172,19 +190,20 @@ async function tentarApagarCapaSupabase(capaUrl: string | null) {
 }
 
 async function tentarApagarFicheiroBunny(path: string | null) {
-  if (!parecePathBunnyStorage(path)) {
+  const pathNormalizado = normalizarPathBunny(path);
+
+  if (!pathNormalizado) {
     return;
   }
 
-  await deleteFromBunny(path as string);
+  await deleteFromBunny(pathNormalizado);
 }
 
 export async function POST(request: Request) {
   const avisos: string[] = [];
 
   try {
-    const cookieStore = await cookies();
-    const supabaseAuth = getAuthSupabase(cookieStore);
+    const supabaseAuth = await getAuthSupabase();
     const supabaseAdmin = getSupabaseAdmin();
 
     const {
@@ -222,10 +241,7 @@ export async function POST(request: Request) {
     const cursoId = Number(body?.cursoId || 0);
 
     if (!cursoId || Number.isNaN(cursoId)) {
-      return NextResponse.json(
-        { error: "Curso inválido." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Curso inválido." }, { status: 400 });
     }
 
     const { data: cursoData, error: cursoError } = await supabaseAdmin
@@ -248,26 +264,35 @@ export async function POST(request: Request) {
 
     const { data: aulasData, error: aulasError } = await supabaseAdmin
       .from("aulas")
-      .select("id, video_url")
+      .select("id, bunny_video_id")
       .eq("curso_id", curso.id);
 
     if (aulasError) {
       return NextResponse.json(
-        { error: aulasError.message || "Não foi possível carregar as aulas do curso." },
+        {
+          error:
+            aulasError.message ||
+            "Não foi possível carregar as aulas do curso.",
+        },
         { status: 500 }
       );
     }
 
     const aulas = (aulasData || []) as Aula[];
 
-    const { data: comunidadesData, error: comunidadesError } = await supabaseAdmin
-      .from("comunidades")
-      .select("id")
-      .eq("curso_id", curso.id);
+    const { data: comunidadesData, error: comunidadesError } =
+      await supabaseAdmin
+        .from("comunidades")
+        .select("id")
+        .eq("curso_id", curso.id);
 
     if (comunidadesError) {
       return NextResponse.json(
-        { error: comunidadesError.message || "Não foi possível carregar as comunidades do curso." },
+        {
+          error:
+            comunidadesError.message ||
+            "Não foi possível carregar as comunidades do curso.",
+        },
         { status: 500 }
       );
     }
@@ -351,19 +376,19 @@ export async function POST(request: Request) {
     if (cursoDeleteError) {
       return NextResponse.json(
         {
-          error:
-            cursoDeleteError.message ||
-            "Não foi possível apagar o curso.",
+          error: cursoDeleteError.message || "Não foi possível apagar o curso.",
         },
         { status: 500 }
       );
     }
 
     for (const aula of aulas) {
-      if (!aula.video_url) continue;
+      const videoId = aula.bunny_video_id?.trim();
+
+      if (!videoId) continue;
 
       try {
-        await apagarVideoNoBunnyStream(aula.video_url);
+        await apagarVideoNoBunnyStream(videoId);
       } catch (error: unknown) {
         avisos.push(
           `Não foi possível apagar o vídeo da aula ${aula.id}: ${getErrorMessage(
