@@ -55,6 +55,10 @@ type FormAula = {
   gratuito: boolean;
 };
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function formatarData(valor?: string | null) {
   if (!valor) return "—";
 
@@ -77,6 +81,14 @@ function numeroOuNull(valor: string) {
   if (Number.isNaN(numero)) return null;
 
   return numero;
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
 }
 
 function ordenarModulos(lista: Modulo[]) {
@@ -131,13 +143,44 @@ export default function EstruturaCursoPage() {
     gratuito: false,
   });
 
+  const obterUtilizadorAutenticado = useCallback(async () => {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+
+    if (!userError && userData.user) {
+      return userData.user;
+    }
+
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (!sessionError && session?.user) {
+      return session.user;
+    }
+
+    await sleep(250);
+
+    const { data: retryData, error: retryError } = await supabase.auth.getUser();
+
+    if (!retryError && retryData.user) {
+      return retryData.user;
+    }
+
+    return null;
+  }, []);
+
   const encontrarFormadorSessao = useCallback(
     async (userId: string, userEmail: string | null | undefined) => {
-      const { data: porAuthId } = await supabase
+      const { data: porAuthId, error: erroPorAuthId } = await supabase
         .from("formadores")
         .select("id, email, auth_id, status")
         .eq("auth_id", userId)
         .maybeSingle();
+
+      if (erroPorAuthId) {
+        throw erroPorAuthId;
+      }
 
       if (porAuthId) {
         return porAuthId as FormadorSessao;
@@ -147,13 +190,23 @@ export default function EstruturaCursoPage() {
         return null;
       }
 
-      const { data: porEmail } = await supabase
+      const emailNormalizado = userEmail.trim().toLowerCase();
+
+      const { data: porEmail, error: erroPorEmail } = await supabase
         .from("formadores")
         .select("id, email, auth_id, status")
-        .eq("email", userEmail)
+        .ilike("email", emailNormalizado)
         .maybeSingle();
 
+      if (erroPorEmail) {
+        throw erroPorEmail;
+      }
+
       if (!porEmail) {
+        return null;
+      }
+
+      if (porEmail.auth_id && porEmail.auth_id !== userId) {
         return null;
       }
 
@@ -163,12 +216,14 @@ export default function EstruturaCursoPage() {
           .update({ auth_id: userId })
           .eq("id", porEmail.id);
 
-        if (!updateError) {
-          return {
-            ...(porEmail as FormadorSessao),
-            auth_id: userId,
-          };
+        if (updateError) {
+          throw updateError;
         }
+
+        return {
+          ...(porEmail as FormadorSessao),
+          auth_id: userId,
+        };
       }
 
       return porEmail as FormadorSessao;
@@ -202,12 +257,9 @@ export default function EstruturaCursoPage() {
     setSucesso("");
 
     try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+      const user = await obterUtilizadorAutenticado();
 
-      if (userError || !user) {
+      if (!user) {
         router.replace("/formadores/login");
         return;
       }
@@ -255,7 +307,9 @@ export default function EstruturaCursoPage() {
 
       const { data: aulasData, error: aulasError } = await supabase
         .from("aulas")
-        .select("id, curso_id, modulo_id, titulo, descricao, ordem, gratuito, created_at")
+        .select(
+          "id, curso_id, modulo_id, titulo, descricao, ordem, gratuito, created_at"
+        )
         .eq("curso_id", cursoId)
         .order("ordem", { ascending: true, nullsFirst: false })
         .order("id", { ascending: true });
@@ -268,12 +322,17 @@ export default function EstruturaCursoPage() {
 
       setModulos(ordenarModulos((modulosData || []) as Modulo[]));
       setAulas(ordenarAulas((aulasData || []) as Aula[]));
-    } catch {
-      setErro("Ocorreu um erro inesperado ao carregar a estrutura do curso.");
+    } catch (error: unknown) {
+      setErro(
+        getErrorMessage(
+          error,
+          "Ocorreu um erro inesperado ao carregar a estrutura do curso."
+        )
+      );
     } finally {
       setLoading(false);
     }
-  }, [cursoId, encontrarFormadorSessao, router]);
+  }, [cursoId, encontrarFormadorSessao, obterUtilizadorAutenticado, router]);
 
   useEffect(() => {
     if (!Number.isFinite(cursoId) || cursoId <= 0) {
@@ -346,8 +405,13 @@ export default function EstruturaCursoPage() {
 
       limparFormularioModulo();
       await carregarDados();
-    } catch {
-      setErro("Ocorreu um erro inesperado ao guardar o módulo.");
+    } catch (error: unknown) {
+      setErro(
+        getErrorMessage(
+          error,
+          "Ocorreu um erro inesperado ao guardar o módulo."
+        )
+      );
     } finally {
       setSavingModulo(false);
     }
@@ -405,8 +469,10 @@ export default function EstruturaCursoPage() {
 
       limparFormularioAula();
       await carregarDados();
-    } catch {
-      setErro("Ocorreu um erro inesperado ao guardar a aula.");
+    } catch (error: unknown) {
+      setErro(
+        getErrorMessage(error, "Ocorreu um erro inesperado ao guardar a aula.")
+      );
     } finally {
       setSavingAula(false);
     }
@@ -484,8 +550,13 @@ export default function EstruturaCursoPage() {
 
       setSucesso("Módulo apagado com sucesso.");
       await carregarDados();
-    } catch {
-      setErro("Ocorreu um erro inesperado ao apagar o módulo.");
+    } catch (error: unknown) {
+      setErro(
+        getErrorMessage(
+          error,
+          "Ocorreu um erro inesperado ao apagar o módulo."
+        )
+      );
     }
   }
 
@@ -519,8 +590,10 @@ export default function EstruturaCursoPage() {
 
       setSucesso("Aula apagada com sucesso.");
       await carregarDados();
-    } catch {
-      setErro("Ocorreu um erro inesperado ao apagar a aula.");
+    } catch (error: unknown) {
+      setErro(
+        getErrorMessage(error, "Ocorreu um erro inesperado ao apagar a aula.")
+      );
     }
   }
 
@@ -669,15 +742,13 @@ export default function EstruturaCursoPage() {
             <section
               style={{
                 display: "grid",
-                gridTemplateColumns: "minmax(320px, 420px) minmax(320px, 420px) minmax(0, 1fr)",
+                gridTemplateColumns:
+                  "minmax(320px, 420px) minmax(320px, 420px) minmax(0, 1fr)",
                 gap: "18px",
                 alignItems: "start",
               }}
             >
-              <form
-                onSubmit={guardarModulo}
-                style={painelLateral}
-              >
+              <form onSubmit={guardarModulo} style={painelLateral}>
                 <h2 style={tituloPainel}>
                   {editingModuloId ? "Editar Módulo" : "Novo Módulo"}
                 </h2>
@@ -739,10 +810,7 @@ export default function EstruturaCursoPage() {
                 </div>
               </form>
 
-              <form
-                onSubmit={guardarAula}
-                style={painelLateral}
-              >
+              <form onSubmit={guardarAula} style={painelLateral}>
                 <h2 style={tituloPainel}>
                   {editingAulaId ? "Editar Aula" : "Nova Aula"}
                 </h2>
@@ -852,10 +920,7 @@ export default function EstruturaCursoPage() {
                       const aulasLigadas = ordenarAulas(aulasDoModulo(modulo.id));
 
                       return (
-                        <article
-                          key={modulo.id}
-                          style={blocoEstrutura}
-                        >
+                        <article key={modulo.id} style={blocoEstrutura}>
                           <div
                             style={{
                               display: "flex",

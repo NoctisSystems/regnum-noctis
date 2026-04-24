@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -62,7 +63,31 @@ const resumoFinanceiroInicial: ResumoFinanceiroFormador = {
   total_pago: 0,
 };
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function normalizarNumero(valor: unknown) {
+  if (typeof valor === "number" && !Number.isNaN(valor)) return valor;
+
+  if (typeof valor === "string") {
+    const convertido = Number(valor);
+    if (!Number.isNaN(convertido)) return convertido;
+  }
+
+  return 0;
+}
+
+function formatarEuro(valor: number | null | undefined) {
+  return new Intl.NumberFormat("pt-PT", {
+    style: "currency",
+    currency: "EUR",
+  }).format(normalizarNumero(valor));
+}
+
 export default function DashboardFormadorPage() {
+  const router = useRouter();
+
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
   const [cursos, setCursos] = useState<Curso[]>([]);
@@ -76,13 +101,45 @@ export default function DashboardFormadorPage() {
   const [resumoFinanceiro, setResumoFinanceiro] =
     useState<ResumoFinanceiroFormador>(resumoFinanceiroInicial);
 
+  const obterUtilizadorAutenticado = useCallback(async () => {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+
+    if (!userError && userData.user) {
+      return userData.user;
+    }
+
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (!sessionError && session?.user) {
+      return session.user;
+    }
+
+    await sleep(250);
+
+    const { data: userRetryData, error: userRetryError } =
+      await supabase.auth.getUser();
+
+    if (!userRetryError && userRetryData.user) {
+      return userRetryData.user;
+    }
+
+    return null;
+  }, []);
+
   const encontrarFormadorComRecuperacao = useCallback(
     async (userId: string, userEmail: string | null | undefined) => {
-      const { data: porAuthId } = await supabase
+      const { data: porAuthId, error: erroPorAuthId } = await supabase
         .from("formadores")
         .select("id, nome, email, auth_id, status")
         .eq("auth_id", userId)
         .maybeSingle();
+
+      if (erroPorAuthId) {
+        throw erroPorAuthId;
+      }
 
       if (porAuthId) {
         return porAuthId as Formador;
@@ -92,13 +149,23 @@ export default function DashboardFormadorPage() {
         return null;
       }
 
-      const { data: porEmail } = await supabase
+      const emailNormalizado = userEmail.trim().toLowerCase();
+
+      const { data: porEmail, error: erroPorEmail } = await supabase
         .from("formadores")
         .select("id, nome, email, auth_id, status")
-        .eq("email", userEmail)
+        .ilike("email", emailNormalizado)
         .maybeSingle();
 
+      if (erroPorEmail) {
+        throw erroPorEmail;
+      }
+
       if (!porEmail) {
+        return null;
+      }
+
+      if (porEmail.auth_id && porEmail.auth_id !== userId) {
         return null;
       }
 
@@ -108,12 +175,14 @@ export default function DashboardFormadorPage() {
           .update({ auth_id: userId })
           .eq("id", porEmail.id);
 
-        if (!updateError) {
-          return {
-            ...(porEmail as Formador),
-            auth_id: userId,
-          };
+        if (updateError) {
+          throw updateError;
         }
+
+        return {
+          ...(porEmail as Formador),
+          auth_id: userId,
+        };
       }
 
       return porEmail as Formador;
@@ -175,14 +244,10 @@ export default function DashboardFormadorPage() {
     setErro("");
 
     try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+      const user = await obterUtilizadorAutenticado();
 
-      if (userError || !user) {
-        setErro("Não foi possível validar a sessão do formador.");
-        setLoading(false);
+      if (!user) {
+        router.replace("/formadores/login");
         return;
       }
 
@@ -193,7 +258,7 @@ export default function DashboardFormadorPage() {
 
       if (!formadorData) {
         setErro(
-          "Não foi possível encontrar o registo do formador. O login está válido, mas o registo da tabela formadores ainda não ficou corretamente ligado a esta conta."
+          "Não foi possível encontrar o registo do formador associado a esta conta."
         );
         setLoading(false);
         return;
@@ -284,30 +349,45 @@ export default function DashboardFormadorPage() {
       }
 
       setTicketsFormador((ticketsData || []) as TicketFormador[]);
-    } catch {
-      setErro("Ocorreu um erro inesperado ao carregar a dashboard.");
+    } catch (error: unknown) {
+      const mensagem =
+        error instanceof Error
+          ? error.message
+          : "Ocorreu um erro inesperado ao carregar a dashboard.";
+
+      setErro(mensagem);
     } finally {
       setLoading(false);
     }
-  }, [carregarResumoFinanceiro, encontrarFormadorComRecuperacao]);
+  }, [
+    carregarResumoFinanceiro,
+    encontrarFormadorComRecuperacao,
+    obterUtilizadorAutenticado,
+    router,
+  ]);
 
   useEffect(() => {
     void carregarDados();
   }, [carregarDados]);
 
   const totalCursos = cursos.length;
+
   const totalAlunos = useMemo(
-    () => new Set(inscricoes.map((i) => i.aluno_id)).size,
+    () => new Set(inscricoes.map((inscricao) => inscricao.aluno_id)).size,
     [inscricoes]
   );
+
   const totalComunidades = comunidades.length;
+
   const totalDuvidasPendentes = topicos.filter((topico) => !topico.fechado)
     .length;
+
   const totalConversasAbertas = conversasSuporte.filter((item) =>
     ["aberto", "em_analise", "aguarda_formador", "aguarda_admin"].includes(
       item.estado
     )
   ).length;
+
   const totalTicketsPendentes = ticketsFormador.filter((item) =>
     [
       "aberto",
@@ -615,22 +695,6 @@ export default function DashboardFormadorPage() {
       </section>
     </main>
   );
-}
-
-function normalizarNumero(valor: unknown) {
-  if (typeof valor === "number" && !Number.isNaN(valor)) return valor;
-  if (typeof valor === "string") {
-    const convertido = Number(valor);
-    if (!Number.isNaN(convertido)) return convertido;
-  }
-  return 0;
-}
-
-function formatarEuro(valor: number | null | undefined) {
-  return new Intl.NumberFormat("pt-PT", {
-    style: "currency",
-    currency: "EUR",
-  }).format(normalizarNumero(valor));
 }
 
 function SectionTitle({

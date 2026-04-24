@@ -56,6 +56,10 @@ type FormCurso = {
   publicado: boolean;
 };
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function formatarData(valor?: string | null) {
   if (!valor) return "—";
 
@@ -120,13 +124,44 @@ export default function GestaoCursoPage() {
     publicado: false,
   });
 
+  const obterUtilizadorAutenticado = useCallback(async () => {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+
+    if (!userError && userData.user) {
+      return userData.user;
+    }
+
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (!sessionError && session?.user) {
+      return session.user;
+    }
+
+    await sleep(250);
+
+    const { data: retryData, error: retryError } = await supabase.auth.getUser();
+
+    if (!retryError && retryData.user) {
+      return retryData.user;
+    }
+
+    return null;
+  }, []);
+
   const encontrarFormadorComRecuperacao = useCallback(
     async (userId: string, userEmail: string | null | undefined) => {
-      const { data: porAuthId } = await supabase
+      const { data: porAuthId, error: erroPorAuthId } = await supabase
         .from("formadores")
         .select("id, nome, email, auth_id, status")
         .eq("auth_id", userId)
         .maybeSingle();
+
+      if (erroPorAuthId) {
+        throw erroPorAuthId;
+      }
 
       if (porAuthId) {
         return porAuthId as Formador;
@@ -136,13 +171,23 @@ export default function GestaoCursoPage() {
         return null;
       }
 
-      const { data: porEmail } = await supabase
+      const emailNormalizado = userEmail.trim().toLowerCase();
+
+      const { data: porEmail, error: erroPorEmail } = await supabase
         .from("formadores")
         .select("id, nome, email, auth_id, status")
-        .eq("email", userEmail)
+        .ilike("email", emailNormalizado)
         .maybeSingle();
 
+      if (erroPorEmail) {
+        throw erroPorEmail;
+      }
+
       if (!porEmail) {
+        return null;
+      }
+
+      if (porEmail.auth_id && porEmail.auth_id !== userId) {
         return null;
       }
 
@@ -152,12 +197,14 @@ export default function GestaoCursoPage() {
           .update({ auth_id: userId })
           .eq("id", porEmail.id);
 
-        if (!updateError) {
-          return {
-            ...(porEmail as Formador),
-            auth_id: userId,
-          };
+        if (updateError) {
+          throw updateError;
         }
+
+        return {
+          ...(porEmail as Formador),
+          auth_id: userId,
+        };
       }
 
       return porEmail as Formador;
@@ -171,12 +218,9 @@ export default function GestaoCursoPage() {
     setSucesso("");
 
     try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+      const user = await obterUtilizadorAutenticado();
 
-      if (userError || !user) {
+      if (!user) {
         router.replace("/formadores/login");
         return;
       }
@@ -219,7 +263,10 @@ export default function GestaoCursoPage() {
         descricao: cursoTipado.descricao || "",
         preco_eur: numeroOuVazio(cursoTipado.preco_eur),
         preco_brl: numeroOuVazio(cursoTipado.preco_brl),
-        checkout_eu_ativo: Boolean(cursoTipado.checkout_eu_ativo),
+        checkout_eu_ativo:
+          cursoTipado.checkout_eu_ativo === null
+            ? true
+            : Boolean(cursoTipado.checkout_eu_ativo),
         checkout_br_ativo: Boolean(cursoTipado.checkout_br_ativo),
         tem_certificado: Boolean(cursoTipado.tem_certificado),
         modo_certificado: cursoTipado.modo_certificado || "manual",
@@ -228,20 +275,31 @@ export default function GestaoCursoPage() {
         publicado: Boolean(cursoTipado.publicado),
       });
 
-      const { data: aulasData } = await supabase
+      const { data: aulasData, error: aulasError } = await supabase
         .from("aulas")
         .select("id, curso_id, titulo, ordem, gratuito")
         .eq("curso_id", cursoId)
         .order("ordem", { ascending: true, nullsFirst: false })
         .order("id", { ascending: true });
 
+      if (aulasError) {
+        setErro(aulasError.message || "Não foi possível carregar as aulas.");
+        setLoading(false);
+        return;
+      }
+
       setAulas((aulasData || []) as Aula[]);
-    } catch {
-      setErro("Ocorreu um erro inesperado ao carregar a gestão do curso.");
+    } catch (error: unknown) {
+      setErro(
+        getErrorMessage(
+          error,
+          "Ocorreu um erro inesperado ao carregar a gestão do curso."
+        )
+      );
     } finally {
       setLoading(false);
     }
-  }, [cursoId, encontrarFormadorComRecuperacao, router]);
+  }, [cursoId, encontrarFormadorComRecuperacao, obterUtilizadorAutenticado, router]);
 
   useEffect(() => {
     if (!Number.isFinite(cursoId) || cursoId <= 0) {
@@ -303,8 +361,13 @@ export default function GestaoCursoPage() {
 
       setSucesso("Curso atualizado com sucesso.");
       await carregarDados();
-    } catch {
-      setErro("Ocorreu um erro inesperado ao guardar o curso.");
+    } catch (error: unknown) {
+      setErro(
+        getErrorMessage(
+          error,
+          "Ocorreu um erro inesperado ao guardar o curso."
+        )
+      );
     } finally {
       setSaving(false);
     }

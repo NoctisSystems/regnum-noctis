@@ -27,6 +27,10 @@ type Curso = {
   preco_brl: number | null;
 };
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function formatarData(valor?: string | null) {
   if (!valor) return "—";
 
@@ -62,6 +66,14 @@ function formatarPreco(
   }).format(valor);
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 export default function FormadorCursosPage() {
   const router = useRouter();
 
@@ -69,13 +81,44 @@ export default function FormadorCursosPage() {
   const [erro, setErro] = useState("");
   const [cursos, setCursos] = useState<Curso[]>([]);
 
+  const obterUtilizadorAutenticado = useCallback(async () => {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+
+    if (!userError && userData.user) {
+      return userData.user;
+    }
+
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (!sessionError && session?.user) {
+      return session.user;
+    }
+
+    await sleep(250);
+
+    const { data: retryData, error: retryError } = await supabase.auth.getUser();
+
+    if (!retryError && retryData.user) {
+      return retryData.user;
+    }
+
+    return null;
+  }, []);
+
   const encontrarFormadorComRecuperacao = useCallback(
     async (userId: string, userEmail: string | null | undefined) => {
-      const { data: porAuthId } = await supabase
+      const { data: porAuthId, error: erroPorAuthId } = await supabase
         .from("formadores")
         .select("id, nome, email, auth_id, status")
         .eq("auth_id", userId)
         .maybeSingle();
+
+      if (erroPorAuthId) {
+        throw erroPorAuthId;
+      }
 
       if (porAuthId) {
         return porAuthId as Formador;
@@ -85,13 +128,23 @@ export default function FormadorCursosPage() {
         return null;
       }
 
-      const { data: porEmail } = await supabase
+      const emailNormalizado = userEmail.trim().toLowerCase();
+
+      const { data: porEmail, error: erroPorEmail } = await supabase
         .from("formadores")
         .select("id, nome, email, auth_id, status")
-        .eq("email", userEmail)
+        .ilike("email", emailNormalizado)
         .maybeSingle();
 
+      if (erroPorEmail) {
+        throw erroPorEmail;
+      }
+
       if (!porEmail) {
+        return null;
+      }
+
+      if (porEmail.auth_id && porEmail.auth_id !== userId) {
         return null;
       }
 
@@ -101,12 +154,14 @@ export default function FormadorCursosPage() {
           .update({ auth_id: userId })
           .eq("id", porEmail.id);
 
-        if (!updateError) {
-          return {
-            ...(porEmail as Formador),
-            auth_id: userId,
-          };
+        if (updateError) {
+          throw updateError;
         }
+
+        return {
+          ...(porEmail as Formador),
+          auth_id: userId,
+        };
       }
 
       return porEmail as Formador;
@@ -119,12 +174,9 @@ export default function FormadorCursosPage() {
     setErro("");
 
     try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+      const user = await obterUtilizadorAutenticado();
 
-      if (userError || !user) {
+      if (!user) {
         router.replace("/formadores/login");
         return;
       }
@@ -147,8 +199,6 @@ export default function FormadorCursosPage() {
         return;
       }
 
-      
-
       const { data: cursosData, error: cursosError } = await supabase
         .from("cursos")
         .select(
@@ -164,12 +214,21 @@ export default function FormadorCursosPage() {
       }
 
       setCursos((cursosData || []) as Curso[]);
-    } catch {
-      setErro("Ocorreu um erro inesperado ao carregar os cursos.");
+    } catch (error: unknown) {
+      setErro(
+        getErrorMessage(
+          error,
+          "Ocorreu um erro inesperado ao carregar os cursos."
+        )
+      );
     } finally {
       setLoading(false);
     }
-  }, [encontrarFormadorComRecuperacao, router]);
+  }, [
+    encontrarFormadorComRecuperacao,
+    obterUtilizadorAutenticado,
+    router,
+  ]);
 
   useEffect(() => {
     void carregarDados();

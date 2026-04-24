@@ -4,6 +4,17 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
+type Formador = {
+  id: number;
+  status: string | null;
+  auth_id: string | null;
+  email: string | null;
+};
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export default function LoginFormadorPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -14,7 +25,9 @@ export default function LoginFormadorPage() {
     e.preventDefault();
     setErro("");
 
-    if (!email.trim() || !password.trim()) {
+    const emailLimpo = email.trim().toLowerCase();
+
+    if (!emailLimpo || !password.trim()) {
       setErro("Preenche o email e a palavra-passe.");
       return;
     }
@@ -23,7 +36,7 @@ export default function LoginFormadorPage() {
       setLoading(true);
 
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: emailLimpo,
         password,
       });
 
@@ -39,15 +52,70 @@ export default function LoginFormadorPage() {
         return;
       }
 
-      const { data: formador, error: formadorError } = await supabase
-        .from("formadores")
-        .select("id, status, auth_id")
-        .eq("email", email.trim())
-        .single();
+      let formador: Formador | null = null;
 
-      if (formadorError || !formador) {
+      const { data: formadorPorAuthId, error: formadorPorAuthIdError } =
+        await supabase
+          .from("formadores")
+          .select("id, status, auth_id, email")
+          .eq("auth_id", authId)
+          .maybeSingle();
+
+      if (formadorPorAuthIdError) {
         await supabase.auth.signOut();
-        setErro("Esta conta não está autorizada como formador.");
+        setErro("Não foi possível validar o registo do formador.");
+        return;
+      }
+
+      if (formadorPorAuthId) {
+        formador = formadorPorAuthId as Formador;
+      } else {
+        const { data: formadorPorEmail, error: formadorPorEmailError } =
+          await supabase
+            .from("formadores")
+            .select("id, status, auth_id, email")
+            .ilike("email", emailLimpo)
+            .maybeSingle();
+
+        if (formadorPorEmailError || !formadorPorEmail) {
+          await supabase.auth.signOut();
+          setErro("Esta conta não está autorizada como formador.");
+          return;
+        }
+
+        if (
+          formadorPorEmail.auth_id &&
+          formadorPorEmail.auth_id !== authId
+        ) {
+          await supabase.auth.signOut();
+          setErro("Esta conta não corresponde ao registo do formador.");
+          return;
+        }
+
+        if (!formadorPorEmail.auth_id) {
+          const { error: updateError } = await supabase
+            .from("formadores")
+            .update({ auth_id: authId })
+            .eq("id", formadorPorEmail.id);
+
+          if (updateError) {
+            await supabase.auth.signOut();
+            setErro("Não foi possível associar a sessão ao registo do formador.");
+            return;
+          }
+
+          formador = {
+            ...(formadorPorEmail as Formador),
+            auth_id: authId,
+          };
+        } else {
+          formador = formadorPorEmail as Formador;
+        }
+      }
+
+      if (!formador) {
+        await supabase.auth.signOut();
+        setErro("Não foi possível validar a conta de formador.");
         return;
       }
 
@@ -57,11 +125,7 @@ export default function LoginFormadorPage() {
         return;
       }
 
-      if (formador.auth_id && formador.auth_id !== authId) {
-        await supabase.auth.signOut();
-        setErro("Esta conta não corresponde ao registo do formador.");
-        return;
-      }
+      await sleep(250);
 
       window.location.href = "/formadores/dashboard";
     } catch {
@@ -127,6 +191,8 @@ export default function LoginFormadorPage() {
               onChange={(e) => setEmail(e.target.value)}
               style={input}
               required
+              autoComplete="email"
+              disabled={loading}
             />
           </div>
 
@@ -139,10 +205,12 @@ export default function LoginFormadorPage() {
               onChange={(e) => setPassword(e.target.value)}
               style={input}
               required
+              autoComplete="current-password"
+              disabled={loading}
             />
           </div>
 
-          {erro && (
+          {erro ? (
             <div
               style={{
                 color: "#ffb4b4",
@@ -154,9 +222,17 @@ export default function LoginFormadorPage() {
             >
               {erro}
             </div>
-          )}
+          ) : null}
 
-          <button type="submit" style={button} disabled={loading}>
+          <button
+            type="submit"
+            style={{
+              ...button,
+              opacity: loading ? 0.7 : 1,
+              cursor: loading ? "not-allowed" : "pointer",
+            }}
+            disabled={loading}
+          >
             {loading ? "A entrar..." : "Entrar"}
           </button>
         </form>
@@ -230,6 +306,4 @@ const button: React.CSSProperties = {
   background: "transparent",
   color: "#e6c27a",
   fontSize: "20px",
-  cursor: "pointer",
-  opacity: 1,
 };
