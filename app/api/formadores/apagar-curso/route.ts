@@ -22,7 +22,7 @@ type Curso = {
 
 type Aula = {
   id: number;
-  bunny_video_id: string | null;
+  video_url: string | null;
 };
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -59,7 +59,7 @@ async function getAuthSupabase() {
               cookieStore.set(name, value, options);
             });
           } catch {
-            // Ignorar em contextos onde não é necessário escrever cookies.
+            // Ignorado em contextos onde os cookies não podem ser reescritos.
           }
         },
       },
@@ -73,13 +73,13 @@ async function encontrarFormadorComRecuperacao(
 ): Promise<Formador | null> {
   const supabaseAdmin = getSupabaseAdmin();
 
-  const { data: porAuthId, error: porAuthIdError } = await supabaseAdmin
+  const { data: porAuthId } = await supabaseAdmin
     .from("formadores")
     .select("id, auth_id, email, status")
     .eq("auth_id", userId)
     .maybeSingle();
 
-  if (!porAuthIdError && porAuthId) {
+  if (porAuthId) {
     return porAuthId as Formador;
   }
 
@@ -87,13 +87,13 @@ async function encontrarFormadorComRecuperacao(
     return null;
   }
 
-  const { data: porEmail, error: porEmailError } = await supabaseAdmin
+  const { data: porEmail } = await supabaseAdmin
     .from("formadores")
     .select("id, auth_id, email, status")
     .eq("email", userEmail)
     .maybeSingle();
 
-  if (porEmailError || !porEmail) {
+  if (!porEmail) {
     return null;
   }
 
@@ -158,15 +158,14 @@ function extrairPathCursoCapa(capaUrl: string | null): string | null {
   return valor.replace(/^\/+/, "");
 }
 
-function normalizarPathBunny(path: string | null): string | null {
-  if (!path) return null;
+function parecePathBunnyStorage(path: string | null): path is string {
+  if (!path) return false;
 
   const valor = path.trim();
+  if (!valor) return false;
+  if (valor.startsWith("http://") || valor.startsWith("https://")) return false;
 
-  if (!valor) return null;
-  if (valor.startsWith("http://") || valor.startsWith("https://")) return null;
-
-  const permitido =
+  return (
     valor.startsWith("pdfs/") ||
     valor.includes("/pdfs/") ||
     valor.startsWith("certificados/") ||
@@ -174,9 +173,8 @@ function normalizarPathBunny(path: string | null): string | null {
     valor.startsWith("anexos/") ||
     valor.includes("/anexos/") ||
     valor.startsWith("levantamentos/") ||
-    valor.includes("/levantamentos/");
-
-  return permitido ? valor : null;
+    valor.includes("/levantamentos/")
+  );
 }
 
 async function tentarApagarCapaSupabase(capaUrl: string | null) {
@@ -190,13 +188,11 @@ async function tentarApagarCapaSupabase(capaUrl: string | null) {
 }
 
 async function tentarApagarFicheiroBunny(path: string | null) {
-  const pathNormalizado = normalizarPathBunny(path);
-
-  if (!pathNormalizado) {
+  if (!parecePathBunnyStorage(path)) {
     return;
   }
 
-  await deleteFromBunny(pathNormalizado);
+  await deleteFromBunny(path);
 }
 
 export async function POST(request: Request) {
@@ -264,7 +260,7 @@ export async function POST(request: Request) {
 
     const { data: aulasData, error: aulasError } = await supabaseAdmin
       .from("aulas")
-      .select("id, bunny_video_id")
+      .select("id, video_url")
       .eq("curso_id", curso.id);
 
     if (aulasError) {
@@ -280,11 +276,10 @@ export async function POST(request: Request) {
 
     const aulas = (aulasData || []) as Aula[];
 
-    const { data: comunidadesData, error: comunidadesError } =
-      await supabaseAdmin
-        .from("comunidades")
-        .select("id")
-        .eq("curso_id", curso.id);
+    const { data: comunidadesData, error: comunidadesError } = await supabaseAdmin
+      .from("comunidades")
+      .select("id")
+      .eq("curso_id", curso.id);
 
     if (comunidadesError) {
       return NextResponse.json(
@@ -383,12 +378,10 @@ export async function POST(request: Request) {
     }
 
     for (const aula of aulas) {
-      const videoId = aula.bunny_video_id?.trim();
-
-      if (!videoId) continue;
+      if (!aula.video_url) continue;
 
       try {
-        await apagarVideoNoBunnyStream(videoId);
+        await apagarVideoNoBunnyStream(aula.video_url);
       } catch (error: unknown) {
         avisos.push(
           `Não foi possível apagar o vídeo da aula ${aula.id}: ${getErrorMessage(
