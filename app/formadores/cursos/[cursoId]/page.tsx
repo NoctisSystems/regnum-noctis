@@ -47,7 +47,6 @@ type FormCurso = {
   descricao: string;
   preco_eur: string;
   preco_brl: string;
-  checkout_eu_ativo: boolean;
   checkout_br_ativo: boolean;
   tem_certificado: boolean;
   modo_certificado: string;
@@ -111,7 +110,6 @@ export default function GestaoCursoPage() {
     descricao: "",
     preco_eur: "",
     preco_brl: "",
-    checkout_eu_ativo: true,
     checkout_br_ativo: false,
     tem_certificado: false,
     modo_certificado: "manual",
@@ -187,8 +185,8 @@ export default function GestaoCursoPage() {
       );
 
       if (!formador) {
+        setCurso(null);
         setErro("Não foi possível encontrar o registo do formador.");
-        setLoading(false);
         return;
       }
 
@@ -209,8 +207,8 @@ export default function GestaoCursoPage() {
         .maybeSingle();
 
       if (cursoError || !cursoData) {
+        setCurso(null);
         setErro("Não foi possível carregar este curso.");
-        setLoading(false);
         return;
       }
 
@@ -220,9 +218,8 @@ export default function GestaoCursoPage() {
       setForm({
         titulo: cursoTipado.titulo || "",
         descricao: cursoTipado.descricao || "",
-        preco_eur: numeroOuVazio(cursoTipado.preco_eur),
+        preco_eur: numeroOuVazio(cursoTipado.preco_eur ?? cursoTipado.preco),
         preco_brl: numeroOuVazio(cursoTipado.preco_brl),
-        checkout_eu_ativo: Boolean(cursoTipado.checkout_eu_ativo),
         checkout_br_ativo: Boolean(cursoTipado.checkout_br_ativo),
         tem_certificado: Boolean(cursoTipado.tem_certificado),
         modo_certificado: cursoTipado.modo_certificado || "manual",
@@ -240,6 +237,7 @@ export default function GestaoCursoPage() {
 
       setAulas((aulasData || []) as Aula[]);
     } catch {
+      setCurso(null);
       setErro("Ocorreu um erro inesperado ao carregar a gestão do curso.");
     } finally {
       setLoading(false);
@@ -261,23 +259,77 @@ export default function GestaoCursoPage() {
     [aulas]
   );
 
+  function validarAntesDeGuardar() {
+    const precoEur = normalizarNumeroInput(form.preco_eur);
+    const precoBrl = normalizarNumeroInput(form.preco_brl);
+
+    if (!form.titulo.trim()) {
+      return "Indica o título do curso.";
+    }
+
+    if (form.preco_eur.trim() && (precoEur === null || precoEur <= 0)) {
+      return "Indica um preço EUR válido ou deixa o campo vazio enquanto o curso estiver em rascunho.";
+    }
+
+    if (form.preco_brl.trim() && (precoBrl === null || precoBrl <= 0)) {
+      return "Indica um preço BRL válido ou deixa o campo vazio.";
+    }
+
+    if (form.checkout_br_ativo && !form.preco_brl.trim()) {
+      return "Para ativar o checkout BR, tens de indicar um preço BRL.";
+    }
+
+    if (form.checkout_br_ativo && (precoBrl === null || precoBrl <= 0)) {
+      return "Para ativar o checkout BR, o preço BRL tem de ser válido.";
+    }
+
+    if (form.publicado) {
+      if (!form.descricao.trim()) {
+        return "Para publicar o curso, tens de preencher a descrição.";
+      }
+
+      if (precoEur === null || precoEur <= 0) {
+        return "Para publicar o curso, tens de indicar um preço EUR válido.";
+      }
+
+      if (totalAulas <= 0 && curso?.tipo_produto === "curso_video") {
+        return "Para publicar um curso em vídeo, tens de criar pelo menos uma aula.";
+      }
+    }
+
+    return "";
+  }
+
   async function guardarCurso(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     if (!curso || !formadorId) return;
+
+    const validacao = validarAntesDeGuardar();
+
+    if (validacao) {
+      setErro(validacao);
+      setSucesso("");
+      return;
+    }
 
     setSaving(true);
     setErro("");
     setSucesso("");
 
     try {
+      const precoEur = normalizarNumeroInput(form.preco_eur);
+      const precoBrl = normalizarNumeroInput(form.preco_brl);
+
       const payload = {
         titulo: form.titulo.trim() || null,
         descricao: form.descricao.trim() || null,
-        preco_eur: normalizarNumeroInput(form.preco_eur),
-        preco_brl: normalizarNumeroInput(form.preco_brl),
-        checkout_eu_ativo: form.checkout_eu_ativo,
-        checkout_br_ativo: form.checkout_br_ativo,
+        preco: precoEur,
+        preco_eur: precoEur,
+        preco_brl: precoBrl,
+        checkout_eu_ativo: true,
+        checkout_br_ativo:
+          form.checkout_br_ativo && precoBrl !== null && precoBrl > 0,
         tem_certificado: form.tem_certificado,
         modo_certificado: form.tem_certificado
           ? form.modo_certificado || null
@@ -300,11 +352,15 @@ export default function GestaoCursoPage() {
 
       if (error) {
         setErro(error.message || "Não foi possível guardar o curso.");
-        setSaving(false);
         return;
       }
 
-      setSucesso("Curso atualizado com sucesso.");
+      setSucesso(
+        form.publicado
+          ? "Curso guardado e marcado como publicado."
+          : "Curso guardado como rascunho."
+      );
+
       await carregarDados();
     } catch {
       setErro("Ocorreu um erro inesperado ao guardar o curso.");
@@ -317,7 +373,7 @@ export default function GestaoCursoPage() {
     if (!curso) return;
 
     const confirmar = window.confirm(
-      "Tens a certeza que queres apagar este curso? Esta ação vai remover o curso, módulos, aulas e ficheiros associados."
+      "Tens a certeza que queres apagar este curso? Esta ação vai remover o curso, módulos, aulas, inscrições e ficheiros associados."
     );
 
     if (!confirmar) return;
@@ -327,11 +383,22 @@ export default function GestaoCursoPage() {
     setSucesso("");
 
     try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const accessToken = session?.access_token;
+
+      if (!accessToken) {
+        setErro("Não foi possível validar a sessão atual do formador.");
+        return;
+      }
+
       const response = await fetch("/api/formadores/apagar-curso", {
         method: "POST",
-        credentials: "include",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           cursoId: curso.id,
@@ -346,13 +413,12 @@ export default function GestaoCursoPage() {
 
       if (!response.ok || !data.success) {
         setErro(data.error || "Não foi possível apagar o curso.");
-        setApagandoCurso(false);
         return;
       }
 
       if (Array.isArray(data.avisos) && data.avisos.length > 0) {
         setSucesso(
-          `Curso apagado com sucesso. Existem avisos pendentes: ${data.avisos.join(" | ")}`
+          `Curso apagado com sucesso. Avisos: ${data.avisos.join(" | ")}`
         );
       } else {
         setSucesso("Curso apagado com sucesso.");
@@ -379,12 +445,7 @@ export default function GestaoCursoPage() {
         padding: "42px 16px 90px",
       }}
     >
-      <section
-        style={{
-          maxWidth: "1280px",
-          margin: "0 auto",
-        }}
-      >
+      <section style={{ maxWidth: "1280px", margin: "0 auto" }}>
         <header style={{ marginBottom: "28px" }}>
           <p
             style={{
@@ -430,18 +491,12 @@ export default function GestaoCursoPage() {
                   maxWidth: "880px",
                 }}
               >
-                Aqui podes gerir os dados principais do curso, publicação,
-                preços, certificado e acesso direto à estrutura.
+                Aqui podes gerir dados principais, preços, publicação,
+                certificado e acesso direto à estrutura do curso.
               </p>
             </div>
 
-            <div
-              style={{
-                display: "flex",
-                gap: "12px",
-                flexWrap: "wrap",
-              }}
-            >
+            <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
               <button
                 type="button"
                 onClick={() => void carregarDados()}
@@ -466,10 +521,8 @@ export default function GestaoCursoPage() {
 
         {loading ? (
           <BlocoMensagem texto="A carregar gestão do curso..." />
-        ) : erro ? (
-          <BlocoErro texto={erro} />
         ) : !curso ? (
-          <BlocoErro texto="Curso não encontrado." />
+          <BlocoErro texto={erro || "Curso não encontrado."} />
         ) : (
           <>
             <section
@@ -522,7 +575,7 @@ export default function GestaoCursoPage() {
                 titulo="Capa e ficheiros"
                 texto={
                   curso.capa_url
-                    ? "Este curso já tem capa definida. O upload visual da gestão pode ser afinado na próxima fase."
+                    ? "Este curso já tem capa definida."
                     : "Ainda não existe capa definida para este curso."
                 }
                 actions={
@@ -539,7 +592,7 @@ export default function GestaoCursoPage() {
 
               <ActionCard
                 titulo="Publicação"
-                texto="Podes manter o curso em rascunho enquanto preparas a estrutura, ou publicá-lo quando estiver pronto."
+                texto="Podes manter o curso em rascunho enquanto preparas a estrutura. Para publicar, a descrição e o preço EUR são obrigatórios."
                 actions={
                   <span style={pillInfo}>
                     {form.publicado ? "Publicado" : "Rascunho"}
@@ -589,6 +642,11 @@ export default function GestaoCursoPage() {
                 rows={6}
               />
 
+              <TextoAjuda>
+                A descrição é opcional enquanto o curso está em rascunho, mas
+                será obrigatória para publicar o curso e colocá-lo à venda.
+              </TextoAjuda>
+
               <SectionTitle titulo="Preços e checkouts" />
 
               <div style={grid2}>
@@ -604,27 +662,51 @@ export default function GestaoCursoPage() {
                 <CampoTexto
                   label="Preço BRL"
                   value={form.preco_brl}
-                  onChange={(valor) =>
-                    setForm((prev) => ({ ...prev, preco_brl: valor }))
-                  }
+                  onChange={(valor) => {
+                    setForm((prev) => ({
+                      ...prev,
+                      preco_brl: valor,
+                      checkout_br_ativo: valor.trim()
+                        ? prev.checkout_br_ativo
+                        : false,
+                    }));
+                  }}
                   type="number"
                 />
               </div>
 
+              <TextoAjuda>
+                O preço EUR é a referência principal da plataforma e é
+                obrigatório para publicação. O preço BRL é opcional e só deve
+                ser usado se também quiseres vender este curso para alunos no
+                Brasil.
+              </TextoAjuda>
+
               <div style={grid2}>
                 <LinhaCheck
-                  texto="Checkout EU ativo"
-                  checked={form.checkout_eu_ativo}
-                  onChange={(checked) =>
-                    setForm((prev) => ({ ...prev, checkout_eu_ativo: checked }))
-                  }
+                  texto="Checkout EUR ativo obrigatoriamente"
+                  checked
+                  disabled
+                  onChange={() => {}}
                 />
+
                 <LinhaCheck
                   texto="Checkout BR ativo"
                   checked={form.checkout_br_ativo}
-                  onChange={(checked) =>
-                    setForm((prev) => ({ ...prev, checkout_br_ativo: checked }))
-                  }
+                  onChange={(checked) => {
+                    if (checked && !form.preco_brl.trim()) {
+                      setErro(
+                        "Para ativar o checkout BR, indica primeiro o preço BRL."
+                      );
+                      return;
+                    }
+
+                    setErro("");
+                    setForm((prev) => ({
+                      ...prev,
+                      checkout_br_ativo: checked,
+                    }));
+                  }}
                 />
               </div>
 
@@ -657,7 +739,10 @@ export default function GestaoCursoPage() {
                       label="Carga horária"
                       value={form.horas_certificado}
                       onChange={(valor) =>
-                        setForm((prev) => ({ ...prev, horas_certificado: valor }))
+                        setForm((prev) => ({
+                          ...prev,
+                          horas_certificado: valor,
+                        }))
                       }
                     />
                   </div>
@@ -666,7 +751,10 @@ export default function GestaoCursoPage() {
                     label="Texto do certificado"
                     value={form.texto_certificado}
                     onChange={(valor) =>
-                      setForm((prev) => ({ ...prev, texto_certificado: valor }))
+                      setForm((prev) => ({
+                        ...prev,
+                        texto_certificado: valor,
+                      }))
                     }
                     rows={4}
                   />
@@ -682,6 +770,12 @@ export default function GestaoCursoPage() {
                   setForm((prev) => ({ ...prev, publicado: checked }))
                 }
               />
+
+              <TextoAjuda>
+                Podes guardar o curso como rascunho com dados incompletos. Ao
+                publicar, a plataforma exige pelo menos título, descrição, preço
+                EUR válido e, no caso de curso em vídeo, pelo menos uma aula.
+              </TextoAjuda>
 
               {sucesso ? <BlocoSucesso texto={sucesso} /> : null}
               {erro ? <BlocoErro texto={erro} /> : null}
@@ -711,7 +805,11 @@ export default function GestaoCursoPage() {
                 <button
                   type="button"
                   onClick={() => void apagarCurso()}
-                  style={botaoPerigo}
+                  style={{
+                    ...botaoPerigo,
+                    opacity: apagandoCurso ? 0.7 : 1,
+                    cursor: apagandoCurso ? "not-allowed" : "pointer",
+                  }}
                   disabled={apagandoCurso}
                 >
                   {apagandoCurso ? "A apagar curso..." : "Apagar curso"}
@@ -851,6 +949,21 @@ function SectionTitle({ titulo }: { titulo: string }) {
   );
 }
 
+function TextoAjuda({ children }: { children: React.ReactNode }) {
+  return (
+    <p
+      style={{
+        margin: 0,
+        fontSize: "18px",
+        color: "#d7b06c",
+        lineHeight: 1.7,
+      }}
+    >
+      {children}
+    </p>
+  );
+}
+
 function CampoTexto({
   label,
   value,
@@ -881,6 +994,8 @@ function CampoTexto({
         type={type}
         value={value}
         disabled={disabled}
+        step={type === "number" ? "0.01" : undefined}
+        min={type === "number" ? "0" : undefined}
         onChange={(e) => onChange(e.target.value)}
         style={{
           width: "100%",
@@ -998,10 +1113,12 @@ function LinhaCheck({
   texto,
   checked,
   onChange,
+  disabled = false,
 }: {
   texto: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
     <label
@@ -1010,16 +1127,18 @@ function LinhaCheck({
         alignItems: "center",
         gap: "10px",
         fontSize: "19px",
-        color: "#e6c27a",
+        color: disabled ? "#caa15a" : "#e6c27a",
         flexWrap: "wrap",
         border: "1px solid rgba(166,120,61,0.22)",
         background: "rgba(32,18,13,0.45)",
         padding: "14px 16px",
+        opacity: disabled ? 0.85 : 1,
       }}
     >
       <input
         type="checkbox"
         checked={checked}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
         style={{ accentColor: "#a6783d" }}
       />

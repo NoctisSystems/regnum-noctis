@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { deleteFromBunny } from "@/lib/bunny-storage";
 
@@ -22,7 +20,7 @@ type Curso = {
 
 type Aula = {
   id: number;
-  video_url: string | null;
+  bunny_video_id: string | null;
 };
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -33,64 +31,48 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-async function getAuthSupabase() {
-  const cookieStore = await cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll().map((cookie) => ({
-            name: cookie.name,
-            value: cookie.value,
-          }));
-        },
-        setAll(
-          cookiesToSet: Array<{
-            name: string;
-            value: string;
-            options?: CookieOptions;
-          }>
-        ) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
-          } catch {
-            // Ignorado em contextos onde os cookies não podem ser reescritos.
-          }
-        },
-      },
-    }
-  );
-}
-
-async function encontrarFormadorComRecuperacao(
-  userId: string,
-  userEmail: string | null | undefined
+async function validarFormadorPorToken(
+  authorizationHeader: string | null
 ): Promise<Formador | null> {
+  if (!authorizationHeader?.startsWith("Bearer ")) {
+    return null;
+  }
+
+  const token = authorizationHeader.slice(7).trim();
+
+  if (!token) {
+    return null;
+  }
+
   const supabaseAdmin = getSupabaseAdmin();
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabaseAdmin.auth.getUser(token);
+
+  if (userError || !user) {
+    return null;
+  }
 
   const { data: porAuthId } = await supabaseAdmin
     .from("formadores")
     .select("id, auth_id, email, status")
-    .eq("auth_id", userId)
+    .eq("auth_id", user.id)
     .maybeSingle();
 
   if (porAuthId) {
     return porAuthId as Formador;
   }
 
-  if (!userEmail) {
+  if (!user.email) {
     return null;
   }
 
   const { data: porEmail } = await supabaseAdmin
     .from("formadores")
     .select("id, auth_id, email, status")
-    .eq("email", userEmail)
+    .eq("email", user.email)
     .maybeSingle();
 
   if (!porEmail) {
@@ -100,13 +82,13 @@ async function encontrarFormadorComRecuperacao(
   if (!porEmail.auth_id) {
     const { error: updateError } = await supabaseAdmin
       .from("formadores")
-      .update({ auth_id: userId })
+      .update({ auth_id: user.id })
       .eq("id", porEmail.id);
 
     if (!updateError) {
       return {
         ...(porEmail as Formador),
-        auth_id: userId,
+        auth_id: user.id,
       };
     }
   }
@@ -199,27 +181,15 @@ export async function POST(request: Request) {
   const avisos: string[] = [];
 
   try {
-    const supabaseAuth = await getAuthSupabase();
     const supabaseAdmin = getSupabaseAdmin();
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseAuth.auth.getUser();
-
-    if (userError || !user) {
-      return NextResponse.json(
-        { error: "Não foi possível validar a sessão do formador." },
-        { status: 401 }
-      );
-    }
-
-    const formador = await encontrarFormadorComRecuperacao(user.id, user.email);
+    const authorizationHeader = request.headers.get("authorization");
+    const formador = await validarFormadorPorToken(authorizationHeader);
 
     if (!formador) {
       return NextResponse.json(
-        { error: "Não foi possível encontrar o registo do formador." },
-        { status: 403 }
+        { error: "Não foi possível validar a sessão do formador." },
+        { status: 401 }
       );
     }
 
@@ -260,7 +230,7 @@ export async function POST(request: Request) {
 
     const { data: aulasData, error: aulasError } = await supabaseAdmin
       .from("aulas")
-      .select("id, video_url")
+      .select("id, bunny_video_id")
       .eq("curso_id", curso.id);
 
     if (aulasError) {
@@ -276,10 +246,11 @@ export async function POST(request: Request) {
 
     const aulas = (aulasData || []) as Aula[];
 
-    const { data: comunidadesData, error: comunidadesError } = await supabaseAdmin
-      .from("comunidades")
-      .select("id")
-      .eq("curso_id", curso.id);
+    const { data: comunidadesData, error: comunidadesError } =
+      await supabaseAdmin
+        .from("comunidades")
+        .select("id")
+        .eq("curso_id", curso.id);
 
     if (comunidadesError) {
       return NextResponse.json(
@@ -330,6 +301,22 @@ export async function POST(request: Request) {
       }
     }
 
+    const { error: inscricoesDeleteError } = await supabaseAdmin
+      .from("inscricoes")
+      .delete()
+      .eq("curso_id", curso.id);
+
+    if (inscricoesDeleteError) {
+      return NextResponse.json(
+        {
+          error:
+            inscricoesDeleteError.message ||
+            "Não foi possível apagar as inscrições associadas ao curso.",
+        },
+        { status: 500 }
+      );
+    }
+
     const { error: aulasDeleteError } = await supabaseAdmin
       .from("aulas")
       .delete()
@@ -378,10 +365,10 @@ export async function POST(request: Request) {
     }
 
     for (const aula of aulas) {
-      if (!aula.video_url) continue;
+      if (!aula.bunny_video_id) continue;
 
       try {
-        await apagarVideoNoBunnyStream(aula.video_url);
+        await apagarVideoNoBunnyStream(aula.bunny_video_id);
       } catch (error: unknown) {
         avisos.push(
           `Não foi possível apagar o vídeo da aula ${aula.id}: ${getErrorMessage(

@@ -450,13 +450,26 @@ export default function DashboardFormadorPage() {
               Dashboard do Formador
             </h1>
 
-            <button
-              type="button"
-              onClick={() => void carregarDados()}
-              style={botaoSecundario}
+            <div
+              style={{
+                display: "flex",
+                gap: "12px",
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
             >
-              Atualizar dashboard
-            </button>
+              <button
+                type="button"
+                onClick={() => void carregarDados()}
+                style={botaoSecundario}
+              >
+                Atualizar dashboard
+              </button>
+
+              <Link href="/formadores/sair" style={botaoSecundario}>
+                Sair
+              </Link>
+            </div>
           </div>
         </header>
 

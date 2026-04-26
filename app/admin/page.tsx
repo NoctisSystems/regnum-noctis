@@ -67,9 +67,12 @@ const menuAdmin = [
   { href: "/admin/publicidade", label: "Publicidade" },
   { href: "/admin/publicidade-candidaturas", label: "Pedidos publicidade" },
   { href: "/admin/vendas", label: "Vendas" },
+  { href: "/admin/vendas-manuais", label: "Vendas manuais" },
+  { href: "/admin/saldos-formadores", label: "Saldos formadores" },
   { href: "/admin/levantamentos", label: "Levantamentos" },
   { href: "/admin/tickets", label: "Tickets" },
   { href: "/admin/chat-formadores", label: "Chat formadores" },
+  { href: "/admin/sair", label: "Sair" },
 ];
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -84,13 +87,13 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
   const [avisoFinanceiro, setAvisoFinanceiro] = useState("");
-  const [contagens, setContagens] = useState<DashboardContagens>(contagensVazias);
+  const [contagens, setContagens] =
+    useState<DashboardContagens>(contagensVazias);
   const [financeiro, setFinanceiro] =
     useState<AdminResumoFinanceiro>(resumoFinanceiroVazio);
   const [aAtualizarResumo, setAAtualizarResumo] = useState(false);
-  const [ultimaAtualizacaoResumo, setUltimaAtualizacaoResumo] = useState<Date | null>(
-    null
-  );
+  const [ultimaAtualizacaoResumo, setUltimaAtualizacaoResumo] =
+    useState<Date | null>(null);
 
   const carregarResumoFinanceiro = useCallback(async () => {
     try {
@@ -112,7 +115,9 @@ export default function AdminDashboardPage() {
         return;
       }
 
-      setFinanceiro((data as AdminResumoFinanceiro | null) || resumoFinanceiroVazio);
+      setFinanceiro(
+        (data as AdminResumoFinanceiro | null) || resumoFinanceiroVazio
+      );
       setUltimaAtualizacaoResumo(new Date());
     } catch (err: unknown) {
       console.error(err);
@@ -187,7 +192,8 @@ export default function AdminDashboardPage() {
     if (levantamentosRes.error) throw levantamentosRes.error;
     if (publicidadeRes.error) throw publicidadeRes.error;
     if (publicidadeHomeRes.error) throw publicidadeHomeRes.error;
-    if (publicidadeCandidaturasRes.error) throw publicidadeCandidaturasRes.error;
+    if (publicidadeCandidaturasRes.error)
+      throw publicidadeCandidaturasRes.error;
     if (publicidadeCandidaturasPendentesRes.error) {
       throw publicidadeCandidaturasPendentesRes.error;
     }
@@ -239,7 +245,9 @@ export default function AdminDashboardPage() {
 
   const totalVendas = Number(financeiro.total_vendido || 0);
   const totalComissoes = Number(financeiro.total_comissoes_plataforma || 0);
-  const totalLiquidoFormadores = Number(financeiro.total_liquido_formadores || 0);
+  const totalLiquidoFormadores = Number(
+    financeiro.total_liquido_formadores || 0
+  );
   const totalPendenteFormadores = Number(
     financeiro.total_pendente_formadores || 0
   );
@@ -299,7 +307,10 @@ export default function AdminDashboardPage() {
               }}
             >
               <div>
-                <h2 className="admin-summary-title" style={{ marginBottom: "8px" }}>
+                <h2
+                  className="admin-summary-title"
+                  style={{ marginBottom: "8px" }}
+                >
                   Resumo financeiro
                 </h2>
 
@@ -329,7 +340,9 @@ export default function AdminDashboardPage() {
                     fontSize: "14px",
                   }}
                 >
-                  {aAtualizarResumo ? "A atualizar resumo..." : textoUltimaAtualizacao}
+                  {aAtualizarResumo
+                    ? "A atualizar resumo..."
+                    : textoUltimaAtualizacao}
                 </span>
 
                 <button
@@ -409,7 +422,9 @@ export default function AdminDashboardPage() {
 
             <DashboardCard
               title="Candidaturas"
-              value={loading ? "..." : String(contagens.totalCandidaturasPendentes)}
+              value={
+                loading ? "..." : String(contagens.totalCandidaturasPendentes)
+              }
               subtitle="Candidaturas de formadores pendentes"
               href="/admin/candidaturas-formador"
             />
@@ -445,7 +460,9 @@ export default function AdminDashboardPage() {
             <DashboardCard
               title="Pedidos publicidade"
               value={
-                loading ? "..." : String(contagens.totalPublicidadeCandidaturasPendentes)
+                loading
+                  ? "..."
+                  : String(contagens.totalPublicidadeCandidaturasPendentes)
               }
               subtitle={`Total recebidos: ${contagens.totalPublicidadeCandidaturas}`}
               href="/admin/publicidade-candidaturas"
@@ -459,8 +476,26 @@ export default function AdminDashboardPage() {
             />
 
             <DashboardCard
+              title="Vendas manuais"
+              value="Registar"
+              subtitle="Ativar acesso quando o pagamento for direto"
+              href="/admin/vendas-manuais"
+            />
+
+            <DashboardCard
+              title="Saldos formadores"
+              value="Ajustar"
+              subtitle="Créditos e débitos administrativos de formadores"
+              href="/admin/saldos-formadores"
+            />
+
+            <DashboardCard
               title="Levantamentos"
-              value={loading ? "..." : String(contagens.totalLevantamentosPendentes)}
+              value={
+                loading
+                  ? "..."
+                  : String(contagens.totalLevantamentosPendentes)
+              }
               subtitle="Pedidos de levantamento em análise"
               href="/admin/levantamentos"
             />
@@ -498,13 +533,7 @@ function DashboardCard({
   );
 }
 
-function ResumoLinha({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+function ResumoLinha({ label, value }: { label: string; value: string }) {
   return (
     <div className="admin-summary-item">
       <p className="admin-summary-label">{label}</p>

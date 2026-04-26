@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  ChangeEvent,
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { supabase } from "@/lib/supabase";
 
 type Formador = {
@@ -42,6 +49,61 @@ const resumoFinanceiroInicial: ResumoFinanceiroFormador = {
   total_pago: 0,
 };
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
+function normalizarNumero(valor: unknown) {
+  if (typeof valor === "number" && !Number.isNaN(valor)) return valor;
+
+  if (typeof valor === "string") {
+    const convertido = Number(valor);
+    if (!Number.isNaN(convertido)) return convertido;
+  }
+
+  return 0;
+}
+
+function normalizarEstado(valor: string | null | undefined) {
+  return (valor || "").trim().toLowerCase();
+}
+
+function formatarEuro(valor: number | null | undefined) {
+  return new Intl.NumberFormat("pt-PT", {
+    style: "currency",
+    currency: "EUR",
+  }).format(normalizarNumero(valor));
+}
+
+function formatarData(valor: string | null | undefined) {
+  if (!valor) return "Data indisponível";
+
+  const data = new Date(valor);
+
+  if (Number.isNaN(data.getTime())) return "Data indisponível";
+
+  return data.toLocaleDateString("pt-PT");
+}
+
+function traduzirEstadoLevantamento(estado: string | null | undefined) {
+  const valor = normalizarEstado(estado);
+
+  if (valor === "aguarda_fatura") return "Aguarda fatura";
+  if (valor === "fatura_enviada") return "Fatura enviada";
+  if (valor === "aguarda_validacao") return "Aguarda validação";
+  if (valor === "em_analise") return "Em análise";
+  if (valor === "validado_admin") return "Validado pela administração";
+  if (valor === "pago") return "Pago";
+  if (valor === "recusado") return "Recusado";
+  if (valor === "cancelado") return "Cancelado";
+
+  return estado || "Sem estado";
+}
+
 export default function FormadorLevantamentosPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -61,56 +123,52 @@ export default function FormadorLevantamentosPage() {
   const [comprovativoPath, setComprovativoPath] = useState("");
   const [observacoes, setObservacoes] = useState("");
 
-  useEffect(() => {
-    carregarDados();
-  }, []);
-
-  async function encontrarFormadorComRecuperacao(
-    userId: string,
-    userEmail: string | null | undefined
-  ) {
-    const { data: porAuthId } = await supabase
-      .from("formadores")
-      .select("id, nome, email, auth_id, status")
-      .eq("auth_id", userId)
-      .maybeSingle();
-
-    if (porAuthId) {
-      return porAuthId as Formador;
-    }
-
-    if (!userEmail) {
-      return null;
-    }
-
-    const { data: porEmail } = await supabase
-      .from("formadores")
-      .select("id, nome, email, auth_id, status")
-      .eq("email", userEmail)
-      .maybeSingle();
-
-    if (!porEmail) {
-      return null;
-    }
-
-    if (!porEmail.auth_id) {
-      const { error: updateError } = await supabase
+  const encontrarFormadorComRecuperacao = useCallback(
+    async (userId: string, userEmail: string | null | undefined) => {
+      const { data: porAuthId } = await supabase
         .from("formadores")
-        .update({ auth_id: userId })
-        .eq("id", porEmail.id);
+        .select("id, nome, email, auth_id, status")
+        .eq("auth_id", userId)
+        .maybeSingle();
 
-      if (!updateError) {
-        return {
-          ...(porEmail as Formador),
-          auth_id: userId,
-        };
+      if (porAuthId) {
+        return porAuthId as Formador;
       }
-    }
 
-    return porEmail as Formador;
-  }
+      if (!userEmail) {
+        return null;
+      }
 
-  async function carregarResumoFinanceiro(formadorId: number) {
+      const { data: porEmail } = await supabase
+        .from("formadores")
+        .select("id, nome, email, auth_id, status")
+        .eq("email", userEmail)
+        .maybeSingle();
+
+      if (!porEmail) {
+        return null;
+      }
+
+      if (!porEmail.auth_id) {
+        const { error: updateError } = await supabase
+          .from("formadores")
+          .update({ auth_id: userId })
+          .eq("id", porEmail.id);
+
+        if (!updateError) {
+          return {
+            ...(porEmail as Formador),
+            auth_id: userId,
+          };
+        }
+      }
+
+      return porEmail as Formador;
+    },
+    []
+  );
+
+  const carregarResumoFinanceiro = useCallback(async (formadorId: number) => {
     try {
       const tentativas = [
         supabase
@@ -157,9 +215,9 @@ export default function FormadorLevantamentosPage() {
     } catch {
       setResumoFinanceiro(resumoFinanceiroInicial);
     }
-  }
+  }, []);
 
-  async function carregarLevantamentosRecentes(formadorId: number) {
+  const carregarLevantamentosRecentes = useCallback(async (formadorId: number) => {
     try {
       const { data, error } = await supabase
         .from("levantamentos_formador")
@@ -178,9 +236,9 @@ export default function FormadorLevantamentosPage() {
     } catch {
       setLevantamentosRecentes([]);
     }
-  }
+  }, []);
 
-  async function carregarDados() {
+  const carregarDados = useCallback(async () => {
     setLoading(true);
     setErro("");
     setSucesso("");
@@ -192,7 +250,7 @@ export default function FormadorLevantamentosPage() {
       } = await supabase.auth.getUser();
 
       if (userError || !user) {
-        setErro("Não foi possível validar a sessão do formador.");
+        setErro("Não foi possível validar a sessão.");
         setLoading(false);
         return;
       }
@@ -203,9 +261,7 @@ export default function FormadorLevantamentosPage() {
       );
 
       if (!formadorData) {
-        setErro(
-          "Não foi possível encontrar o registo do formador. O login está válido, mas o registo ainda não ficou corretamente ligado a esta conta."
-        );
+        setErro("Não foi possível encontrar o registo do formador.");
         setLoading(false);
         return;
       }
@@ -222,12 +278,25 @@ export default function FormadorLevantamentosPage() {
         carregarResumoFinanceiro(formadorData.id),
         carregarLevantamentosRecentes(formadorData.id),
       ]);
-    } catch {
-      setErro("Ocorreu um erro inesperado ao carregar os levantamentos.");
+    } catch (error: unknown) {
+      setErro(
+        getErrorMessage(
+          error,
+          "Ocorreu um erro inesperado ao carregar os levantamentos."
+        )
+      );
     } finally {
       setLoading(false);
     }
-  }
+  }, [
+    carregarLevantamentosRecentes,
+    carregarResumoFinanceiro,
+    encontrarFormadorComRecuperacao,
+  ]);
+
+  useEffect(() => {
+    void carregarDados();
+  }, [carregarDados]);
 
   const saldoDisponivel = useMemo(
     () => normalizarNumero(resumoFinanceiro.saldo_disponivel),
@@ -248,21 +317,21 @@ export default function FormadorLevantamentosPage() {
 
   function validarPedido() {
     if (!formador) {
-      return "Não foi possível validar o formador autenticado.";
+      return "Não foi possível validar o formador.";
     }
 
     if (saldoDisponivel <= 0) {
-      return "Não tens saldo disponível para levantamento.";
+      return "Não existe saldo disponível para levantamento.";
     }
 
     if (!valorPedido.trim()) {
-      return "Indica o valor que pretendes levantar.";
+      return "Indica o valor a levantar.";
     }
 
     const valorNumero = Number(valorPedido.replace(",", "."));
 
     if (Number.isNaN(valorNumero) || valorNumero <= 0) {
-      return "Indica um valor válido para levantamento.";
+      return "Indica um valor válido.";
     }
 
     if (valorNumero > saldoDisponivel) {
@@ -270,16 +339,15 @@ export default function FormadorLevantamentosPage() {
     }
 
     if (!comprovativoPath.trim()) {
-      return "Tens de enviar o comprovativo ou fatura antes de pedir o levantamento.";
+      return "Tens de enviar comprovativo ou fatura.";
     }
 
     return "";
   }
 
-  async function handleComprovativoChange(
-    e: ChangeEvent<HTMLInputElement>
-  ) {
+  async function handleComprovativoChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] || null;
+
     setErro("");
     setSucesso("");
     setComprovativoFile(file);
@@ -307,6 +375,7 @@ export default function FormadorLevantamentosPage() {
       }
 
       const maxBytes = 10 * 1024 * 1024;
+
       if (file.size > maxBytes) {
         setErro("O comprovativo não pode ultrapassar 10 MB.");
         setComprovativoPath("");
@@ -314,7 +383,7 @@ export default function FormadorLevantamentosPage() {
       }
 
       if (!formador) {
-        setErro("Não foi possível validar o formador autenticado.");
+        setErro("Não foi possível validar o formador.");
         setComprovativoPath("");
         return;
       }
@@ -336,11 +405,13 @@ export default function FormadorLevantamentosPage() {
       }
 
       setComprovativoPath(nomeFicheiro);
-      setSucesso("Comprovativo carregado com sucesso.");
-    } catch (error: any) {
+      setSucesso("Comprovativo carregado.");
+    } catch (error: unknown) {
       setErro(
-        error?.message ||
+        getErrorMessage(
+          error,
           "Não foi possível carregar o comprovativo do levantamento."
+        )
       );
       setComprovativoPath("");
     } finally {
@@ -350,10 +421,12 @@ export default function FormadorLevantamentosPage() {
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
     setErro("");
     setSucesso("");
 
     const validacao = validarPedido();
+
     if (validacao) {
       setErro(validacao);
       return;
@@ -363,7 +436,7 @@ export default function FormadorLevantamentosPage() {
       setSubmitting(true);
 
       if (!formador) {
-        setErro("Não foi possível validar o formador autenticado.");
+        setErro("Não foi possível validar o formador.");
         return;
       }
 
@@ -385,7 +458,7 @@ export default function FormadorLevantamentosPage() {
         throw insertError;
       }
 
-      setSucesso("Pedido de levantamento enviado com sucesso.");
+      setSucesso("Pedido enviado.");
       setValorPedido("");
       setComprovativoFile(null);
       setComprovativoPath("");
@@ -395,9 +468,9 @@ export default function FormadorLevantamentosPage() {
         carregarResumoFinanceiro(formador.id),
         carregarLevantamentosRecentes(formador.id),
       ]);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setErro(
-        error?.message || "Não foi possível criar o pedido de levantamento."
+        getErrorMessage(error, "Não foi possível criar o pedido de levantamento.")
       );
     } finally {
       setSubmitting(false);
@@ -405,87 +478,21 @@ export default function FormadorLevantamentosPage() {
   }
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background:
-          "radial-gradient(circle at top, rgba(166,120,61,0.08), transparent 20%), #2b160f",
-        color: "#e6c27a",
-        fontFamily: "Cormorant Garamond, serif",
-        padding: "50px 16px 90px",
-      }}
-    >
-      <section
-        style={{
-          maxWidth: "1280px",
-          margin: "0 auto",
-        }}
-      >
-        <header style={{ marginBottom: "28px" }}>
-          <p
-            style={{
-              margin: "0 0 10px 0",
-              letterSpacing: "0.16em",
-              textTransform: "uppercase",
-              color: "#caa15a",
-              fontSize: "15px",
-            }}
-          >
-            Área do Formador
-          </p>
+    <main style={pagina}>
+      <section style={container}>
+        <header style={header}>
+          <div>
+            <h1 style={tituloPrincipal}>Levantamentos</h1>
+          </div>
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-end",
-              gap: "18px",
-              flexWrap: "wrap",
-            }}
-          >
-            <div>
-              <h1
-                style={{
-                  margin: "0 0 12px 0",
-                  fontFamily: "Cinzel, serif",
-                  fontSize: "clamp(34px, 6vw, 64px)",
-                  lineHeight: 1.1,
-                  color: "#f0d79a",
-                  fontWeight: 500,
-                }}
-              >
-                Levantamentos
-              </h1>
+          <div style={acoesTopo}>
+            <Link href="/formadores/dashboard" style={botaoSecundario}>
+              Voltar à dashboard
+            </Link>
 
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: "clamp(18px, 2.2vw, 22px)",
-                  lineHeight: 1.7,
-                  color: "#d7b06c",
-                  maxWidth: "900px",
-                }}
-              >
-                Consulta os saldos do formador, envia a documentação exigida e
-                acompanha o estado dos pedidos de levantamento.
-              </p>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                gap: "12px",
-                flexWrap: "wrap",
-              }}
-            >
-              <Link href="/formadores/dashboard" style={botaoSecundario}>
-                Voltar à dashboard
-              </Link>
-
-              <Link href="/formadores/levantamentos/historico" style={botao}>
-                Ver histórico completo
-              </Link>
-            </div>
+            <Link href="/formadores/levantamentos/historico" style={botao}>
+              Histórico
+            </Link>
           </div>
         </header>
 
@@ -496,145 +503,69 @@ export default function FormadorLevantamentosPage() {
         ) : (
           <>
             <section style={{ marginBottom: "32px" }}>
-              <SectionTitle
-                titulo="Resumo financeiro"
-                subtitulo="Situação atual dos saldos"
-              />
+              <SectionTitle titulo="Resumo financeiro" subtitulo="Saldos" />
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                  gap: "18px",
-                }}
-              >
+              <div style={gridCards}>
                 <MoneyCard
-                  titulo="Saldo disponível"
+                  titulo="Disponível"
                   valor={formatarEuro(resumoFinanceiro.saldo_disponivel)}
-                  subtitulo="Pode seguir para pedido"
+                  subtitulo="Para levantamento"
                 />
+
                 <MoneyCard
-                  titulo="Saldo retido"
+                  titulo="Retido"
                   valor={formatarEuro(resumoFinanceiro.saldo_retido)}
-                  subtitulo="Ainda não libertado"
+                  subtitulo="Ainda cativo"
                 />
+
                 <MoneyCard
                   titulo="Em análise"
                   valor={formatarEuro(resumoFinanceiro.saldo_em_analise)}
-                  subtitulo="Aguarda validação"
+                  subtitulo="A validar"
                 />
+
                 <MoneyCard
-                  titulo="Chargeback / bloqueios"
+                  titulo="Bloqueios"
                   valor={formatarEuro(resumoFinanceiro.saldo_chargeback)}
-                  subtitulo="Sob retenção"
+                  subtitulo="Retido"
                 />
+
                 <MoneyCard
-                  titulo="Total já pago"
+                  titulo="Pago"
                   valor={formatarEuro(resumoFinanceiro.total_pago)}
-                  subtitulo="Histórico liquidado"
+                  subtitulo="Histórico"
                 />
               </div>
             </section>
 
-            <section
-              style={{
-                display: "grid",
-                gridTemplateColumns: "minmax(0, 1.05fr) minmax(320px, 0.95fr)",
-                gap: "24px",
-                alignItems: "start",
-              }}
-            >
-              <section
-                style={{
-                  border: "1px solid #8a5d31",
-                  background:
-                    "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-                  padding: "26px",
-                  boxShadow:
-                    "0 12px 26px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,225,170,0.03)",
-                }}
-              >
-                <SectionTitle
-                  titulo="Pedir levantamento"
-                  subtitulo="Envio com comprovativo obrigatório"
-                />
-
-                <div
-                  style={{
-                    border: "1px solid rgba(166,120,61,0.22)",
-                    background: "rgba(32,18,13,0.45)",
-                    padding: "18px",
-                    marginBottom: "18px",
-                  }}
-                >
-                  <p
-                    style={{
-                      margin: "0 0 10px 0",
-                      fontSize: "19px",
-                      color: "#f0d79a",
-                      lineHeight: 1.7,
-                    }}
-                  >
-                    O levantamento só pode seguir com fatura ou comprovativo
-                    enviado pelo formador.
-                  </p>
-
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: "18px",
-                      color: "#d7b06c",
-                      lineHeight: 1.75,
-                    }}
-                  >
-                    O pedido entra para validação administrativa. O pagamento
-                    não é automático e pode ficar retido em caso de análise,
-                    incidentes ou saldo ainda cativo.
-                  </p>
-                </div>
+            <section style={gridPrincipal}>
+              <section style={painel}>
+                <SectionTitle titulo="Pedir levantamento" subtitulo="Novo pedido" />
 
                 {existePedidoAberto ? (
-                  <div
-                    style={{
-                      border: "1px solid rgba(166,120,61,0.25)",
-                      background: "rgba(166,120,61,0.06)",
-                      padding: "16px",
-                      marginBottom: "18px",
-                      color: "#d7b06c",
-                      fontSize: "18px",
-                      lineHeight: 1.7,
-                    }}
-                  >
-                    Existe pelo menos um pedido recente ainda em tratamento.
-                    Podes continuar a consultar o histórico, mas confirma se
-                    precisas mesmo de abrir um novo pedido.
+                  <div style={avisoBox}>
+                    Já existe um pedido recente em tratamento.
                   </div>
                 ) : null}
 
                 {erro ? <InlineError texto={erro} /> : null}
                 {sucesso ? <InlineSuccess texto={sucesso} /> : null}
 
-                <form
-                  onSubmit={handleSubmit}
-                  style={{
-                    display: "grid",
-                    gap: "18px",
-                  }}
-                >
+                <form onSubmit={handleSubmit} style={formulario}>
                   <div>
-                    <label style={label}>Valor a levantar</label>
+                    <label style={label}>Valor</label>
                     <input
                       type="number"
                       min="0"
                       step="0.01"
                       value={valorPedido}
-                      onChange={(e) => setValorPedido(e.target.value)}
+                      onChange={(event) => setValorPedido(event.target.value)}
                       placeholder="Ex.: 150.00"
                       style={input}
                     />
+
                     <p style={helperText}>
-                      Saldo disponível atual:{" "}
-                      <strong>{formatarEuro(saldoDisponivel)}</strong>
+                      Disponível: <strong>{formatarEuro(saldoDisponivel)}</strong>
                     </p>
                   </div>
 
@@ -651,41 +582,31 @@ export default function FormadorLevantamentosPage() {
                       />
                     </label>
 
-                    <p style={helperText}>
-                      Formatos aceites: PDF, PNG, JPG e WEBP. Máximo: 10 MB.
-                    </p>
+                    <p style={helperText}>PDF, PNG, JPG ou WEBP. Máximo: 10 MB.</p>
 
                     {uploadingComprovativo ? (
-                      <p style={helperText}>A carregar comprovativo...</p>
+                      <p style={helperText}>A carregar...</p>
                     ) : comprovativoPath ? (
-                      <p style={helperText}>
-                        Ficheiro carregado com sucesso.
-                      </p>
+                      <p style={helperText}>Ficheiro carregado.</p>
                     ) : comprovativoFile ? (
                       <p style={helperText}>
-                        Ficheiro selecionado: <strong>{comprovativoFile.name}</strong>
+                        Selecionado: <strong>{comprovativoFile.name}</strong>
                       </p>
                     ) : null}
                   </div>
 
                   <div>
-                    <label style={label}>Observações do formador</label>
+                    <label style={label}>Observações</label>
                     <textarea
                       value={observacoes}
-                      onChange={(e) => setObservacoes(e.target.value)}
+                      onChange={(event) => setObservacoes(event.target.value)}
                       rows={4}
-                      placeholder="Opcional. Ex.: observações sobre a documentação enviada."
+                      placeholder="Opcional"
                       style={textarea}
                     />
                   </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "12px",
-                      flexWrap: "wrap",
-                    }}
-                  >
+                  <div style={acoesFormulario}>
                     <button
                       type="submit"
                       disabled={submitting || uploadingComprovativo}
@@ -699,9 +620,9 @@ export default function FormadorLevantamentosPage() {
                       }}
                     >
                       {uploadingComprovativo
-                        ? "A carregar comprovativo..."
+                        ? "A carregar..."
                         : submitting
-                        ? "A enviar pedido..."
+                        ? "A enviar..."
                         : "Pedir levantamento"}
                     </button>
 
@@ -715,97 +636,47 @@ export default function FormadorLevantamentosPage() {
                 </form>
               </section>
 
-              <section
-                style={{
-                  border: "1px solid #8a5d31",
-                  background:
-                    "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-                  padding: "26px",
-                  boxShadow:
-                    "0 12px 26px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,225,170,0.03)",
-                }}
-              >
-                <SectionTitle
-                  titulo="Pedidos recentes"
-                  subtitulo="Últimos levantamentos do formador"
-                />
+              <section style={painel}>
+                <SectionTitle titulo="Pedidos recentes" subtitulo="Últimos pedidos" />
 
                 {levantamentosRecentes.length === 0 ? (
-                  <EmptyBox texto="Ainda não existem pedidos de levantamento registados." />
+                  <EmptyBox texto="Ainda não existem pedidos." />
                 ) : (
-                  <div
-                    style={{
-                      display: "grid",
-                      gap: "14px",
-                    }}
-                  >
+                  <div style={listaPedidos}>
                     {levantamentosRecentes.map((item) => (
-                      <article
-                        key={item.id}
-                        style={{
-                          border: "1px solid rgba(166,120,61,0.18)",
-                          background: "rgba(32,18,13,0.40)",
-                          padding: "16px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "grid",
-                            gap: "8px",
-                          }}
-                        >
-                          <p style={itemEyebrow}>
-                            Pedido #{item.id} •{" "}
-                            {formatarData(item.created_at)}
-                          </p>
+                      <article key={item.id} style={pedidoCard}>
+                        <p style={itemEyebrow}>
+                          Pedido #{item.id} • {formatarData(item.created_at)}
+                        </p>
 
-                          <h3 style={itemTitle}>
-                            {formatarEuro(
-                              item.valor_solicitado ??
-                                item.valor_liquido ??
-                                item.valor_bruto
-                            )}
-                          </h3>
-
-                          <p style={itemText}>
-                            Estado:{" "}
-                            <strong>{traduzirEstadoLevantamento(item.estado)}</strong>
-                          </p>
-
-                          {item.comprovativo_url ? (
-                            <p style={itemText}>
-                              Documentação enviada com o pedido.
-                            </p>
-                          ) : (
-                            <p style={itemText}>
-                              Sem comprovativo associado.
-                            </p>
+                        <h3 style={itemTitle}>
+                          {formatarEuro(
+                            item.valor_solicitado ??
+                              item.valor_liquido ??
+                              item.valor_bruto
                           )}
+                        </h3>
 
-                          {item.observacoes_admin ? (
-                            <p style={itemText}>
-                              Observações da administração:{" "}
-                              {item.observacoes_admin}
-                            </p>
-                          ) : null}
-                        </div>
+                        <p style={itemText}>
+                          Estado:{" "}
+                          <strong>{traduzirEstadoLevantamento(item.estado)}</strong>
+                        </p>
+
+                        {item.comprovativo_url ? (
+                          <p style={itemText}>Documentação enviada.</p>
+                        ) : (
+                          <p style={itemText}>Sem comprovativo associado.</p>
+                        )}
+
+                        {item.observacoes_admin ? (
+                          <p style={itemText}>{item.observacoes_admin}</p>
+                        ) : null}
                       </article>
                     ))}
 
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "flex-start",
-                        marginTop: "6px",
-                      }}
-                    >
-                      <Link
-                        href="/formadores/levantamentos/historico"
-                        style={botao}
-                      >
-                        Abrir histórico completo
-                      </Link>
-                    </div>
+                    <Link href="/formadores/levantamentos/historico" style={botao}>
+                      Histórico completo
+                    </Link>
                   </div>
                 )}
               </section>
@@ -817,50 +688,6 @@ export default function FormadorLevantamentosPage() {
   );
 }
 
-function normalizarNumero(valor: unknown) {
-  if (typeof valor === "number" && !Number.isNaN(valor)) return valor;
-  if (typeof valor === "string") {
-    const convertido = Number(valor);
-    if (!Number.isNaN(convertido)) return convertido;
-  }
-  return 0;
-}
-
-function normalizarEstado(valor: string | null | undefined) {
-  return (valor || "").trim().toLowerCase();
-}
-
-function formatarEuro(valor: number | null | undefined) {
-  return new Intl.NumberFormat("pt-PT", {
-    style: "currency",
-    currency: "EUR",
-  }).format(normalizarNumero(valor));
-}
-
-function formatarData(valor: string | null | undefined) {
-  if (!valor) return "Data indisponível";
-
-  const data = new Date(valor);
-  if (Number.isNaN(data.getTime())) return "Data indisponível";
-
-  return data.toLocaleDateString("pt-PT");
-}
-
-function traduzirEstadoLevantamento(estado: string | null | undefined) {
-  const valor = normalizarEstado(estado);
-
-  if (valor === "aguarda_fatura") return "Aguarda fatura";
-  if (valor === "fatura_enviada") return "Fatura enviada";
-  if (valor === "aguarda_validacao") return "Aguarda validação";
-  if (valor === "em_analise") return "Em análise";
-  if (valor === "validado_admin") return "Validado pela administração";
-  if (valor === "pago") return "Pago";
-  if (valor === "recusado") return "Recusado";
-  if (valor === "cancelado") return "Cancelado";
-
-  return estado || "Sem estado";
-}
-
 function SectionTitle({
   titulo,
   subtitulo,
@@ -870,29 +697,8 @@ function SectionTitle({
 }) {
   return (
     <div style={{ marginBottom: "18px" }}>
-      <p
-        style={{
-          margin: "0 0 8px 0",
-          fontSize: "14px",
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          color: "#caa15a",
-        }}
-      >
-        {subtitulo}
-      </p>
-
-      <h2
-        style={{
-          margin: 0,
-          fontFamily: "Cinzel, serif",
-          fontSize: "clamp(28px, 4vw, 40px)",
-          color: "#f0d79a",
-          fontWeight: 500,
-        }}
-      >
-        {titulo}
-      </h2>
+      <p style={sectionSubtitulo}>{subtitulo}</p>
+      <h2 style={sectionTitulo}>{titulo}</h2>
     </div>
   );
 }
@@ -907,182 +713,161 @@ function MoneyCard({
   subtitulo: string;
 }) {
   return (
-    <article
-      style={{
-        border: "1px solid #8a5d31",
-        background:
-          "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
-        padding: "22px",
-        boxShadow:
-          "0 12px 26px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,225,170,0.03)",
-      }}
-    >
-      <p
-        style={{
-          margin: "0 0 10px 0",
-          fontSize: "15px",
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          color: "#caa15a",
-        }}
-      >
-        {titulo}
-      </p>
-
-      <p
-        style={{
-          margin: "0 0 8px 0",
-          fontFamily: "Cinzel, serif",
-          fontSize: "30px",
-          color: "#f0d79a",
-          lineHeight: 1.2,
-          wordBreak: "break-word",
-        }}
-      >
-        {valor}
-      </p>
-
-      <p
-        style={{
-          margin: 0,
-          fontSize: "18px",
-          color: "#d7b06c",
-          lineHeight: 1.6,
-        }}
-      >
-        {subtitulo}
-      </p>
+    <article style={moneyCard}>
+      <p style={moneyTitulo}>{titulo}</p>
+      <p style={moneyValor}>{valor}</p>
+      <p style={moneySubtitulo}>{subtitulo}</p>
     </article>
   );
 }
 
 function EmptyBox({ texto }: { texto: string }) {
-  return (
-    <div
-      style={{
-        border: "1px solid rgba(166,120,61,0.18)",
-        background: "rgba(32,18,13,0.35)",
-        padding: "20px",
-        color: "#d7b06c",
-        fontSize: "18px",
-        lineHeight: 1.7,
-      }}
-    >
-      {texto}
-    </div>
-  );
+  return <div style={emptyBox}>{texto}</div>;
 }
 
 function InlineError({ texto }: { texto: string }) {
-  return (
-    <div
-      style={{
-        color: "#ffb4b4",
-        border: "1px solid rgba(255,107,107,0.35)",
-        background: "rgba(120,20,20,0.12)",
-        padding: "14px 16px",
-        fontSize: "18px",
-      }}
-    >
-      {texto}
-    </div>
-  );
+  return <div style={inlineError}>{texto}</div>;
 }
 
 function InlineSuccess({ texto }: { texto: string }) {
-  return (
-    <div
-      style={{
-        color: "#bff1bf",
-        border: "1px solid rgba(74,222,128,0.35)",
-        background: "rgba(20,90,40,0.12)",
-        padding: "14px 16px",
-        fontSize: "18px",
-      }}
-    >
-      {texto}
-    </div>
-  );
+  return <div style={inlineSuccess}>{texto}</div>;
 }
 
 function LoadingBox() {
   return (
-    <section
-      style={{
-        border: "1px solid rgba(166,120,61,0.7)",
-        background:
-          "linear-gradient(180deg, rgba(15,9,7,0.96) 0%, rgba(28,16,12,0.98) 100%)",
-        padding: "30px",
-        boxShadow:
-          "0 16px 40px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,225,170,0.04)",
-      }}
-    >
-      <h2
-        style={{
-          fontFamily: "Cinzel, serif",
-          fontSize: "clamp(26px, 4vw, 34px)",
-          margin: "0 0 18px 0",
-          color: "#f0d79a",
-          fontWeight: 500,
-        }}
-      >
-        A carregar levantamentos
-      </h2>
-
-      <p
-        style={{
-          margin: 0,
-          fontSize: "clamp(18px, 2.2vw, 22px)",
-          lineHeight: 1.7,
-          color: "#dfbe81",
-        }}
-      >
-        A plataforma está a reunir o resumo financeiro e os pedidos recentes do
-        formador.
-      </p>
+    <section style={loadingBox}>
+      <h2 style={loadingTitulo}>A carregar levantamentos</h2>
+      <p style={loadingTexto}>A reunir dados financeiros.</p>
     </section>
   );
 }
 
 function ErrorBox({ texto }: { texto: string }) {
-  return (
-    <section
-      style={{
-        border: "1px solid rgba(255,107,107,0.35)",
-        background: "rgba(120,20,20,0.12)",
-        padding: "24px",
-        color: "#ffb4b4",
-        fontSize: "20px",
-        lineHeight: 1.7,
-      }}
-    >
-      {texto}
-    </section>
-  );
+  return <section style={errorBox}>{texto}</section>;
 }
 
-const itemEyebrow: React.CSSProperties = {
-  margin: 0,
-  fontSize: "14px",
-  color: "#caa15a",
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
+const pagina: React.CSSProperties = {
+  minHeight: "100vh",
+  background:
+    "radial-gradient(circle at top, rgba(166,120,61,0.08), transparent 20%), #2b160f",
+  color: "#e6c27a",
+  fontFamily: "Cormorant Garamond, serif",
+  padding: "50px 16px 90px",
 };
 
-const itemTitle: React.CSSProperties = {
+const container: React.CSSProperties = {
+  maxWidth: "1280px",
+  margin: "0 auto",
+};
+
+const header: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-end",
+  gap: "18px",
+  flexWrap: "wrap",
+  marginBottom: "28px",
+};
+
+const tituloPrincipal: React.CSSProperties = {
   margin: 0,
   fontFamily: "Cinzel, serif",
-  fontSize: "28px",
+  fontSize: "clamp(34px, 6vw, 64px)",
+  lineHeight: 1.1,
   color: "#f0d79a",
-  lineHeight: 1.2,
   fontWeight: 500,
 };
 
-const itemText: React.CSSProperties = {
+const acoesTopo: React.CSSProperties = {
+  display: "flex",
+  gap: "12px",
+  flexWrap: "wrap",
+};
+
+const gridCards: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: "18px",
+};
+
+const gridPrincipal: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 360px), 1fr))",
+  gap: "24px",
+  alignItems: "start",
+};
+
+const painel: React.CSSProperties = {
+  border: "1px solid #8a5d31",
+  background:
+    "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
+  padding: "26px",
+  boxShadow:
+    "0 12px 26px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,225,170,0.03)",
+};
+
+const sectionSubtitulo: React.CSSProperties = {
+  margin: "0 0 8px 0",
+  fontSize: "14px",
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: "#caa15a",
+};
+
+const sectionTitulo: React.CSSProperties = {
+  margin: 0,
+  fontFamily: "Cinzel, serif",
+  fontSize: "clamp(28px, 4vw, 40px)",
+  color: "#f0d79a",
+  fontWeight: 500,
+};
+
+const moneyCard: React.CSSProperties = {
+  border: "1px solid #8a5d31",
+  background:
+    "linear-gradient(180deg, rgba(20,13,9,0.98) 0%, rgba(16,10,8,0.98) 100%)",
+  padding: "22px",
+  boxShadow:
+    "0 12px 26px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,225,170,0.03)",
+};
+
+const moneyTitulo: React.CSSProperties = {
+  margin: "0 0 10px 0",
+  fontSize: "15px",
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: "#caa15a",
+};
+
+const moneyValor: React.CSSProperties = {
+  margin: "0 0 8px 0",
+  fontFamily: "Cinzel, serif",
+  fontSize: "30px",
+  color: "#f0d79a",
+  lineHeight: 1.2,
+  wordBreak: "break-word",
+};
+
+const moneySubtitulo: React.CSSProperties = {
   margin: 0,
   fontSize: "18px",
   color: "#d7b06c",
+  lineHeight: 1.6,
+};
+
+const avisoBox: React.CSSProperties = {
+  border: "1px solid rgba(166,120,61,0.25)",
+  background: "rgba(166,120,61,0.06)",
+  padding: "16px",
+  marginBottom: "18px",
+  color: "#d7b06c",
+  fontSize: "18px",
   lineHeight: 1.7,
+};
+
+const formulario: React.CSSProperties = {
+  display: "grid",
+  gap: "18px",
 };
 
 const label: React.CSSProperties = {
@@ -1139,6 +924,12 @@ const uploadButton: React.CSSProperties = {
   textAlign: "center",
 };
 
+const acoesFormulario: React.CSSProperties = {
+  display: "flex",
+  gap: "12px",
+  flexWrap: "wrap",
+};
+
 const submitButton: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -1153,6 +944,101 @@ const submitButton: React.CSSProperties = {
   textTransform: "uppercase",
   boxShadow:
     "0 0 24px rgba(230, 194, 122, 0.18), inset 0 1px 0 rgba(255,255,255,0.18)",
+};
+
+const listaPedidos: React.CSSProperties = {
+  display: "grid",
+  gap: "14px",
+};
+
+const pedidoCard: React.CSSProperties = {
+  border: "1px solid rgba(166,120,61,0.18)",
+  background: "rgba(32,18,13,0.40)",
+  padding: "16px",
+  display: "grid",
+  gap: "8px",
+};
+
+const itemEyebrow: React.CSSProperties = {
+  margin: 0,
+  fontSize: "14px",
+  color: "#caa15a",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+};
+
+const itemTitle: React.CSSProperties = {
+  margin: 0,
+  fontFamily: "Cinzel, serif",
+  fontSize: "28px",
+  color: "#f0d79a",
+  lineHeight: 1.2,
+  fontWeight: 500,
+};
+
+const itemText: React.CSSProperties = {
+  margin: 0,
+  fontSize: "18px",
+  color: "#d7b06c",
+  lineHeight: 1.7,
+};
+
+const emptyBox: React.CSSProperties = {
+  border: "1px solid rgba(166,120,61,0.18)",
+  background: "rgba(32,18,13,0.35)",
+  padding: "20px",
+  color: "#d7b06c",
+  fontSize: "18px",
+  lineHeight: 1.7,
+};
+
+const inlineError: React.CSSProperties = {
+  color: "#ffb4b4",
+  border: "1px solid rgba(255,107,107,0.35)",
+  background: "rgba(120,20,20,0.12)",
+  padding: "14px 16px",
+  fontSize: "18px",
+};
+
+const inlineSuccess: React.CSSProperties = {
+  color: "#bff1bf",
+  border: "1px solid rgba(74,222,128,0.35)",
+  background: "rgba(20,90,40,0.12)",
+  padding: "14px 16px",
+  fontSize: "18px",
+};
+
+const loadingBox: React.CSSProperties = {
+  border: "1px solid rgba(166,120,61,0.7)",
+  background:
+    "linear-gradient(180deg, rgba(15,9,7,0.96) 0%, rgba(28,16,12,0.98) 100%)",
+  padding: "30px",
+  boxShadow:
+    "0 16px 40px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,225,170,0.04)",
+};
+
+const loadingTitulo: React.CSSProperties = {
+  fontFamily: "Cinzel, serif",
+  fontSize: "clamp(26px, 4vw, 34px)",
+  margin: "0 0 18px 0",
+  color: "#f0d79a",
+  fontWeight: 500,
+};
+
+const loadingTexto: React.CSSProperties = {
+  margin: 0,
+  fontSize: "clamp(18px, 2.2vw, 22px)",
+  lineHeight: 1.7,
+  color: "#dfbe81",
+};
+
+const errorBox: React.CSSProperties = {
+  border: "1px solid rgba(255,107,107,0.35)",
+  background: "rgba(120,20,20,0.12)",
+  padding: "24px",
+  color: "#ffb4b4",
+  fontSize: "20px",
+  lineHeight: 1.7,
 };
 
 const botao: React.CSSProperties = {

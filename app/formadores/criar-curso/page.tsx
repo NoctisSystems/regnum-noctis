@@ -65,6 +65,16 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+function normalizarNumeroInput(valor: string) {
+  const texto = valor.trim().replace(",", ".");
+  if (!texto) return null;
+
+  const numero = Number(texto);
+  if (Number.isNaN(numero)) return null;
+
+  return numero;
+}
+
 async function enviarFicheiroParaBunny(params: {
   file: File;
   kind: "pdf_curso" | "certificado_pronto" | "certificado_modelo";
@@ -209,9 +219,9 @@ export default function CriarCursoPage() {
   function validarPrecoOpcional(valor: string, nome: string) {
     if (!valor.trim()) return "";
 
-    const numero = Number(valor.replace(",", "."));
-    if (Number.isNaN(numero) || numero < 0) {
-      return `Indica um ${nome} válido.`;
+    const numero = normalizarNumeroInput(valor);
+    if (numero === null || numero < 0) {
+      return `Indica um ${nome} válido ou deixa o campo vazio.`;
     }
 
     return "";
@@ -235,16 +245,16 @@ export default function CriarCursoPage() {
     const erroPrecoBrl = validarPrecoOpcional(form.preco_brl, "preço BRL");
     if (erroPrecoBrl) return erroPrecoBrl;
 
-    if (form.checkout_eu_ativo && !form.preco_eur.trim()) {
-      return "Se o checkout EU estiver ativo, tens de indicar o preço EUR.";
-    }
-
     if (form.checkout_br_ativo && !form.preco_brl.trim()) {
-      return "Se o checkout BR estiver ativo, tens de indicar o preço BRL.";
+      return "Para ativar o checkout BR, tens de indicar o preço BRL.";
     }
 
-    if (!form.checkout_eu_ativo && !form.checkout_br_ativo) {
-      return "Ativa pelo menos um checkout regional.";
+    if (form.checkout_br_ativo) {
+      const precoBrl = normalizarNumeroInput(form.preco_brl);
+
+      if (precoBrl === null || precoBrl <= 0) {
+        return "Para ativar o checkout BR, indica um preço BRL válido.";
+      }
     }
 
     return "";
@@ -451,28 +461,21 @@ export default function CriarCursoPage() {
         return;
       }
 
-      const precoNumero = form.preco.trim()
-        ? Number(form.preco.replace(",", "."))
-        : null;
-
-      const precoEurNumero = form.preco_eur.trim()
-        ? Number(form.preco_eur.replace(",", "."))
-        : null;
-
-      const precoBrlNumero = form.preco_brl.trim()
-        ? Number(form.preco_brl.replace(",", "."))
-        : null;
+      const precoNumero = normalizarNumeroInput(form.preco);
+      const precoEurNumero = normalizarNumeroInput(form.preco_eur);
+      const precoBrlNumero = normalizarNumeroInput(form.preco_brl);
 
       const payload = {
         formador_id: formador.id,
         titulo: form.titulo.trim(),
         descricao: form.descricao.trim() || null,
         tipo_produto: form.tipo_produto,
-        preco: precoNumero,
+        preco: precoEurNumero ?? precoNumero,
         preco_eur: precoEurNumero,
         preco_brl: precoBrlNumero,
-        checkout_eu_ativo: form.checkout_eu_ativo,
-        checkout_br_ativo: form.checkout_br_ativo,
+        checkout_eu_ativo: true,
+        checkout_br_ativo:
+          form.checkout_br_ativo && precoBrlNumero !== null && precoBrlNumero > 0,
         publicado: false,
         modo_acesso_14_dias: form.modo_acesso_14_dias || null,
         dias_prazo_legal: 14,
@@ -611,9 +614,8 @@ export default function CriarCursoPage() {
               maxWidth: "920px",
             }}
           >
-            Cria aqui o rascunho do teu conteúdo. Nesta fase só o título é
-            obrigatório. O resto pode ser tratado depois, com calma, antes da
-            publicação.
+            Cria aqui o rascunho do teu conteúdo. O preço em euros, a descrição,
+            a capa e os ficheiros podem ser tratados depois, antes da publicação.
           </p>
         </header>
 
@@ -653,64 +655,78 @@ export default function CriarCursoPage() {
             value={form.descricao}
             onChange={(v) => update("descricao", v)}
             rows={7}
-            placeholder="Opcional nesta fase"
+            placeholder="Opcional no rascunho. Obrigatória antes da publicação."
           />
 
           <div style={caixaInterna}>
             <h2 style={subTitulo}>Preços e checkouts por região</h2>
 
             <Input
-              label="Preço base"
-              value={form.preco}
-              onChange={(v) => update("preco", v)}
-              placeholder="Opcional. Campo legado/base"
+              label="Preço EUR"
+              value={form.preco_eur}
+              onChange={(v) => update("preco_eur", v)}
+              placeholder="Opcional no rascunho. Ex.: 97"
+              type="number"
             />
 
-            <div style={grid2}>
-              <Input
-                label="Preço EUR"
-                value={form.preco_eur}
-                onChange={(v) => update("preco_eur", v)}
-                placeholder="Ex.: 97"
-              />
+            <p style={{ ...textoAjuda, marginTop: "10px" }}>
+              O preço em euros é a referência principal da plataforma e será
+              obrigatório antes de publicares o conteúdo para venda.
+            </p>
 
+            <div style={{ marginTop: "16px" }}>
               <Input
                 label="Preço BRL"
                 value={form.preco_brl}
-                onChange={(v) => update("preco_brl", v)}
-                placeholder="Ex.: 497"
+                onChange={(v) => {
+                  update("preco_brl", v);
+
+                  if (!v.trim()) {
+                    update("checkout_br_ativo", false);
+                  }
+                }}
+                placeholder="Opcional. Ex.: 497"
+                type="number"
               />
             </div>
 
-            <div style={grid2}>
-              <label style={checkboxLinha}>
+            <div style={{ marginTop: "16px", display: "grid", gap: "12px" }}>
+              <label style={checkboxLinhaDesativada}>
                 <input
                   type="checkbox"
-                  checked={form.checkout_eu_ativo}
-                  onChange={(e) =>
-                    update("checkout_eu_ativo", e.target.checked)
-                  }
+                  checked
+                  readOnly
+                  disabled
                   style={{ accentColor: "#a6783d" }}
                 />
-                <span>Checkout EU ativo</span>
+                <span>Checkout EUR ativo por defeito</span>
               </label>
 
               <label style={checkboxLinha}>
                 <input
                   type="checkbox"
                   checked={form.checkout_br_ativo}
-                  onChange={(e) =>
-                    update("checkout_br_ativo", e.target.checked)
-                  }
+                  onChange={(e) => {
+                    if (e.target.checked && !form.preco_brl.trim()) {
+                      setErro(
+                        "Para ativar o checkout BR, indica primeiro o preço em reais."
+                      );
+                      update("checkout_br_ativo", false);
+                      return;
+                    }
+
+                    setErro("");
+                    update("checkout_br_ativo", e.target.checked);
+                  }}
                   style={{ accentColor: "#a6783d" }}
                 />
-                <span>Checkout BR ativo</span>
+                <span>Ativar checkout BR</span>
               </label>
             </div>
 
-            <p style={textoAjuda}>
-              O checkout EU usa o preço EUR. O checkout BR usa o preço BRL. A
-              validação final da região deve ser feita no backend.
+            <p style={{ ...textoAjuda, marginTop: "14px" }}>
+              O preço BRL é opcional. Se não for preenchido, os alunos do Brasil
+              verão apenas a referência em euros e o checkout será feito em EUR.
             </p>
           </div>
 
@@ -748,7 +764,9 @@ export default function CriarCursoPage() {
 
             <UploadField
               label="Upload da capa"
-              buttonText={uploadingCapa ? "A carregar capa..." : "Selecionar capa"}
+              buttonText={
+                uploadingCapa ? "A carregar capa..." : "Selecionar capa"
+              }
               accept="image/png,image/jpeg,image/webp"
               onChange={(e) => handleUploadCapa(e.target.files?.[0] || null)}
               disabled={uploadingCapa}
@@ -757,7 +775,8 @@ export default function CriarCursoPage() {
             <p style={{ ...textoAjuda, marginTop: "10px" }}>
               Formatos aceites: <strong>PNG, JPG e WEBP</strong>. Medida
               recomendada para melhor definição: <strong>1920 × 1080 px</strong>.
-              Proporção ideal: <strong>16:9</strong>. Máximo: <strong>5 MB</strong>.
+              Proporção ideal: <strong>16:9</strong>. Máximo:{" "}
+              <strong>5 MB</strong>.
             </p>
 
             <p style={{ ...textoAjuda, marginTop: "10px" }}>
@@ -827,7 +846,9 @@ export default function CriarCursoPage() {
 
               <UploadField
                 label="Upload do PDF principal"
-                buttonText={uploadingPdf ? "A carregar PDF..." : "Selecionar PDF"}
+                buttonText={
+                  uploadingPdf ? "A carregar PDF..." : "Selecionar PDF"
+                }
                 accept="application/pdf"
                 onChange={(e) => handleUploadPdf(e.target.files?.[0] || null)}
                 disabled={uploadingPdf}
@@ -1022,9 +1043,10 @@ export default function CriarCursoPage() {
 
           <div style={caixaInterna}>
             <p style={textoEstado}>
-              O conteúdo será criado como <strong>rascunho</strong>. A capa,
-              descrição, preços por região, PDF, certificado e restantes
-              detalhes podem ser tratados depois.
+              O conteúdo será criado como <strong>rascunho</strong>. O formador
+              pode definir preço, descrição, capa, PDF, certificado e restante
+              configuração mais tarde. Para publicar, o preço EUR e os dados
+              mínimos serão obrigatórios.
             </p>
           </div>
 
@@ -1093,6 +1115,8 @@ function Input({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        step={type === "number" ? "0.01" : undefined}
+        min={type === "number" ? "0" : undefined}
         style={campoBase}
       />
     </div>
@@ -1320,15 +1344,19 @@ const checkboxLinha: React.CSSProperties = {
   flexWrap: "wrap",
 };
 
+const checkboxLinhaDesativada: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  fontSize: "19px",
+  color: "#caa15a",
+  flexWrap: "wrap",
+  opacity: 0.85,
+};
+
 const textoEstado: React.CSSProperties = {
   margin: 0,
   fontSize: "20px",
   lineHeight: 1.7,
   color: "#d7b06c",
-};
-
-const grid2: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-  gap: "16px",
 };

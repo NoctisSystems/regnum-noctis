@@ -60,7 +60,7 @@ export default function AdminAlunosPage() {
         supabase
           .from("alunos")
           .select("id, nome, email, created_at")
-          .order("nome", { ascending: true }),
+          .order("id", { ascending: false }),
 
         supabase
           .from("cursos")
@@ -182,7 +182,7 @@ export default function AdminAlunosPage() {
         throw erroInscricao;
       }
 
-      setSucesso("Aluno associado ao curso com sucesso.");
+      setSucesso(`Aluno #${alunoIdFinal} associado ao curso com sucesso.`);
       limparFormulario();
       setMostrarNovoAluno(false);
       await carregarDados();
@@ -199,17 +199,18 @@ export default function AdminAlunosPage() {
 
   function exportarCSV() {
     const linhas = linhasAlunosFiltradas.map((aluno) => ({
+      id: aluno.id,
       nome: aluno.nome,
       email: aluno.email,
       cursos: aluno.cursos.join(" | "),
       estado: aluno.estado,
     }));
 
-    const cabecalho = ["Nome", "Email", "Cursos", "Estado"];
+    const cabecalho = ["ID", "Nome", "Email", "Cursos", "Estado"];
     const conteudo = [
       cabecalho.join(";"),
       ...linhas.map((linha) =>
-        [linha.nome, linha.email, linha.cursos, linha.estado]
+        [linha.id, linha.nome, linha.email, linha.cursos, linha.estado]
           .map((valor) => `"${String(valor || "").replace(/"/g, '""')}"`)
           .join(";")
       ),
@@ -273,6 +274,7 @@ export default function AdminAlunosPage() {
 
     return linhasAlunos.filter((aluno) => {
       return (
+        String(aluno.id).includes(termo) ||
         aluno.nome.toLowerCase().includes(termo) ||
         aluno.email.toLowerCase().includes(termo) ||
         aluno.cursos.join(" ").toLowerCase().includes(termo)
@@ -300,9 +302,6 @@ export default function AdminAlunosPage() {
       <section style={hero}>
         <p style={kicker}>Administração</p>
         <h1 style={titulo}>Alunos</h1>
-        <p style={descricao}>
-          Gestão de alunos, associação manual a cursos e exportação da listagem.
-        </p>
       </section>
 
       <section style={gridMetricas}>
@@ -328,7 +327,7 @@ export default function AdminAlunosPage() {
       <section style={barraTopo}>
         <input
           type="text"
-          placeholder="Pesquisar aluno..."
+          placeholder="Pesquisar por ID, nome, email ou curso..."
           value={pesquisa}
           onChange={(e) => setPesquisa(e.target.value)}
           style={inputPesquisa}
@@ -402,9 +401,7 @@ export default function AdminAlunosPage() {
                   <option value="">Selecionar aluno</option>
                   {alunos.map((aluno) => (
                     <option key={aluno.id} value={aluno.id}>
-                      {(aluno.nome || "Sem nome") +
-                        " — " +
-                        (aluno.email || "Sem email")}
+                      {`#${aluno.id} — ${(aluno.nome || "Sem nome") + " — " + (aluno.email || "Sem email")}`}
                     </option>
                   ))}
                 </select>
@@ -445,7 +442,7 @@ export default function AdminAlunosPage() {
                 <option value="">Selecionar curso</option>
                 {cursos.map((curso) => (
                   <option key={curso.id} value={curso.id}>
-                    {curso.titulo || "Curso sem título"}
+                    {`#${curso.id} — ${curso.titulo || "Curso sem título"}`}
                   </option>
                 ))}
               </select>
@@ -490,6 +487,7 @@ export default function AdminAlunosPage() {
             <article key={aluno.id} style={cardLinha}>
               <div style={cardLinhaHeader}>
                 <div>
+                  <p style={idAlunoLinha}>Aluno #{aluno.id}</p>
                   <h3 style={nomeLinha}>{aluno.nome}</h3>
                   <p style={subLinha}>{aluno.email}</p>
                 </div>
@@ -498,6 +496,11 @@ export default function AdminAlunosPage() {
               </div>
 
               <div style={gridInfo}>
+                <div style={infoBloco}>
+                  <p style={infoLabel}>ID do aluno</p>
+                  <p style={infoValor}>#{aluno.id}</p>
+                </div>
+
                 <div style={infoBloco}>
                   <p style={infoLabel}>Cursos</p>
                   <p style={infoValor}>
@@ -547,14 +550,6 @@ const titulo: CSSProperties = {
   fontSize: "clamp(34px, 5vw, 48px)",
   margin: 0,
   color: "#e6c27a",
-};
-
-const descricao: CSSProperties = {
-  margin: 0,
-  color: "#d7b06c",
-  fontSize: "clamp(18px, 2.4vw, 21px)",
-  lineHeight: 1.7,
-  maxWidth: "900px",
 };
 
 const gridMetricas: CSSProperties = {
@@ -710,6 +705,14 @@ const cardLinhaHeader: CSSProperties = {
   gap: "12px",
   flexWrap: "wrap",
   marginBottom: "14px",
+};
+
+const idAlunoLinha: CSSProperties = {
+  margin: "0 0 6px 0",
+  color: "#caa15a",
+  fontSize: "14px",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
 };
 
 const nomeLinha: CSSProperties = {
